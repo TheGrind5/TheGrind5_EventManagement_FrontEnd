@@ -1,23 +1,40 @@
-const BASE_URL = "http://localhost:5000"; // đổi sang URL API thật (ASP.NET)
+// API Configuration
+const API_BASE_URL = "http://localhost:5000";
 
+// Helper function để tạo full URL
+const createApiUrl = (endpoint) => `${API_BASE_URL}${endpoint}`;
+
+// API Functions
 export async function login(identifier, password) {
-  // Nếu backend của bạn dùng `email`/`username` tách riêng, sửa body cho phù hợp
-  const res = await fetch(`${BASE_URL}/api/auth/login`, {
+  const response = await fetch(createApiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include", // nhận cookie httpOnly nếu backend set
-    body: JSON.stringify({ identifier, password }),
+    credentials: "include",
+    body: JSON.stringify({ email: identifier, password }),
   });
 
-  if (!res.ok) {
-    let message = "Thông tin đăng nhập không đúng. Vui lòng thử lại.";
-    try {
-      const data = await res.json();
-      if (data?.message) message = data.message;
-    } catch {}
-    throw new Error(message);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.message || "Đăng nhập thất bại. Vui lòng thử lại.";
+    throw new Error(errorMessage);
   }
 
-  // Chuẩn kỳ vọng: { token, user: {...} }
-  return res.json();
+  return response.json();
+}
+
+export async function register(userData) {
+  const response = await fetch(createApiUrl("/api/auth/register"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(userData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.message || "Đăng ký thất bại. Vui lòng thử lại.";
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
 }
