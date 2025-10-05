@@ -24,13 +24,15 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const loginUser = async (identifier, password) => {
-    const response = await login(identifier, password);
-    // Backend trả về { accessToken, expiresAt, user }
-    const userData = response.user;
+  const loginUser = async (email, password) => {
+    const response = await login(email, password);
+    // Backend trả về { success, message, data: { accessToken, expiresAt, user } }
+    const { data } = response;
+    const userData = data.user;
     setUser(userData);
     localStorage.setItem('ems:user', JSON.stringify(userData));
-    localStorage.setItem('ems:token', response.accessToken);
+    localStorage.setItem('ems:token', data.accessToken);
+    localStorage.setItem('ems:tokenExpiry', data.expiresAt);
     return userData;
   };
 
@@ -41,15 +43,27 @@ export const AuthProvider = ({ children }) => {
     return newUser;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('ems:user');
-    localStorage.removeItem('ems:token');
-    localStorage.removeItem('ems:last_id');
+  const logout = async () => {
+    try {
+      // Call logout API to clear server-side session
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
+      // Clear local storage regardless of API call result
+      setUser(null);
+      localStorage.removeItem('ems:user');
+      localStorage.removeItem('ems:token');
+      localStorage.removeItem('ems:tokenExpiry');
+      localStorage.removeItem('ems:last_id');
+    }
   };
 
+  // Alias for backward compatibility
+  const login = loginUser;
+
   return (
-    <AuthContext.Provider value={{ user, loginUser, registerUser, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, loginUser, registerUser, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

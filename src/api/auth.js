@@ -5,12 +5,12 @@ const API_BASE_URL = "http://localhost:5000";
 const createApiUrl = (endpoint) => `${API_BASE_URL}${endpoint}`;
 
 // API Functions
-export async function login(identifier, password) {
+export async function login(email, password) {
   const response = await fetch(createApiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email: identifier, password }),
+    body: JSON.stringify({ email, password }),
   });
 
   if (!response.ok) {
