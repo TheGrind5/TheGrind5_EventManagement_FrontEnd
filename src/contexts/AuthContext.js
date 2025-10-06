@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login, register } from '../api/auth';
+import { authAPI } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -16,54 +16,82 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Kiểm tra user đã đăng nhập chưa
-    const savedUser = localStorage.getItem('ems:user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    // Check if user is logged in on app start
+    const checkAuth = async () => {
+      try {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('user');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  const loginUser = async (email, password) => {
-    const response = await login(email, password);
-    // Backend trả về { success, message, data: { accessToken, expiresAt, user } }
-    const { data } = response;
-    const userData = data.user;
-    setUser(userData);
-    localStorage.setItem('ems:user', JSON.stringify(userData));
-    localStorage.setItem('ems:token', data.accessToken);
-    localStorage.setItem('ems:tokenExpiry', data.expiresAt);
-    return userData;
-  };
-
-  const registerUser = async (userData) => {
-    const newUser = await register(userData);
-    setUser(newUser);
-    localStorage.setItem('ems:user', JSON.stringify(newUser));
-    return newUser;
-  };
-
-  const logout = async () => {
+  const login = async (email, password) => {
     try {
-      // Call logout API to clear server-side session
-      await fetch('/api/auth/logout', { method: 'POST' });
+      const response = await authAPI.login(email, password);
+      if (response.user) {
+        setUser(response.user);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        return { success: true };
+      }
+      return { success: false, message: 'Login failed' };
     } catch (error) {
-      console.error('Logout API error:', error);
-    } finally {
-      // Clear local storage regardless of API call result
-      setUser(null);
-      localStorage.removeItem('ems:user');
-      localStorage.removeItem('ems:token');
-      localStorage.removeItem('ems:tokenExpiry');
-      localStorage.removeItem('ems:last_id');
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Login failed' 
+      };
     }
   };
 
-  // Alias for backward compatibility
-  const login = loginUser;
+  const register = async (userData) => {
+    try {
+      const response = await authAPI.register(userData);
+      if (response.userId) {
+        // Tạo user object từ response
+        const user = {
+          userId: response.userId,
+          fullName: response.fullName,
+          email: response.email,
+          phone: response.phone,
+          role: response.role
+        };
+        setUser(user);
+        localStorage.setItem('user', JSON.stringify(user));
+        return { success: true };
+      }
+      return { success: false, message: 'Registration failed' };
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Registration failed' 
+      };
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
+  const value = {
+    user,
+    loading,
+    login,
+    register,
+    logout
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginUser, registerUser, logout, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,11 +1,13 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import GuestLandingPage from "./pages/guest/GuestLandingPage";
-import EventDetailsPage from "./pages/guest/EventDetailsPage";
-import CustomerDashboard from "./pages/customer/CustomerDashboard";
-import ProtectedRoute from "./components/layout/ProtectedRoute";
-import "./index.css";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import EventDetailsPage from './pages/EventDetailsPage';
+import DashboardPage from './pages/DashboardPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import './App.css';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -20,19 +22,21 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/" element={<HomePage />} />
       <Route 
-        path="/" 
-        element={user ? <Navigate to="/customer" replace /> : <GuestLandingPage />} 
+        path="/login" 
+        element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
       />
       <Route 
-        path="/event/:id" 
-        element={<EventDetailsPage />} 
+        path="/register" 
+        element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} 
       />
+      <Route path="/event/:id" element={<EventDetailsPage />} />
       <Route 
-        path="/customer" 
+        path="/dashboard" 
         element={
           <ProtectedRoute>
-            <CustomerDashboard />
+            <DashboardPage />
           </ProtectedRoute>
         } 
       />
@@ -45,7 +49,9 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <AppRoutes />
+        <div className="App">
+          <AppRoutes />
+        </div>
       </Router>
     </AuthProvider>
   );

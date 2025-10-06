@@ -8,11 +8,16 @@
     "react-router-dom": "^7.9.3",
     "react-scripts": "5.0.1"
   },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "dev": "concurrently \"npm run start\" \"npm run backend\"",
+    "backend": "cd ../TheGrind5_EventManagement_BackEnd && dotnet run"
   },
   "eslintConfig": {
     "extends": [
