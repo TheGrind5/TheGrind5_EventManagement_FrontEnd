@@ -3,7 +3,7 @@ const API_BASE_URL = 'http://localhost:5000/api';
 // Auth API
 export const authAPI = {
   login: async (email, password) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -12,14 +12,15 @@ export const authAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Login failed');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Login failed');
     }
 
     return response.json();
   },
 
   register: async (userData) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -35,7 +36,7 @@ export const authAPI = {
   },
 
   getUser: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/auth/user/${userId}`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/user/${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -53,7 +54,7 @@ export const authAPI = {
 // Events API
 export const eventsAPI = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/event`, {
+    const response = await fetch(`${API_BASE_URL}/Event`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -68,7 +69,7 @@ export const eventsAPI = {
   },
 
   getById: async (eventId) => {
-    const response = await fetch(`${API_BASE_URL}/event/${eventId}`, {
+    const response = await fetch(`${API_BASE_URL}/Event/${eventId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -83,7 +84,7 @@ export const eventsAPI = {
   },
 
   create: async (eventData) => {
-    const response = await fetch(`${API_BASE_URL}/event`, {
+    const response = await fetch(`${API_BASE_URL}/Event`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ export const eventsAPI = {
   },
 
   update: async (eventId, eventData) => {
-    const response = await fetch(`${API_BASE_URL}/event/${eventId}`, {
+    const response = await fetch(`${API_BASE_URL}/Event/${eventId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ export const eventsAPI = {
   },
 
   delete: async (eventId) => {
-    const response = await fetch(`${API_BASE_URL}/event/${eventId}`, {
+    const response = await fetch(`${API_BASE_URL}/Event/${eventId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -130,7 +131,7 @@ export const eventsAPI = {
   },
 
   getByHost: async (hostId) => {
-    const response = await fetch(`${API_BASE_URL}/event/host/${hostId}`, {
+    const response = await fetch(`${API_BASE_URL}/Event/host/${hostId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -145,7 +146,7 @@ export const eventsAPI = {
   },
 
   seedSample: async () => {
-    const response = await fetch(`${API_BASE_URL}/event/seed`, {
+    const response = await fetch(`${API_BASE_URL}/Event/seed`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

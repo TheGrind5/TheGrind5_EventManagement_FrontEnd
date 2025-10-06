@@ -12,7 +12,7 @@ const HomePage = () => {
     const fetchEvents = async () => {
       try {
         const response = await eventsAPI.getAll();
-        setEvents(response.events || []);
+        setEvents(response || []);
       } catch (err) {
         setError('Failed to load events');
         console.error('Error fetching events:', err);
@@ -78,15 +78,15 @@ const HomePage = () => {
           ) : (
             <div className="grid grid-3">
               {events.map((event) => (
-                <div key={event.eventId} className="card">
+                <div key={event.EventId} className="card">
                   <div className="card-body">
-                    <h3 className="card-title">{event.title}</h3>
-                    <p className="card-text">{event.description}</p>
-                    <p><strong>Date:</strong> {formatDate(event.startTime)}</p>
-                    <p><strong>Location:</strong> {event.location}</p>
-                    <p><strong>Category:</strong> {event.category}</p>
+                    <h3 className="card-title">{event.Title}</h3>
+                    <p className="card-text">{event.Description}</p>
+                    <p><strong>Date:</strong> {formatDate(event.StartTime)}</p>
+                    <p><strong>Location:</strong> {event.Location}</p>
+                    <p><strong>Category:</strong> {event.Category}</p>
                     <Link 
-                      to={`/event/${event.eventId}`} 
+                      to={`/event/${event.EventId}`} 
                       className="btn btn-primary"
                     >
                       View Details

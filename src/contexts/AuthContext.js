@@ -45,9 +45,10 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: 'Login failed' };
     } catch (error) {
+      console.error('Login error:', error);
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Login failed' 
+        message: error.message || 'Login failed' 
       };
     }
   };
@@ -70,9 +71,10 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: 'Registration failed' };
     } catch (error) {
+      console.error('Register error:', error);
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Registration failed' 
+        message: error.message || 'Registration failed' 
       };
     }
   };
