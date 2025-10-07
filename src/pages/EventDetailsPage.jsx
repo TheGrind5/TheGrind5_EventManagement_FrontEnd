@@ -13,7 +13,7 @@ const EventDetailsPage = () => {
     const fetchEvent = async () => {
       try {
         const response = await eventsAPI.getById(id);
-        setEvent(response.eventData);
+        setEvent(response);
       } catch (err) {
         setError('Failed to load event details');
         console.error('Error fetching event:', err);
@@ -69,29 +69,29 @@ const EventDetailsPage = () => {
       <div className="container p-4">
         <div className="card">
           <div className="card-body">
-            <h1 className="card-title">{event.title}</h1>
+            <h1 className="card-title">{event.Title}</h1>
             
             <div className="mb-4">
               <p><strong>Description:</strong></p>
-              <p>{event.description}</p>
+              <p>{event.Description}</p>
             </div>
 
             <div className="grid grid-2">
               <div>
-                <p><strong>Start Time:</strong> {formatDate(event.startTime)}</p>
-                <p><strong>End Time:</strong> {formatDate(event.endTime)}</p>
+                <p><strong>Start Time:</strong> {formatDate(event.StartTime)}</p>
+                <p><strong>End Time:</strong> {formatDate(event.EndTime)}</p>
               </div>
               <div>
-                <p><strong>Location:</strong> {event.location}</p>
-                <p><strong>Category:</strong> {event.category}</p>
-                <p><strong>Status:</strong> {event.status}</p>
+                <p><strong>Location:</strong> {event.Location}</p>
+                <p><strong>Category:</strong> {event.Category}</p>
+                <p><strong>Status:</strong> {event.Status}</p>
               </div>
             </div>
 
-            {event.host && (
+            {event.HostName && (
               <div className="mt-4">
-                <p><strong>Hosted by:</strong> {event.host.fullName}</p>
-                <p><strong>Contact:</strong> {event.host.email}</p>
+                <p><strong>Hosted by:</strong> {event.HostName}</p>
+                <p><strong>Contact:</strong> {event.HostEmail}</p>
               </div>
             )}
 
