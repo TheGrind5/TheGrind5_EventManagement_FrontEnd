@@ -10,9 +10,18 @@ const EventDetailsPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Check if id is valid
+    if (!id || id === 'undefined') {
+      setError('Invalid event ID');
+      setLoading(false);
+      return;
+    }
+
     const fetchEvent = async () => {
       try {
+        console.log('Fetching event with ID:', id);
         const response = await eventsAPI.getById(id);
+        console.log('Event response:', response);
         setEvent(response);
       } catch (err) {
         setError('Failed to load event details');
@@ -69,29 +78,29 @@ const EventDetailsPage = () => {
       <div className="container p-4">
         <div className="card">
           <div className="card-body">
-            <h1 className="card-title">{event.Title}</h1>
+            <h1 className="card-title">{event.title}</h1>
             
             <div className="mb-4">
               <p><strong>Description:</strong></p>
-              <p>{event.Description}</p>
+              <p>{event.description}</p>
             </div>
 
             <div className="grid grid-2">
               <div>
-                <p><strong>Start Time:</strong> {formatDate(event.StartTime)}</p>
-                <p><strong>End Time:</strong> {formatDate(event.EndTime)}</p>
+                <p><strong>Start Time:</strong> {formatDate(event.startTime)}</p>
+                <p><strong>End Time:</strong> {formatDate(event.endTime)}</p>
               </div>
               <div>
-                <p><strong>Location:</strong> {event.Location}</p>
-                <p><strong>Category:</strong> {event.Category}</p>
-                <p><strong>Status:</strong> {event.Status}</p>
+                <p><strong>Location:</strong> {event.location}</p>
+                <p><strong>Category:</strong> {event.category}</p>
+                <p><strong>Status:</strong> {event.status}</p>
               </div>
             </div>
 
-            {event.HostName && (
+            {event.hostName && (
               <div className="mt-4">
-                <p><strong>Hosted by:</strong> {event.HostName}</p>
-                <p><strong>Contact:</strong> {event.HostEmail}</p>
+                <p><strong>Hosted by:</strong> {event.hostName}</p>
+                <p><strong>Contact:</strong> {event.hostEmail}</p>
               </div>
             )}
 
