@@ -15,9 +15,178 @@ html, body, #root {
 }
 
 body {
-  background: #0f0f23;
-  color: #ffffff;
+  background: #0f0f23 !important;
+  color: #ffffff !important;
   line-height: 1.6;
+}
+
+/* ===== CREATE ORDER PAGE STYLING ===== */
+.create-order-container {
+  min-height: 100vh !important;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  padding: 40px 20px !important;
+}
+
+.create-order-card {
+  max-width: 800px !important;
+  margin: 0 auto !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(20px) !important;
+  border-radius: 24px !important;
+  padding: 40px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+}
+
+.create-order-title {
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  margin-bottom: 20px !important;
+  text-align: center !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.event-info {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  padding: 24px !important;
+  margin-bottom: 32px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.event-info h3 {
+  color: #667eea;
+  font-size: 1.2rem;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.event-info p {
+  color: #e0e6ed;
+  font-size: 1rem;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.event-info p strong {
+  color: #ffffff;
+  margin-right: 8px;
+  min-width: 80px;
+}
+
+.order-form {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 16px !important;
+  padding: 32px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.form-group {
+  margin-bottom: 24px !important;
+}
+
+.form-group label {
+  display: block !important;
+  color: #e0e6ed !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  font-size: 1rem !important;
+}
+
+.form-control {
+  width: 100% !important;
+  padding: 16px 20px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  transition: all 0.3s ease !important;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #667eea;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.form-control option {
+  background: #1a1a2e;
+  color: #ffffff;
+}
+
+.btn-create-order {
+  width: 100% !important;
+  padding: 18px 32px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.btn-create-order:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-create-order:active {
+  transform: translateY(0);
+}
+
+/* Loading and Error States */
+.alert {
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alert-info {
+  background: rgba(23, 162, 184, 0.1);
+  border-color: rgba(23, 162, 184, 0.3);
+  color: #17a2b8;
+}
+
+.alert-danger {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.3);
+  color: #dc3545;
+}
+
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.btn-outline-danger {
+  background: transparent;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-danger:hover {
+  background: #dc3545;
+  color: #ffffff;
 }
 
 /* ===== AUTHENTICATION LAYOUT ===== */

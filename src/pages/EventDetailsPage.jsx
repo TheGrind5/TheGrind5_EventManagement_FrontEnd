@@ -11,8 +11,8 @@ const EventDetailsPage = () => {
 
   useEffect(() => {
     // Check if id is valid
-    if (!id || id === 'undefined') {
-      setError('Invalid event ID');
+    if (!id || id === 'undefined' || id === '0') {
+      setError('Invalid event ID - Event ID cannot be 0 or undefined');
       setLoading(false);
       return;
     }
@@ -106,9 +106,13 @@ const EventDetailsPage = () => {
 
             <div className="text-center mt-4">
               <Link to="/" className="btn btn-secondary">Back to Events</Link>
-              <button className="btn btn-primary ml-2">
+
+              {/* Link tới cái create order của event, lấy id từ event hiện tại để tạo order */}
+              <Link to={`/event/${id}/order/create`} className="btn btn-primary ml-2">
                 Buy Tickets
-              </button>
+              </Link>
+              
+              
             </div>
           </div>
         </div>

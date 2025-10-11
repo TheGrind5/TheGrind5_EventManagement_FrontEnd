@@ -4,10 +4,12 @@ import Header from '../components/Header';
 import { eventsAPI } from '../services/api';
 
 const HomePage = () => {
+  //State declaration để quản lý trạng thái của component
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  //useEffect hook để fetch events từ backend
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -25,6 +27,7 @@ const HomePage = () => {
     fetchEvents();
   }, []);
 
+  //Hàm constants để format date
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -35,6 +38,48 @@ const HomePage = () => {
     });
   };
 
+  // Hàm constants để filter valid events (eventId > 0)
+  const validEvents = events.filter(event => event.eventId && event.eventId > 0);
+
+  // Hàm constants để render individual event card
+  const renderEventCard = (event) => (
+    <div key={event.eventId} className="card">
+      <div className="card-body">
+        <h3 className="card-title">{event.title}</h3>
+        <p className="card-text">{event.description}</p>
+        <p><strong>Date:</strong> {formatDate(event.startTime)}</p>
+        <p><strong>Location:</strong> {event.location}</p>
+        <p><strong>Category:</strong> {event.category}</p>
+        <Link 
+          to={`/event/${event.eventId}`} 
+          className="btn btn-primary"
+          onClick={() => console.log('HomePage - Clicking event:', event.eventId, event.title)}
+        >
+          View Details
+        </Link>
+      </div>
+    </div>
+  );
+
+  // Hàm constants để render events grid
+  const renderEventsGrid = () => {
+    if (validEvents.length === 0) {
+      return (
+        <div className="text-center">
+          <p>No events available at the moment.</p>
+          <p>Debug: Events array length = {events.length}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-3">
+        {validEvents.map(renderEventCard)}
+      </div>
+    );
+  };
+
+  // Hàm constants để render loading state
   if (loading) {
     return (
       <div>
@@ -46,6 +91,7 @@ const HomePage = () => {
     );
   }
 
+  // Hàm constants để render home page
   return (
     <div>
       <Header />
@@ -72,37 +118,7 @@ const HomePage = () => {
             </div>
           )}
 
-          {events.length === 0 ? (
-            <div className="text-center">
-              <p>No events available at the moment.</p>
-              <p>Debug: Events array length = {events.length}</p>
-            </div>
-          ) : (
-            <div className="grid grid-3">
-              {events.map((event) => {
-                console.log('HomePage - Rendering event:', event.eventId, event.title);
-                return (
-                  <div key={event.eventId} className="card">
-                    <div className="card-body">
-                      <h3 className="card-title">{event.title}</h3>
-                      <p className="card-text">{event.description}</p>
-                      <p><strong>Date:</strong> {formatDate(event.startTime)}</p>
-                      <p><strong>Location:</strong> {event.location}</p>
-                      <p><strong>Category:</strong> {event.category}</p>
-                      <p><strong>Debug - Event ID:</strong> {event.eventId}</p>
-                      <Link 
-                        to={`/event/${event.eventId}`} 
-                        className="btn btn-primary"
-                        onClick={() => console.log('HomePage - Clicking event:', event.eventId, event.title)}
-                      >
-                        View Details
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {renderEventsGrid()}
         </div>
       </section>
     </div>
