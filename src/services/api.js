@@ -49,6 +49,40 @@ export const authAPI = {
     }
 
     return response.json();
+  },
+
+  getCurrentUserProfile: async (token) => {
+    const response = await fetch(`${API_BASE_URL}/Auth/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get profile');
+    }
+
+    return response.json();
+  },
+
+  updateProfile: async (profileData, token) => {
+    const response = await fetch(`${API_BASE_URL}/Auth/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(profileData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to update profile');
+    }
+
+    return response.json();
   }
 };
 

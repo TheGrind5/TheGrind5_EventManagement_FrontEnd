@@ -38,9 +38,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login(email, password);
-      if (response.user) {
+      if (response.user && response.accessToken) {
         setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('token', response.accessToken);
         return { success: true };
       }
       return { success: false, message: 'Login failed' };
@@ -82,6 +83,22 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
+  };
+
+  const refreshProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      const profileData = await authAPI.getCurrentUserProfile(token);
+      setUser(profileData);
+      localStorage.setItem('user', JSON.stringify(profileData));
+      return profileData;
+    } catch (error) {
+      console.error('Refresh profile error:', error);
+      return null;
+    }
   };
 
   const value = {
@@ -89,7 +106,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
-    logout
+    logout,
+    refreshProfile
   };
 
   return (
