@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
       } finally {
         setLoading(false);
       }
@@ -38,9 +39,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login(email, password);
-      if (response.user) {
+      console.log('Login response:', response); // Debug log
+      
+      // Backend trả về user và accessToken (camelCase)
+      if (response.user && response.accessToken) {
         setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('token', response.accessToken);
         return { success: true };
       }
       return { success: false, message: 'Login failed' };
@@ -56,18 +61,11 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authAPI.register(userData);
-      if (response.userId) {
-        // Tạo user object từ response
-        const user = {
-          userId: response.userId,
-          fullName: response.fullName,
-          email: response.email,
-          phone: response.phone,
-          role: response.role
-        };
-        setUser(user);
-        localStorage.setItem('user', JSON.stringify(user));
-        return { success: true };
+      // Backend trả về UserId, FullName, etc. (PascalCase)
+      if (response.UserId) {
+        // Không tự động login sau khi register
+        // Chỉ trả về thông báo thành công
+        return { success: true, message: 'Đăng ký thành công. Vui lòng đăng nhập.' };
       }
       return { success: false, message: 'Registration failed' };
     } catch (error) {
@@ -82,6 +80,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const value = {

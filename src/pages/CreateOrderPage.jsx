@@ -6,7 +6,7 @@ import {useParams} from 'react-router-dom';
 import Header from '../components/Header';
 
     //event api để lấy thông tin event từ backend
-import {eventsAPI} from '../services/api';
+import {eventsAPI, ordersAPI} from '../services/api';
 
 const CreateOrderPage = () => {
 
@@ -23,6 +23,8 @@ const CreateOrderPage = () => {
     const[selectedTicketType, setSelectedTicketType] = useState('');
     const[loading, setLoading] = useState(true);
     const[error, setError] = useState(null);
+    const[creatingOrder, setCreatingOrder] = useState(false);
+    const[orderSuccess, setOrderSuccess] = useState(false);
 
         
     //useEffect hook để lấy thông tin event từ backend
@@ -33,20 +35,16 @@ const CreateOrderPage = () => {
                 setError(null); // Chưa fetch thì chưa có lỗi
                 const eventData = await eventsAPI.getById(id);
                 console.log('Event data: ', eventData);
-                console.log('Ticket Types: ', eventData.TicketTypes);
+                console.log('Ticket Types: ', eventData.ticketTypes);
                 console.log('Setting event state with:', eventData);
                 setEvent(eventData);
-                setTicketTypes(eventData.TicketTypes || []);
+                setTicketTypes(eventData.ticketTypes || []);
                 console.log('Event state should be set now');
 
-                // Dữ liệu mock
-                if (!eventData.TicketTypes || eventData.TicketTypes.length === 0) {
-                    const mockTicketTypes = [
-                        { TicketTypeId: 1, TypeName: 'VIP Ticket', Price: 100000 },
-                        { TicketTypeId: 2, TypeName: 'Standard Ticket', Price: 50000 },
-                        { TicketTypeId: 3, TypeName: 'Student Ticket', Price: 30000 }
-                    ];
-                    setTicketTypes(mockTicketTypes);
+                // Kiểm tra nếu không có ticket types
+                if (!eventData.ticketTypes || eventData.ticketTypes.length === 0) {
+                    setError('Sự kiện này chưa có loại vé nào để đặt');
+                    setTicketTypes([]);
                 }
 
             }catch(error){
@@ -70,11 +68,53 @@ const CreateOrderPage = () => {
 
     
     //Handle functions để xử lý event
-    const handleCreateOrder = (e) => {
+    const handleCreateOrder = async (e) => {
         e.preventDefault(); // Ngăn form submit mặc định
-        console.log('Creating order for event:', id, 'quantity:', quantity);
-        // TODO: Implement order creation logic
+        
+        // Validate form
+        if (!selectedTicketType) {
+            setError('Vui lòng chọn loại vé');
+            return;
+        }
 
+        if (quantity <= 0) {
+            setError('Số lượng vé phải lớn hơn 0');
+            return;
+        }
+
+        try {
+            setCreatingOrder(true);
+            setError(null);
+            
+            // Tạo order data
+            const orderData = {
+                eventId: parseInt(id),
+                ticketTypeId: parseInt(selectedTicketType),
+                quantity: quantity,
+                seatNo: null // Có thể thêm seat selection sau
+            };
+            
+            console.log('Creating order with data:', orderData);
+            
+            // Gọi API tạo order
+            const response = await ordersAPI.create(orderData);
+            
+            console.log('Order created successfully:', response);
+            
+            // Hiển thị thành công
+            setOrderSuccess(true);
+            
+            // Redirect đến order details hoặc order list sau 2 giây
+            setTimeout(() => {
+                window.location.href = '/dashboard'; // Hoặc redirect đến order details
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Error creating order:', error);
+            setError(error.message || 'Có lỗi xảy ra khi tạo đơn hàng');
+        } finally {
+            setCreatingOrder(false);
+        }
     };
 
 
@@ -110,8 +150,16 @@ const CreateOrderPage = () => {
                         </div>
                     )}
 
+                    {/* Hiển thị success message */}
+                    {orderSuccess && (
+                        <div className="alert alert-success">
+                            <h4>🎉 Tạo đơn hàng thành công!</h4>
+                            <p>Đơn hàng của bạn đã được tạo thành công. Đang chuyển hướng...</p>
+                        </div>
+                    )}
+
                     {/* Hiển thị form khi không có lỗi và không loading */}
-                    {!loading && !error && (
+                    {!loading && !error && !orderSuccess && (
                         <>
                             <h1 className="create-order-title">Create Order - {event?.title || event?.Title}</h1>
                             
@@ -132,8 +180,8 @@ const CreateOrderPage = () => {
                                     >
                                         <option value="">Chọn loại vé</option>
                                         {ticketTypes.map(ticketType => (
-                                            <option key={ticketType.TicketTypeId} value={ticketType.TicketTypeId}>
-                                                {ticketType.TypeName} - {ticketType.Price?.toLocaleString()} VND
+                                        <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>
+                                            {ticketType.typeName} - {ticketType.price?.toLocaleString()} VND
                                             </option>
                                         ))}
                                     </select>
@@ -149,8 +197,46 @@ const CreateOrderPage = () => {
                                            placeholder="Nhập số lượng vé"/>
                                 </div>
 
-                                <button type="submit" className="btn-create-order" onClick={handleCreateOrder}>
-                                    🚀 Tạo đơn hàng
+                                {/* Hiển thị tổng tiền */}
+                                {selectedTicketType && quantity > 0 && (
+                                    <div className="form-group">
+                                        <div className="alert alert-info">
+                                            <h5>💰 Tổng tiền:</h5>
+                                            {(() => {
+                                                const ticketType = ticketTypes.find(tt => tt.ticketTypeId === parseInt(selectedTicketType));
+                                                if (ticketType) {
+                                                    const totalAmount = ticketType.price * quantity;
+                                                    return (
+                                                        <>
+                                                            <p><strong>Loại vé:</strong> {ticketType.typeName}</p>
+                                                            <p><strong>Đơn giá:</strong> {ticketType.price?.toLocaleString()} VND</p>
+                                                            <p><strong>Số lượng:</strong> {quantity}</p>
+                                                            <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{totalAmount.toLocaleString()} VND</span></p>
+                                                        </>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <button 
+                                    type="submit" 
+                                    className="btn-create-order" 
+                                    onClick={handleCreateOrder}
+                                    disabled={creatingOrder}
+                                >
+                                    {creatingOrder ? (
+                                        <>
+                                            <div className="spinner-border spinner-border-sm me-2" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                            Đang tạo đơn hàng...
+                                        </>
+                                    ) : (
+                                        '🚀 Tạo đơn hàng'
+                                    )}
                                 </button>
                             </form>
                         </>

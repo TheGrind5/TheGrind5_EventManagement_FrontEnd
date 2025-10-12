@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
@@ -9,9 +9,22 @@ const LoginPage = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Kiểm tra xem có thông báo từ register không
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Tự động điền email nếu có
+      if (location.state.email) {
+        setFormData(prev => ({ ...prev, email: location.state.email }));
+      }
+    }
+  }, [location.state]);
 
   const handleChange = (e) => {
     setFormData({
@@ -44,6 +57,12 @@ const LoginPage = () => {
       <div className="form">
         <h2 className="text-center mb-4">Login</h2>
         
+        {successMessage && (
+          <div className="alert alert-success">
+            {successMessage}
+          </div>
+        )}
+
         {error && (
           <div className="alert alert-error">
             {error}

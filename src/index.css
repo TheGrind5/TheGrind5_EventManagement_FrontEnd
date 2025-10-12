@@ -15,39 +15,74 @@ html, body, #root {
 }
 
 body {
-  background: #0f0f23 !important;
-  color: #ffffff !important;
+  background: #f8fafc;
+  color: #1a202c;
   line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #0f0f23;
+    color: #ffffff;
+  }
 }
 
 /* ===== CREATE ORDER PAGE STYLING ===== */
 .create-order-container {
   min-height: 100vh !important;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
   padding: 40px 20px !important;
+  transition: background 0.3s ease;
+}
+
+/* Dark mode for create order page */
+@media (prefers-color-scheme: dark) {
+  .create-order-container {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  }
 }
 
 .create-order-card {
   max-width: 800px !important;
   margin: 0 auto !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
   backdrop-filter: blur(20px) !important;
   border-radius: 24px !important;
   padding: 40px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease;
+}
+
+/* Dark mode for create order card */
+@media (prefers-color-scheme: dark) {
+  .create-order-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+  }
 }
 
 .create-order-title {
   font-size: 2.5rem !important;
   font-weight: 700 !important;
-  color: #ffffff !important;
+  color: #1a202c !important;
   margin-bottom: 20px !important;
   text-align: center !important;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
+  transition: color 0.3s ease;
+}
+
+/* Dark mode for title */
+@media (prefers-color-scheme: dark) {
+  .create-order-title {
+    color: #ffffff !important;
+  }
 }
 
 .event-info {
@@ -101,12 +136,21 @@ body {
 .form-control {
   width: 100% !important;
   padding: 16px 20px !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 2px solid rgba(0, 0, 0, 0.1) !important;
   border-radius: 12px !important;
-  color: #ffffff !important;
+  color: #1a202c !important;
   font-size: 1rem !important;
   transition: all 0.3s ease !important;
+}
+
+/* Dark mode for form controls */
+@media (prefers-color-scheme: dark) {
+  .form-control {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+  }
 }
 
 .form-control:focus {
