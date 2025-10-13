@@ -31,7 +31,13 @@ const RegisterPage = () => {
     try {
       const result = await register(formData);
       if (result.success) {
-        navigate('/dashboard');
+        // Sau khi register thành công, chuyển đến trang login
+        navigate('/login', { 
+          state: { 
+            message: result.message,
+            email: formData.email 
+          } 
+        });
       } else {
         setError(result.message);
       }

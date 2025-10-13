@@ -195,3 +195,125 @@ export const eventsAPI = {
     return response.json();
   }
 };
+
+// Helper function để lấy token từ localStorage
+const getAuthToken = () => {
+  const token = localStorage.getItem('token');
+  console.log('Auth token:', token);
+  return token;
+};
+
+// Helper function để tạo headers với authorization
+const getAuthHeaders = () => {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+  console.log('Request headers:', headers);
+  return headers;
+};
+
+// Orders API
+export const ordersAPI = {
+  create: async (orderData) => {
+    const response = await fetch(`${API_BASE_URL}/Order`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(orderData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to create order');
+    }
+
+    return response.json();
+  },
+
+  getById: async (orderId) => {
+    const response = await fetch(`${API_BASE_URL}/Order/${orderId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch order');
+    }
+
+    return response.json();
+  },
+
+  getMyOrders: async () => {
+    const response = await fetch(`${API_BASE_URL}/Order/my-orders`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch orders');
+    }
+
+    return response.json();
+  },
+
+  getUserOrders: async (userId) => {
+    const response = await fetch(`${API_BASE_URL}/Order/user/${userId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch user orders');
+    }
+
+    return response.json();
+  },
+
+  updateStatus: async (orderId, status) => {
+    const response = await fetch(`${API_BASE_URL}/Order/${orderId}/status`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to update order status');
+    }
+
+    return response.json();
+  },
+
+  cancel: async (orderId) => {
+    const response = await fetch(`${API_BASE_URL}/Order/${orderId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to cancel order');
+    }
+
+    return response.json();
+  },
+
+  processPayment: async (orderId, paymentData) => {
+    const response = await fetch(`${API_BASE_URL}/Order/${orderId}/payment`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(paymentData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to process payment');
+    }
+
+    return response.json();
+  }
+};
