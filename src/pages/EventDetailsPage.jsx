@@ -1,13 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Header from '../components/Header';
+import { Header } from '../components/layout';
 import { eventsAPI } from '../services/api';
+import '../styles/EventDetailsPage.css';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [ticketTypes, setTicketTypes] = useState([]);
+
+  // Mock function to generate ticket types based on event
+  const generateMockTicketTypes = (eventData) => {
+    if (!eventData) return [];
+    
+    return [
+      {
+        id: 1,
+        name: 'Vé Tiêu Chuẩn',
+        price: 370000,
+        description: 'Vé tham gia sự kiện với đầy đủ quyền lợi',
+        available: true,
+        quantity: 100
+      },
+      {
+        id: 2,
+        name: 'Vé VIP',
+        price: 750000,
+        description: 'Vé VIP với ưu đãi đặc biệt và chỗ ngồi ưu tiên',
+        available: true,
+        quantity: 20
+      },
+      {
+        id: 3,
+        name: 'Vé Early Bird',
+        price: 290000,
+        description: 'Vé giá ưu đãi cho những người đăng ký sớm',
+        available: false,
+        quantity: 0
+      }
+    ];
+  };
 
   useEffect(() => {
     // Check if id is valid
@@ -23,6 +57,8 @@ const EventDetailsPage = () => {
         const response = await eventsAPI.getById(id);
         console.log('Event response:', response);
         setEvent(response);
+        // Generate mock ticket types based on event
+        setTicketTypes(generateMockTicketTypes(response));
       } catch (err) {
         setError('Failed to load event details');
         console.error('Error fetching event:', err);
@@ -42,6 +78,13 @@ const EventDetailsPage = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price) + ' ₫';
   };
 
   if (loading) {
@@ -104,15 +147,47 @@ const EventDetailsPage = () => {
               </div>
             )}
 
-            <div className="text-center mt-4">
-              <Link to="/" className="btn btn-secondary">Back to Events</Link>
+            {/* Ticket Information Section */}
+            <div className="mt-6">
+              <h2 className="text-2xl font-bold mb-4 text-white">🎫 Thông tin vé</h2>
+              <div className="grid gap-4">
+                {ticketTypes.map((ticket) => (
+                  <div key={ticket.id} className={`ticket-card ${!ticket.available ? 'ticket-unavailable' : ''}`}>
+                    <div className="ticket-header">
+                      <div className="ticket-info">
+                        <h3 className="ticket-name">{ticket.name}</h3>
+                        <p className="ticket-description">{ticket.description}</p>
+                      </div>
+                      <div className="ticket-price">
+                        <span className="price-amount">{formatPrice(ticket.price)}</span>
+                        {!ticket.available && (
+                          <span className="sold-out-badge">Hết vé</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ticket-footer">
+                      <span className="ticket-quantity">
+                        {ticket.available ? `Còn lại: ${ticket.quantity} vé` : 'Đã hết vé'}
+                      </span>
+                      {ticket.available && (
+                        <Link 
+                          to={`/event/${id}/order/create?ticketType=${ticket.id}`}
+                          className="btn btn-success"
+                        >
+                          Mua vé ngay
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-              {/* Link tới cái create order của event, lấy id từ event hiện tại để tạo order */}
+            <div className="text-center mt-6">
+              <Link to="/" className="btn btn-secondary">Back to Events</Link>
               <Link to={`/event/${id}/order/create`} className="btn btn-primary ml-2">
-                Buy Tickets
+                Xem tất cả vé
               </Link>
-              
-              
             </div>
           </div>
         </div>

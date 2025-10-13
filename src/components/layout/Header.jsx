@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { walletAPI } from '../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { walletAPI } from '../../services/api';
 
 const Header = () => {
   const { user, logout } = useAuth();
@@ -49,6 +49,7 @@ const Header = () => {
               <>
                 <Link to="/dashboard" className="nav-link">Dashboard</Link>
                 <Link to="/profile" className="nav-link">Profile</Link>
+                <Link to="/my-tickets" className="nav-link">My Tickets</Link>
                 
                 {/* Wallet Balance Display */}
                 <Link to="/wallet" className="wallet-link">

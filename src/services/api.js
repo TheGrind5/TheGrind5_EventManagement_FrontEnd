@@ -406,3 +406,90 @@ export const walletAPI = {
     return response.json();
   }
 };
+
+// Tickets API
+export const ticketsAPI = {
+  getMyTickets: async () => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/my-tickets`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch tickets');
+    }
+
+    return response.json();
+  },
+
+  getTicketById: async (ticketId) => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/${ticketId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch ticket');
+    }
+
+    return response.json();
+  },
+
+  getTicketsByEvent: async (eventId) => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/event/${eventId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch event tickets');
+    }
+
+    return response.json();
+  },
+
+  checkInTicket: async (ticketId) => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/${ticketId}/check-in`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to check in ticket');
+    }
+
+    return response.json();
+  },
+
+  refundTicket: async (ticketId) => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/${ticketId}/refund`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to refund ticket');
+    }
+
+    return response.json();
+  },
+
+  validateTicket: async (ticketId) => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/${ticketId}/validate`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to validate ticket');
+    }
+
+    return response.json();
+  }
+};

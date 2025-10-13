@@ -13,9 +13,11 @@ import ProfilePage from './pages/ProfilePage';
 import CreateOrderPage from './pages/CreateOrderPage';
 //Thêm trang wallet
 import WalletPage from './pages/WalletPage';
+//Thêm trang my tickets
+import MyTicketsPage from './pages/MyTicketsPage';
 
 
-import ProtectedRoute from './components/ProtectedRoute';
+import { ProtectedRoute } from './components/common';
 import './App.css';
 
 function AppRoutes() {
@@ -69,6 +71,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <WalletPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Thêm route tới trang my tickets */}
+      <Route 
+        path="/my-tickets" 
+        element={
+          <ProtectedRoute>
+            <MyTicketsPage />
           </ProtectedRoute>
         } 
       />

@@ -164,6 +164,17 @@ body {
   border-color: rgba(156, 163, 175, 0.5);
 }
 
+.btn-success {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+}
+
 /* Hero section */
 .hero {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

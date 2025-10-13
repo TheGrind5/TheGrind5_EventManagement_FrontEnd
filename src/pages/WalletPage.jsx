@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { walletAPI } from '../services/api';
-import WalletBalance from '../components/WalletBalance';
-import DepositModal from '../components/DepositModal';
-import WithdrawModal from '../components/WithdrawModal';
-import TransactionHistory from '../components/TransactionHistory';
-import './WalletPage.css';
+import { Header } from '../components/layout';
+import { 
+  WalletBalance, 
+  DepositModal, 
+  WithdrawModal, 
+  TransactionHistory 
+} from '../components/wallet';
+import '../styles/WalletPage.css';
 
 const WalletPage = () => {
   const [balance, setBalance] = useState(0);
@@ -49,10 +52,13 @@ const WalletPage = () => {
 
   if (loading) {
     return (
-      <div className="wallet-page">
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Đang tải thông tin ví...</p>
+      <div>
+        <Header />
+        <div className="wallet-page">
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Đang tải thông tin ví...</p>
+          </div>
         </div>
       </div>
     );
@@ -60,28 +66,34 @@ const WalletPage = () => {
 
   if (error) {
     return (
-      <div className="wallet-page">
-        <div className="error-container">
-          <div className="error-icon">⚠️</div>
-          <h3>Lỗi tải thông tin ví</h3>
-          <p>{error}</p>
-          <button 
-            className="retry-btn"
-            onClick={fetchWalletBalance}
-          >
-            Thử lại
-          </button>
+      <div>
+        <Header />
+        <div className="wallet-page">
+          <div className="error-container">
+            <div className="error-icon">⚠️</div>
+            <h3>Lỗi tải thông tin ví</h3>
+            <p>{error}</p>
+            <button 
+              className="retry-btn"
+              onClick={fetchWalletBalance}
+            >
+              Thử lại
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="wallet-page">
-      <div className="wallet-header">
-        <h1>💳 Quản lý ví của tôi</h1>
-        <p>Quản lý số dư và giao dịch ví điện tử</p>
-      </div>
+    <div>
+      <Header />
+      <div className="wallet-page-wrapper">
+        <div className="wallet-page">
+          <div className="wallet-header">
+            <h1>💳 Quản lý ví của tôi</h1>
+            <p>Quản lý số dư và giao dịch ví điện tử</p>
+          </div>
 
       <div className="wallet-content">
         {/* Wallet Balance Section */}
@@ -130,6 +142,8 @@ const WalletPage = () => {
           onSuccess={handleWithdrawSuccess}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 };
