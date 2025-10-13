@@ -11,6 +11,8 @@ import ProfilePage from './pages/ProfilePage';
 
 //Thêm trang create order
 import CreateOrderPage from './pages/CreateOrderPage';
+//Thêm trang wallet
+import WalletPage from './pages/WalletPage';
 
 
 import ProtectedRoute from './components/ProtectedRoute';
@@ -60,6 +62,16 @@ function AppRoutes() {
 
       {/* Thêm route tới trang create order */}
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
+      
+      {/* Thêm route tới trang wallet */}
+      <Route 
+        path="/wallet" 
+        element={
+          <ProtectedRoute>
+            <WalletPage />
+          </ProtectedRoute>
+        } 
+      />
 
       //Route mặc định, nếu người dùng nhập sai link thì sẽ redirect về trang home
 

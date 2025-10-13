@@ -86,6 +86,49 @@ body {
   color: #ffffff;
 }
 
+/* Wallet Balance Display in Header */
+.wallet-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.wallet-balance-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.wallet-balance-display:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.wallet-icon {
+  font-size: 1.1rem;
+}
+
+.wallet-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.wallet-text .loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
