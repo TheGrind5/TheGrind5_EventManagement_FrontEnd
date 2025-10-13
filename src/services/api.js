@@ -491,5 +491,19 @@ export const ticketsAPI = {
     }
 
     return response.json();
+  },
+
+  getTicketTypesByEvent: async (eventId) => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/event/${eventId}/types`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch ticket types');
+    }
+
+    return response.json();
   }
 };

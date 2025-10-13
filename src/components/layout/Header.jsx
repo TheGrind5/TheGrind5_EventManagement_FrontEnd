@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { walletAPI } from '../../services/api';
+import { CartIcon } from '../cart';
 
 const Header = () => {
   const { user, logout } = useAuth();
   const [walletBalance, setWalletBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -42,7 +44,20 @@ const Header = () => {
             TheGrind5 Events
           </Link>
           
-          <nav className="nav">
+          {/* Mobile Menu Toggle */}
+          <button 
+            className="mobile-menu-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle mobile menu"
+          >
+            <span className={`hamburger ${mobileMenuOpen ? 'active' : ''}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+          
+          <nav className={`nav ${mobileMenuOpen ? 'nav-open' : ''}`}>
             <Link to="/" className="nav-link">Home</Link>
             
             {user ? (
@@ -51,13 +66,15 @@ const Header = () => {
                 <Link to="/profile" className="nav-link">Profile</Link>
                 <Link to="/my-tickets" className="nav-link">My Tickets</Link>
                 
+                {/* Cart Icon */}
+                <CartIcon />
+                
                 {/* Wallet Balance Display */}
                 <Link to="/wallet" className="wallet-link">
                   <div className="wallet-balance-display">
-                    <span className="wallet-icon">💰</span>
                     <span className="wallet-text">
                       {balanceLoading ? (
-                        <span className="loading">...</span>
+                        <span className="loading">Loading...</span>
                       ) : (
                         formatCurrency(walletBalance)
                       )}

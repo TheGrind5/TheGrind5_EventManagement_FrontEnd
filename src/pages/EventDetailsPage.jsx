@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Header } from '../components/layout';
-import { eventsAPI } from '../services/api';
+import { eventsAPI, ticketsAPI } from '../services/api';
+import { useCart } from '../contexts/CartContext';
 import '../styles/EventDetailsPage.css';
 
 const EventDetailsPage = () => {
@@ -10,38 +11,7 @@ const EventDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
-
-  // Mock function to generate ticket types based on event
-  const generateMockTicketTypes = (eventData) => {
-    if (!eventData) return [];
-    
-    return [
-      {
-        id: 1,
-        name: 'Vé Tiêu Chuẩn',
-        price: 370000,
-        description: 'Vé tham gia sự kiện với đầy đủ quyền lợi',
-        available: true,
-        quantity: 100
-      },
-      {
-        id: 2,
-        name: 'Vé VIP',
-        price: 750000,
-        description: 'Vé VIP với ưu đãi đặc biệt và chỗ ngồi ưu tiên',
-        available: true,
-        quantity: 20
-      },
-      {
-        id: 3,
-        name: 'Vé Early Bird',
-        price: 290000,
-        description: 'Vé giá ưu đãi cho những người đăng ký sớm',
-        available: false,
-        quantity: 0
-      }
-    ];
-  };
+  const { addToCart } = useCart();
 
   useEffect(() => {
     // Check if id is valid
@@ -57,8 +27,16 @@ const EventDetailsPage = () => {
         const response = await eventsAPI.getById(id);
         console.log('Event response:', response);
         setEvent(response);
-        // Generate mock ticket types based on event
-        setTicketTypes(generateMockTicketTypes(response));
+        
+        // Fetch real ticket types from API
+        try {
+          const ticketTypesResponse = await ticketsAPI.getTicketTypesByEvent(id);
+          console.log('Ticket types response:', ticketTypesResponse);
+          setTicketTypes(ticketTypesResponse || []);
+        } catch (ticketErr) {
+          console.warn('Failed to fetch ticket types, using empty array:', ticketErr);
+          setTicketTypes([]);
+        }
       } catch (err) {
         setError('Failed to load event details');
         console.error('Error fetching event:', err);
@@ -85,6 +63,11 @@ const EventDetailsPage = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price) + ' ₫';
+  };
+
+  const handleAddToCart = (ticket) => {
+    addToCart(ticket, 1);
+    alert(`Đã thêm ${ticket.typeName} vào giỏ hàng!`);
   };
 
   if (loading) {
@@ -150,37 +133,61 @@ const EventDetailsPage = () => {
             {/* Ticket Information Section */}
             <div className="mt-6">
               <h2 className="text-2xl font-bold mb-4 text-white">🎫 Thông tin vé</h2>
-              <div className="grid gap-4">
-                {ticketTypes.map((ticket) => (
-                  <div key={ticket.id} className={`ticket-card ${!ticket.available ? 'ticket-unavailable' : ''}`}>
-                    <div className="ticket-header">
-                      <div className="ticket-info">
-                        <h3 className="ticket-name">{ticket.name}</h3>
-                        <p className="ticket-description">{ticket.description}</p>
+              {ticketTypes.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">Chưa có loại vé nào cho sự kiện này</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {ticketTypes.map((ticket) => {
+                    const isAvailable = ticket.availableQuantity > 0 && ticket.status === 'Active';
+                    const isOnSale = new Date() >= new Date(ticket.saleStart) && new Date() <= new Date(ticket.saleEnd);
+                    
+                    return (
+                      <div key={ticket.ticketTypeId} className={`ticket-card ${!isAvailable || !isOnSale ? 'ticket-unavailable' : ''}`}>
+                        <div className="ticket-header">
+                          <div className="ticket-info">
+                            <h3 className="ticket-name">{ticket.typeName}</h3>
+                            <p className="ticket-description">
+                              {ticket.minOrder && `Tối thiểu: ${ticket.minOrder} vé`}
+                              {ticket.maxOrder && ` | Tối đa: ${ticket.maxOrder} vé`}
+                            </p>
+                          </div>
+                          <div className="ticket-price">
+                            <span className="price-amount">{formatPrice(ticket.price)}</span>
+                            {(!isAvailable || !isOnSale) && (
+                              <span className="sold-out-badge">
+                                {!isOnSale ? 'Chưa mở bán' : 'Hết vé'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="ticket-footer">
+                          <span className="ticket-quantity">
+                            {isAvailable && isOnSale ? `Còn lại: ${ticket.availableQuantity} vé` : 'Không khả dụng'}
+                          </span>
+                          {isAvailable && isOnSale && (
+                            <div className="ticket-actions">
+                              <button 
+                                className="btn btn-success"
+                                onClick={() => handleAddToCart(ticket)}
+                              >
+                                Thêm vào giỏ
+                              </button>
+                              <Link 
+                                to={`/event/${id}/order/create?ticketType=${ticket.ticketTypeId}`}
+                                className="btn btn-primary"
+                              >
+                                Mua ngay
+                              </Link>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="ticket-price">
-                        <span className="price-amount">{formatPrice(ticket.price)}</span>
-                        {!ticket.available && (
-                          <span className="sold-out-badge">Hết vé</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="ticket-footer">
-                      <span className="ticket-quantity">
-                        {ticket.available ? `Còn lại: ${ticket.quantity} vé` : 'Đã hết vé'}
-                      </span>
-                      {ticket.available && (
-                        <Link 
-                          to={`/event/${id}/order/create?ticketType=${ticket.id}`}
-                          className="btn btn-success"
-                        >
-                          Mua vé ngay
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="text-center mt-6">

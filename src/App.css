@@ -1,3 +1,21 @@
+/* Import Cart Styles */
+@import './styles/Cart.css';
+
+/* Import Search Filter Styles */
+@import './styles/SearchFilter.css';
+
+/* Import Responsive Styles */
+@import './styles/Responsive.css';
+
+/* Import Hero Styles */
+@import './styles/Hero.css';
+
+/* Import Event Cards Styles */
+@import './styles/EventCards.css';
+
+/* Import Professional Styles */
+@import './styles/Professional.css';
+
 /* Reset and base styles */
 * {
   margin: 0;

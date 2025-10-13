@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -15,6 +16,10 @@ import CreateOrderPage from './pages/CreateOrderPage';
 import WalletPage from './pages/WalletPage';
 //Thêm trang my tickets
 import MyTicketsPage from './pages/MyTicketsPage';
+//Thêm trang cart
+import { CartPage } from './components/cart';
+//Thêm trang checkout
+import CheckoutPage from './pages/CheckoutPage';
 
 
 import { ProtectedRoute } from './components/common';
@@ -43,6 +48,15 @@ function AppRoutes() {
         element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} 
       />
       <Route path="/event/:id" element={<EventDetailsPage />} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route 
+        path="/checkout" 
+        element={
+          <ProtectedRoute>
+            <CheckoutPage />
+          </ProtectedRoute>
+        } 
+      />
       <Route 
         path="/dashboard" 
         element={
@@ -95,11 +109,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <AppRoutes />
-        </div>
-      </Router>
+      <CartProvider>
+        <Router>
+          <div className="App">
+            <AppRoutes />
+          </div>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }
