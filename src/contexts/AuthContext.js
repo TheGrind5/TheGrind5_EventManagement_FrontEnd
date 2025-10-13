@@ -39,9 +39,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login(email, password);
-      console.log('Login response:', response); // Debug log
-      
-      // Backend trả về user và accessToken (camelCase)
+
       if (response.user && response.accessToken) {
         setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
@@ -81,6 +79,23 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+
+  };
+
+  const refreshProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      const profileData = await authAPI.getCurrentUserProfile(token);
+      setUser(profileData);
+      localStorage.setItem('user', JSON.stringify(profileData));
+      return profileData;
+    } catch (error) {
+      console.error('Refresh profile error:', error);
+      return null;
+    }
+
   };
 
   const value = {
@@ -88,7 +103,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
-    logout
+    logout,
+    refreshProfile
   };
 
   return (

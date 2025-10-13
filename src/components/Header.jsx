@@ -19,6 +19,7 @@ const Header = () => {
             {user ? (
               <>
                 <Link to="/dashboard" className="nav-link">Dashboard</Link>
+                <Link to="/profile" className="nav-link">Profile</Link>
                 <span className="nav-link">Welcome, {user.fullName}</span>
                 <button onClick={logout} className="btn btn-secondary">
                   Logout

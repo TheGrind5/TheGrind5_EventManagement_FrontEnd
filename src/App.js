@@ -7,8 +7,11 @@ import RegisterPage from './pages/RegisterPage';
 import EventDetailsPage from './pages/EventDetailsPage';
 import DashboardPage from './pages/DashboardPage';
 
+import ProfilePage from './pages/ProfilePage';
+
 //Thêm trang create order
 import CreateOrderPage from './pages/CreateOrderPage';
+
 
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
@@ -45,10 +48,21 @@ function AppRoutes() {
         } 
       />
 
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        } 
+      />
+
+
       {/* Thêm route tới trang create order */}
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
 
       //Route mặc định, nếu người dùng nhập sai link thì sẽ redirect về trang home
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
