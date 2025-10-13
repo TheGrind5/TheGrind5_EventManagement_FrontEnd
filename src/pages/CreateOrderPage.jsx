@@ -4,6 +4,7 @@
 import React, {useState, useEffect} from 'react'; 
 import {useParams} from 'react-router-dom'; 
 import Header from '../components/Header';
+import { AddToWishlistButton } from '../features/wishlist';
 
     //event api để lấy thông tin event từ backend
 import {eventsAPI, ordersAPI} from '../services/api';
@@ -221,23 +222,32 @@ const CreateOrderPage = () => {
                                     </div>
                                 )}
 
-                                <button 
-                                    type="submit" 
-                                    className="btn-create-order" 
-                                    onClick={handleCreateOrder}
-                                    disabled={creatingOrder}
-                                >
-                                    {creatingOrder ? (
-                                        <>
-                                            <div className="spinner-border spinner-border-sm me-2" role="status">
-                                                <span className="visually-hidden">Loading...</span>
-                                            </div>
-                                            Đang tạo đơn hàng...
-                                        </>
-                                    ) : (
-                                        '🚀 Tạo đơn hàng'
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <button 
+                                        type="submit" 
+                                        className="btn-create-order" 
+                                        onClick={handleCreateOrder}
+                                        disabled={creatingOrder}
+                                    >
+                                        {creatingOrder ? (
+                                            <>
+                                                <div className="spinner-border spinner-border-sm me-2" role="status">
+                                                    <span className="visually-hidden">Loading...</span>
+                                                </div>
+                                                Đang tạo đơn hàng...
+                                            </>
+                                        ) : (
+                                            '🚀 Tạo đơn hàng'
+                                        )}
+                                    </button>
+                                    
+                                    {selectedTicketType && (
+                                        <AddToWishlistButton 
+                                            ticketTypeId={parseInt(selectedTicketType)}
+                                            // onSuccess và onError callbacks đã được xử lý bởi toast notification trong component
+                                        />
                                     )}
-                                </button>
+                                </div>
                             </form>
                         </>
                     )}

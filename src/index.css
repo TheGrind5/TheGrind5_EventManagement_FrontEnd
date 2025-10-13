@@ -734,6 +734,27 @@ body {
   border-color: rgba(156, 163, 175, 0.5);
 }
 
+.btn-outline {
+  background: transparent;
+  color: #667eea;
+  border: 1px solid #667eea;
+}
+
+.btn-outline:hover {
+  background: #667eea;
+  color: #ffffff;
+}
+
+.btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-outline:disabled:hover {
+  background: transparent;
+  color: #667eea;
+}
+
 /* Alerts */
 .alert {
   padding: 16px 20px;
@@ -759,6 +780,13 @@ body {
 .mb-4 { margin-bottom: 16px; }
 .mb-6 { margin-bottom: 24px; }
 .text-center { text-align: center; }
+
+/* Flex utilities */
+.flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.gap-3 { gap: 12px; }
 
 /* Header */
 .app-header {

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No Extensions Mode</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .solution {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fix "bypasses" Runtime Error</h1>
+    
+    <div class="warning">
+        <h3>⚠️ Warning</h3>
+        <p>The error "Identifier 'bypasses' has already been declared" is likely caused by:</p>
+        <ul>
+            <li>Browser extensions (React DevTools, Redux DevTools, etc.)</li>
+            <li>Browser development tools</li>
+            <li>React StrictMode in development mode</li>
+        </ul>
+    </div>
+    
+    <div class="solution">
+        <h3>🔧 Solutions</h3>
+        <ol>
+            <li><strong>Disable browser extensions:</strong> Open Chrome in incognito mode or disable extensions</li>
+            <li><strong>Clear browser cache:</strong> Press Ctrl+Shift+Delete and clear all data</li>
+            <li><strong>Disable React DevTools:</strong> Temporarily disable React DevTools extension</li>
+            <li><strong>Use different browser:</strong> Try Firefox or Edge without extensions</li>
+        </ol>
+    </div>
+    
+    <h3>Quick Actions:</h3>
+    <button onclick="openIncognito()">Open in Incognito Mode</button>
+    <button onclick="clearAllData()">Clear All Data</button>
+    <button onclick="reloadApp()">Reload App</button>
+    
+    <script>
+        function openIncognito() {
+            const currentUrl = window.location.origin;
+            window.open(currentUrl + '/', '_blank');
+        }
+        
+        function clearAllData() {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            // Clear cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Clear cache
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            alert('All data cleared! Please reload the page.');
+        }
+        
+        function reloadApp() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import { eventsAPI } from '../services/api';
+import SimpleAddToWishlistButton from '../features/wishlist/components/SimpleAddToWishlistButton';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
   const [event, setEvent] = useState(null);
+  const [ticketTypes, setTicketTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,6 +25,7 @@ const EventDetailsPage = () => {
         const response = await eventsAPI.getById(id);
         console.log('Event response:', response);
         setEvent(response);
+        setTicketTypes(response.ticketTypes || []);
       } catch (err) {
         setError('Failed to load event details');
         console.error('Error fetching event:', err);
@@ -105,14 +108,22 @@ const EventDetailsPage = () => {
             )}
 
             <div className="text-center mt-4">
-              <Link to="/" className="btn btn-secondary">Back to Events</Link>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Link to="/" className="btn btn-secondary">Back to Events</Link>
 
-              {/* Link tới cái create order của event, lấy id từ event hiện tại để tạo order */}
-              <Link to={`/event/${id}/order/create`} className="btn btn-primary ml-2">
-                Buy Tickets
-              </Link>
-              
-              
+                {/* Link tới cái create order của event, lấy id từ event hiện tại để tạo order */}
+                <Link to={`/event/${id}/order/create`} className="btn btn-primary">
+                  Buy Tickets
+                </Link>
+                
+                {/* Nút Add to Wishlist - chỉ hiển thị khi có ticketTypes */}
+                {ticketTypes && ticketTypes.length > 0 && (
+                  <SimpleAddToWishlistButton
+                    ticketTypeId={ticketTypes[0].ticketTypeId}
+                    disabled={event?.status !== 'Open'}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -6,19 +6,12 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import EventDetailsPage from './pages/EventDetailsPage';
 import DashboardPage from './pages/DashboardPage';
-
 import ProfilePage from './pages/ProfilePage';
-
-// Thêm trang create order
 import CreateOrderPage from './pages/CreateOrderPage';
-// Thêm trang wallet
 import WalletPage from './pages/WalletPage';
-// Thêm trang wishlist
 import { WishlistPage } from './features/wishlist';
-
-
 import ProtectedRoute from './components/ProtectedRoute';
-import './utils/toast'; // Initialize toast system
+import './utils/toast';
 import './App.css';
 
 function AppRoutes() {
@@ -52,7 +45,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-
       <Route 
         path="/profile" 
         element={
@@ -61,12 +53,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-
-
-      {/* Thêm route tới trang create order */}
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
-      
-      {/* Thêm route tới trang wallet */}
       <Route 
         path="/wallet" 
         element={
@@ -75,8 +62,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-
-      {/* Thêm route tới trang wishlist */}
       <Route 
         path="/wishlist" 
         element={
@@ -85,8 +70,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-
-      {/* Route mặc định, nếu người dùng nhập sai link thì sẽ redirect về trang home */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
