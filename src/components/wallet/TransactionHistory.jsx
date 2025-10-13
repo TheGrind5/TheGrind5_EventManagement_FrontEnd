@@ -1,6 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Box, 
+  Button, 
+  Stack,
+  Chip,
+  CircularProgress,
+  Alert,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Paper
+} from '@mui/material';
+import { 
+  AccountBalanceWallet, 
+  Refresh, 
+  TrendingUp, 
+  TrendingDown, 
+  Payment,
+  SwapHoriz,
+  Inbox
+} from '@mui/icons-material';
 import { walletAPI } from '../../services/api';
-import '../../styles/TransactionHistory.css';
 
 const TransactionHistory = () => {
   const [transactions, setTransactions] = useState([]);
@@ -66,11 +91,11 @@ const TransactionHistory = () => {
 
   const getTransactionIcon = (type) => {
     switch (type) {
-      case 'Deposit': return '💰';
-      case 'Withdraw': return '💸';
-      case 'Payment': return '💳';
-      case 'Refund': return '🔄';
-      default: return '📄';
+      case 'Deposit': return TrendingUp;
+      case 'Withdraw': return TrendingDown;
+      case 'Payment': return Payment;
+      case 'Refund': return SwapHoriz;
+      default: return AccountBalanceWallet;
     }
   };
 
@@ -80,7 +105,7 @@ const TransactionHistory = () => {
       case 'Refund': return 'success';
       case 'Withdraw': return 'warning';
       case 'Payment': return 'info';
-      default: return 'neutral';
+      default: return 'default';
     }
   };
 
@@ -89,109 +114,137 @@ const TransactionHistory = () => {
       case 'Completed': return 'success';
       case 'Pending': return 'warning';
       case 'Failed': return 'error';
-      case 'Cancelled': return 'neutral';
-      default: return 'neutral';
+      case 'Cancelled': return 'default';
+      default: return 'default';
     }
   };
 
   if (loading && transactions.length === 0) {
     return (
-      <div className="transaction-history">
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Đang tải lịch sử giao dịch...</p>
-        </div>
-      </div>
+      <Card>
+        <CardContent sx={{ textAlign: 'center', py: 4 }}>
+          <CircularProgress />
+          <Typography variant="body1" sx={{ mt: 2 }}>
+            Đang tải lịch sử giao dịch...
+          </Typography>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="transaction-history">
-      <div className="history-header">
-        <h2>📋 Lịch sử giao dịch</h2>
-        <button 
-          className="refresh-btn"
-          onClick={() => fetchTransactions(true)}
-          disabled={loading}
-        >
-          🔄 Làm mới
-        </button>
-      </div>
+    <Card>
+      <CardContent>
+        <Stack spacing={3}>
+          {/* Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AccountBalanceWallet />
+              Lịch sử giao dịch
+            </Typography>
+            <Button 
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={() => fetchTransactions(true)}
+              disabled={loading}
+            >
+              Làm mới
+            </Button>
+          </Box>
 
-      {error && (
-        <div className="error-container">
-          <div className="error-icon">⚠️</div>
-          <p>{error}</p>
-          <button 
-            className="retry-btn"
-            onClick={() => fetchTransactions(true)}
-          >
-            Thử lại
-          </button>
-        </div>
-      )}
-
-      {transactions.length === 0 && !loading && !error ? (
-        <div className="empty-state">
-          <div className="empty-icon">📭</div>
-          <h3>Chưa có giao dịch nào</h3>
-          <p>Lịch sử giao dịch sẽ hiển thị ở đây khi bạn thực hiện nạp tiền, rút tiền hoặc thanh toán.</p>
-        </div>
-      ) : (
-        <>
-          <div className="transactions-list">
-            {transactions.map((transaction) => (
-              <div 
-                key={transaction.transactionId} 
-                className={`transaction-item ${getTransactionColor(transaction.transactionType)}`}
-              >
-                <div className="transaction-icon">
-                  {getTransactionIcon(transaction.transactionType)}
-                </div>
-                
-                <div className="transaction-details">
-                  <div className="transaction-main">
-                    <h4>{transaction.description || transaction.transactionType}</h4>
-                    <span className={`status-badge ${getStatusColor(transaction.status)}`}>
-                      {transaction.status}
-                    </span>
-                  </div>
-                  
-                  <div className="transaction-meta">
-                    <span className="date">{formatDate(transaction.createdAt)}</span>
-                    {transaction.referenceId && (
-                      <span className="reference">#{transaction.referenceId}</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="transaction-amount">
-                  <span className={`amount ${transaction.transactionType === 'Deposit' || transaction.transactionType === 'Refund' ? 'positive' : 'negative'}`}>
-                    {transaction.transactionType === 'Deposit' || transaction.transactionType === 'Refund' ? '+' : '-'}
-                    {formatCurrency(transaction.amount)}
-                  </span>
-                  <span className="balance-after">
-                    Số dư: {formatCurrency(transaction.balanceAfter)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {hasMore && (
-            <div className="load-more-container">
-              <button 
-                className="load-more-btn"
-                onClick={() => fetchTransactions()}
-                disabled={loading}
-              >
-                {loading ? 'Đang tải...' : 'Tải thêm'}
-              </button>
-            </div>
+          {error && (
+            <Alert severity="error" action={
+              <Button color="inherit" size="small" onClick={() => fetchTransactions(true)}>
+                Thử lại
+              </Button>
+            }>
+              {error}
+            </Alert>
           )}
-        </>
-      )}
-    </div>
+
+          {transactions.length === 0 && !loading && !error ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Inbox sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Chưa có giao dịch nào
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Lịch sử giao dịch sẽ hiển thị ở đây khi bạn thực hiện nạp tiền, rút tiền hoặc thanh toán.
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <List>
+                {transactions.map((transaction, index) => {
+                  const TransactionIcon = getTransactionIcon(transaction.transactionType);
+                  const isPositive = transaction.transactionType === 'Deposit' || transaction.transactionType === 'Refund';
+                  
+                  return (
+                    <React.Fragment key={transaction.transactionId}>
+                      <ListItem sx={{ px: 0 }}>
+                        <ListItemIcon>
+                          <TransactionIcon color={getTransactionColor(transaction.transactionType)} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                {transaction.description || transaction.transactionType}
+                              </Typography>
+                              <Box sx={{ textAlign: 'right' }}>
+                                <Typography 
+                                  variant="h6" 
+                                  sx={{ 
+                                    fontWeight: 600,
+                                    color: isPositive ? 'success.main' : 'error.main'
+                                  }}
+                                >
+                                  {isPositive ? '+' : '-'}{formatCurrency(transaction.amount)}
+                                </Typography>
+                                <Chip 
+                                  label={transaction.status} 
+                                  color={getStatusColor(transaction.status)}
+                                  size="small"
+                                />
+                              </Box>
+                            </Box>
+                          }
+                          secondary={
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                              <Typography variant="body2" color="text.secondary">
+                                {formatDate(transaction.createdAt)}
+                                {transaction.referenceId && ` • #${transaction.referenceId}`}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                Số dư: {formatCurrency(transaction.balanceAfter)}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                      {index < transactions.length - 1 && <Divider />}
+                    </React.Fragment>
+                  );
+                })}
+              </List>
+
+              {hasMore && (
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button 
+                    variant="outlined"
+                    onClick={() => fetchTransactions()}
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={16} /> : null}
+                  >
+                    {loading ? 'Đang tải...' : 'Tải thêm'}
+                  </Button>
+                </Box>
+              )}
+            </>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 };
 

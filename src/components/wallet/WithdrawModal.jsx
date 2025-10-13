@@ -1,6 +1,22 @@
 import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Box,
+  Typography,
+  Alert,
+  Stack,
+  Chip,
+  Paper,
+  IconButton,
+  CircularProgress
+} from '@mui/material';
+import { Close, Remove } from '@mui/icons-material';
 import { walletAPI } from '../../services/api';
-import '../../styles/Modal.css';
 
 const WithdrawModal = ({ currentBalance, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -69,100 +85,130 @@ const WithdrawModal = ({ currentBalance, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>💸 Rút tiền từ ví</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
-        </div>
+    <Dialog 
+      open={true} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 2 }
+      }}
+    >
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Remove color="warning" />
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+          Rút tiền từ ví
+        </Typography>
+        <IconButton 
+          onClick={onClose} 
+          sx={{ ml: 'auto' }}
+          size="small"
+        >
+          <Close />
+        </IconButton>
+      </DialogTitle>
 
-        <form onSubmit={handleSubmit} className="modal-form">
-          <div className="balance-info">
-            <p>Số dư hiện tại: <strong>{formatCurrency(currentBalance)}</strong></p>
-          </div>
+      <DialogContent>
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+          {/* Balance Info */}
+          <Paper sx={{ p: 2, bgcolor: 'primary.light', mb: 3 }}>
+            <Typography variant="body1">
+              Số dư hiện tại: <strong>{formatCurrency(currentBalance)}</strong>
+            </Typography>
+          </Paper>
 
-          <div className="form-group">
-            <label htmlFor="amount">Số tiền rút (VND)</label>
-            <input
-              type="number"
-              id="amount"
-              name="amount"
-              value={formData.amount}
-              onChange={handleInputChange}
-              placeholder="Nhập số tiền rút..."
-              min="1000"
-              max={currentBalance}
-              step="1000"
-              required
-            />
-            
-            {/* Quick Amount Buttons */}
-            {quickAmounts.length > 0 && (
-              <div className="quick-amounts">
-                <span className="quick-label">Chọn nhanh:</span>
+          <TextField
+            fullWidth
+            label="Số tiền rút (VND)"
+            name="amount"
+            type="number"
+            value={formData.amount}
+            onChange={handleInputChange}
+            placeholder="Nhập số tiền rút..."
+            inputProps={{ 
+              min: 1000, 
+              max: currentBalance, 
+              step: 1000 
+            }}
+            required
+            sx={{ mb: 2 }}
+          />
+          
+          {/* Quick Amount Buttons */}
+          {quickAmounts.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Chọn nhanh:
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {quickAmounts.map(amount => (
-                  <button
+                  <Chip
                     key={amount}
-                    type="button"
-                    className="quick-amount-btn"
+                    label={formatCurrency(amount)}
                     onClick={() => setFormData(prev => ({ ...prev, amount: amount.toString() }))}
-                  >
-                    {formatCurrency(amount)}
-                  </button>
+                    variant="outlined"
+                    clickable
+                    size="small"
+                  />
                 ))}
-              </div>
-            )}
-          </div>
+              </Stack>
+            </Box>
+          )}
 
-          <div className="form-group">
-            <label htmlFor="description">Ghi chú (tùy chọn)</label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Ví dụ: Rút tiền về tài khoản ngân hàng..."
-              rows="3"
-            />
-          </div>
+          <TextField
+            fullWidth
+            label="Ghi chú (tùy chọn)"
+            name="description"
+            value={formData.description}
+            onChange={handleInputChange}
+            placeholder="Ví dụ: Rút tiền về tài khoản ngân hàng..."
+            multiline
+            rows={3}
+            sx={{ mb: 2 }}
+          />
 
           {error && (
-            <div className="error-message">
-              ⚠️ {error}
-            </div>
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
           )}
 
-          <div className="modal-actions">
-            <button
-              type="button"
-              className="cancel-btn"
-              onClick={onClose}
-              disabled={loading}
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="submit-btn withdraw-submit"
-              disabled={loading || currentBalance <= 0}
-            >
-              {loading ? 'Đang xử lý...' : 'Rút tiền'}
-            </button>
-          </div>
-        </form>
+          {/* Withdraw Info */}
+          <Paper sx={{ p: 2, bgcolor: 'warning.light', mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              ⚠️ Lưu ý quan trọng
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              • Số tiền rút sẽ được trừ khỏi ví ngay lập tức<br/>
+              • Không thể hoàn tác sau khi rút tiền<br/>
+              • Vui lòng kiểm tra kỹ thông tin trước khi xác nhận
+              {currentBalance <= 0 && (
+                <><br/>• Không thể rút tiền khi ví trống</>
+              )}
+            </Typography>
+          </Paper>
+        </Box>
+      </DialogContent>
 
-        {/* Withdraw Info */}
-        <div className="withdraw-info">
-          <h4>⚠️ Lưu ý quan trọng</h4>
-          <p>• Số tiền rút sẽ được trừ khỏi ví ngay lập tức</p>
-          <p>• Không thể hoàn tác sau khi rút tiền</p>
-          <p>• Vui lòng kiểm tra kỹ thông tin trước khi xác nhận</p>
-          {currentBalance <= 0 && (
-            <p className="warning">• Không thể rút tiền khi ví trống</p>
-          )}
-        </div>
-      </div>
-    </div>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <Button
+          onClick={onClose}
+          disabled={loading}
+          variant="outlined"
+        >
+          Hủy
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={loading || currentBalance <= 0}
+          variant="contained"
+          color="warning"
+          startIcon={loading ? <CircularProgress size={16} /> : <Remove />}
+        >
+          {loading ? 'Đang xử lý...' : 'Rút tiền'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

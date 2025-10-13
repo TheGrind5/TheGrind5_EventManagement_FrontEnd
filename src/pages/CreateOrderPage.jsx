@@ -2,16 +2,17 @@
 
 //Import statements để import các thư viện cần thiết
 import React, {useState, useEffect} from 'react'; 
-import {useParams} from 'react-router-dom'; 
-import { Header } from '../components/layout';
+import {useParams, useSearchParams} from 'react-router-dom'; 
+import Header from '../components/layout/Header';
 
     //event api để lấy thông tin event từ backend
-import {eventsAPI, ordersAPI} from '../services/api';
+import {eventsAPI, ordersAPI, ticketsAPI} from '../services/api';
 
 const CreateOrderPage = () => {
 
     //State declaration để quản lý trạng thái của component
     const {id} = useParams(); //Lấy id từ url 
+    const [searchParams] = useSearchParams(); //Lấy query params từ URL
     const [quantity, setQuantity] = useState(1); 
     /*  useState là một hook trong React để quản lý trạng thái của component.
         useState trả về một mảng gồm hai phần tử: phần tử đầu tiên là giá trị hiện tại của trạng thái, phần tử thứ hai là hàm để cập nhật giá trị của trạng thái.
@@ -33,16 +34,29 @@ const CreateOrderPage = () => {
             try{
                 setLoading(true); 
                 setError(null); // Chưa fetch thì chưa có lỗi
+                
+                // Fetch event data
                 const eventData = await eventsAPI.getById(id);
                 console.log('Event data: ', eventData);
-                console.log('Ticket Types: ', eventData.ticketTypes);
-                console.log('Setting event state with:', eventData);
                 setEvent(eventData);
-                setTicketTypes(eventData.ticketTypes || []);
-                console.log('Event state should be set now');
+                
+                // Fetch ticket types separately
+                const ticketTypesData = await ticketsAPI.getTicketTypesByEvent(id);
+                console.log('Ticket Types: ', ticketTypesData);
+                setTicketTypes(ticketTypesData || []);
+                
+                // Auto-select ticket type from URL params if provided
+                const ticketTypeFromUrl = searchParams.get('ticketType');
+                if (ticketTypeFromUrl) {
+                    const foundTicketType = ticketTypesData?.find(tt => tt.ticketTypeId == ticketTypeFromUrl);
+                    if (foundTicketType) {
+                        setSelectedTicketType(ticketTypeFromUrl);
+                        console.log('Auto-selected ticket type:', foundTicketType.typeName);
+                    }
+                }
 
                 // Kiểm tra nếu không có ticket types
-                if (!eventData.ticketTypes || eventData.ticketTypes.length === 0) {
+                if (!ticketTypesData || ticketTypesData.length === 0) {
                     setError('Sự kiện này chưa có loại vé nào để đặt');
                     setTicketTypes([]);
                 }
@@ -57,7 +71,7 @@ const CreateOrderPage = () => {
         if(id){
             fetchEventData();
         }
-    }, [id])
+    }, [id, searchParams])
 
         // Debug useEffect để kiểm tra event state
     useEffect(() => {
@@ -171,20 +185,56 @@ const CreateOrderPage = () => {
                             </div>
 
                             <form className="order-form">
+                                {/* Hiển thị thông tin vé đã chọn nếu có ticketType từ URL */}
+                                {selectedTicketType && (
+                                    <div className="selected-ticket-info">
+                                        <h3>🎫 Vé đã chọn</h3>
+                                        {(() => {
+                                            const selectedTicket = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
+                                            return selectedTicket ? (
+                                                <div className="ticket-info-card">
+                                                    <h4>{selectedTicket.typeName}</h4>
+                                                    <p><strong>Giá:</strong> {selectedTicket.price?.toLocaleString()} VND</p>
+                                                    <p><strong>Số lượng còn lại:</strong> {selectedTicket.availableQuantity}</p>
+                                                    {selectedTicket.minOrder && (
+                                                        <p><strong>Tối thiểu:</strong> {selectedTicket.minOrder} vé</p>
+                                                    )}
+                                                    {selectedTicket.maxOrder && (
+                                                        <p><strong>Tối đa:</strong> {selectedTicket.maxOrder} vé</p>
+                                                    )}
+                                                </div>
+                                            ) : null;
+                                        })()}
+                                    </div>
+                                )}
+
                                 <div className="form-group">
                                     <label>🎫 Loại vé</label>
-                                    <select 
-                                        className="form-control"
-                                        value={selectedTicketType}
-                                        onChange={(e) => setSelectedTicketType(e.target.value)}
-                                    >
-                                        <option value="">Chọn loại vé</option>
-                                        {ticketTypes.map(ticketType => (
-                                        <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>
-                                            {ticketType.typeName} - {ticketType.price?.toLocaleString()} VND
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {selectedTicketType ? (
+                                        <div className="selected-ticket-display">
+                                            <p>Đã chọn: {ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType)?.typeName}</p>
+                                            <button 
+                                                type="button" 
+                                                className="btn btn-secondary btn-sm"
+                                                onClick={() => setSelectedTicketType('')}
+                                            >
+                                                Chọn lại
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select 
+                                            className="form-control"
+                                            value={selectedTicketType}
+                                            onChange={(e) => setSelectedTicketType(e.target.value)}
+                                        >
+                                            <option value="">Chọn loại vé</option>
+                                            {ticketTypes.map(ticketType => (
+                                            <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>
+                                                {ticketType.typeName} - {ticketType.price?.toLocaleString()} VND
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
 
                                 <div className="form-group">
