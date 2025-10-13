@@ -283,3 +283,92 @@ export const ordersAPI = {
     return response.json();
   }
 };
+
+// Wallet API
+export const walletAPI = {
+  getBalance: async () => {
+    const response = await fetch(`${API_BASE_URL}/Wallet/balance`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to get wallet balance');
+    }
+
+    return response.json();
+  },
+
+  deposit: async (depositData) => {
+    const response = await fetch(`${API_BASE_URL}/Wallet/deposit`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(depositData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to deposit money');
+    }
+
+    return response.json();
+  },
+
+  withdraw: async (withdrawData) => {
+    const response = await fetch(`${API_BASE_URL}/Wallet/withdraw`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(withdrawData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to withdraw money');
+    }
+
+    return response.json();
+  },
+
+  getTransactions: async (page = 1, pageSize = 10) => {
+    const response = await fetch(`${API_BASE_URL}/Wallet/transactions?page=${page}&pageSize=${pageSize}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch transactions');
+    }
+
+    return response.json();
+  },
+
+  getTransaction: async (transactionId) => {
+    const response = await fetch(`${API_BASE_URL}/Wallet/transactions/${transactionId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch transaction');
+    }
+
+    return response.json();
+  },
+
+  checkSufficientBalance: async (amount) => {
+    const response = await fetch(`${API_BASE_URL}/Wallet/check-balance?amount=${amount}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to check balance');
+    }
+
+    return response.json();
+  }
+};
