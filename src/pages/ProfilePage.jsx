@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/api';
+import Header from '../components/Header';
 
 const ProfilePage = () => {
   const { refreshProfile } = useAuth();
@@ -94,72 +95,74 @@ const ProfilePage = () => {
     setError('');
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Chưa cập nhật';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div>
+        <Header />
+        <div className="loading-container">
+          <div className="loading-spinner">Loading profile...</div>
+        </div>
       </div>
     );
   }
 
   if (error && !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 text-xl mb-4">⚠️</div>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={loadProfile}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Thử lại
-          </button>
+      <div>
+        <Header />
+        <div className="main-content">
+          <div className="text-center">
+            <div className="text-red-400 text-xl mb-4">⚠️</div>
+            <p className="text-red-400 mb-4">{error}</p>
+            <button 
+              onClick={loadProfile}
+              className="btn btn-primary"
+            >
+              Thử lại
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div>
+      <Header />
+      
+      <div className="main-content">
         {/* Header */}
-        <div className="bg-white shadow rounded-lg mb-8">
-          <div className="px-6 py-8">
-            <div className="flex items-center justify-between">
+        <div className="card mb-6">
+          <div className="card-body">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-                <p className="mt-2 text-gray-600">Quản lý thông tin cá nhân của bạn</p>
+                <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#ffffff', marginBottom: '8px' }}>
+                  Profile
+                </h1>
+                <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+                  Quản lý thông tin cá nhân của bạn
+                </p>
               </div>
-              <div className="flex space-x-3">
+              <div style={{ display: 'flex', gap: '12px' }}>
                 {!editing ? (
                   <button
                     onClick={() => setEditing(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="btn btn-primary"
                   >
                     Chỉnh sửa
                   </button>
                 ) : (
-                  <div className="flex space-x-2">
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={handleCancel}
-                      className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                      className="btn btn-secondary"
                     >
                       Hủy
                     </button>
                     <button
                       onClick={handleSubmit}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                      className="btn btn-primary"
                     >
                       Lưu thay đổi
                     </button>
@@ -172,51 +175,62 @@ const ProfilePage = () => {
 
         {/* Messages */}
         {message && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+          <div className="alert alert-success mb-4">
             {message}
           </div>
         )}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+          <div className="alert alert-error mb-4">
             {error}
           </div>
         )}
 
         {/* Profile Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
           {/* Avatar Section */}
-          <div className="lg:col-span-1">
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="text-center">
-                <div className="mx-auto h-32 w-32 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-4xl text-gray-600">
+          <div>
+            <div className="card">
+              <div className="card-body" style={{ textAlign: 'center' }}>
+                <div style={{ 
+                  margin: '0 auto 16px', 
+                  width: '128px', 
+                  height: '128px', 
+                  background: 'rgba(102, 126, 234, 0.2)', 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  border: '2px solid rgba(102, 126, 234, 0.3)'
+                }}>
+                  <span style={{ fontSize: '3rem', color: '#667eea', fontWeight: '600' }}>
                     {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
                   </span>
                 </div>
-                <h3 className="mt-4 text-xl font-medium text-gray-900">
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
                   {profile?.fullName || 'Chưa có tên'}
                 </h3>
-                <p className="text-sm text-gray-500">{profile?.role}</p>
-                <div className="mt-4 space-y-2 text-sm text-gray-600">
+                <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '16px' }}>
+                  {profile?.role}
+                </p>
+                <div style={{ fontSize: '0.875rem', color: '#9ca3af' }}>
                   <p>ID: {profile?.userId}</p>
-                  <p>Username: {profile?.username}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Profile Details */}
-          <div className="lg:col-span-2">
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Thông tin chi tiết</h3>
-              </div>
-              <div className="px-6 py-4">
+          <div style={{ gridColumn: 'span 2' }}>
+            <div className="card">
+              <div className="card-body">
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#ffffff', marginBottom: '24px' }}>
+                  Thông tin chi tiết
+                </h3>
                 <form onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}>
                     {/* Full Name */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
                         Họ và tên
                       </label>
                       {editing ? (
@@ -225,28 +239,38 @@ const ProfilePage = () => {
                           name="fullName"
                           value={formData.fullName}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="form-input"
                           placeholder="Nhập họ và tên"
                         />
                       ) : (
-                        <p className="text-gray-900 py-2">{profile?.fullName || 'Chưa cập nhật'}</p>
+                        <p style={{ color: '#ffffff', padding: '12px 0' }}>
+                          {profile?.fullName || 'Chưa cập nhật'}
+                        </p>
                       )}
                     </div>
 
                     {/* Email */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
                         Email
                       </label>
-                      <p className="text-gray-900 py-2 bg-gray-50 px-3 rounded-lg">
+                      <p style={{ 
+                        color: '#ffffff', 
+                        padding: '12px 16px', 
+                        background: 'rgba(255, 255, 255, 0.05)', 
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
                         {profile?.email}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Email không thể thay đổi</p>
+                      <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '4px' }}>
+                        Email không thể thay đổi
+                      </p>
                     </div>
 
                     {/* Phone */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
                         Số điện thoại
                       </label>
                       {editing ? (
@@ -255,43 +279,32 @@ const ProfilePage = () => {
                           name="phone"
                           value={formData.phone}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="form-input"
                           placeholder="Nhập số điện thoại"
                         />
                       ) : (
-                        <p className="text-gray-900 py-2">{profile?.phone || 'Chưa cập nhật'}</p>
+                        <p style={{ color: '#ffffff', padding: '12px 0' }}>
+                          {profile?.phone || 'Chưa cập nhật'}
+                        </p>
                       )}
                     </div>
 
                     {/* Role */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
                         Vai trò
                       </label>
-                      <p className="text-gray-900 py-2 bg-gray-50 px-3 rounded-lg">
+                      <p style={{ 
+                        color: '#ffffff', 
+                        padding: '12px 16px', 
+                        background: 'rgba(255, 255, 255, 0.05)', 
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
                         {profile?.role}
                       </p>
                     </div>
 
-                    {/* Created At */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Ngày tạo tài khoản
-                      </label>
-                      <p className="text-gray-900 py-2 bg-gray-50 px-3 rounded-lg">
-                        {formatDate(profile?.createdAt)}
-                      </p>
-                    </div>
-
-                    {/* Updated At */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Cập nhật lần cuối
-                      </label>
-                      <p className="text-gray-900 py-2 bg-gray-50 px-3 rounded-lg">
-                        {formatDate(profile?.updatedAt)}
-                      </p>
-                    </div>
                   </div>
                 </form>
               </div>
