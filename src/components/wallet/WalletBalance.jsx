@@ -1,5 +1,5 @@
 import React from 'react';
-import './WalletBalance.css';
+import '../../styles/WalletBalance.css';
 
 const WalletBalance = ({ balance, currency, onRefresh }) => {
   const formatCurrency = (amount) => {

@@ -2,9 +2,17 @@
 .wallet-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
-  min-height: 100vh;
+  padding: 40px 30px;
+  min-height: calc(100vh - 80px);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Main wrapper for wallet page content */
+.wallet-page-wrapper {
+  padding: 20px;
+  margin: 0 auto;
+  max-width: 100%;
+  min-height: calc(100vh - 80px);
 }
 
 .wallet-header {
@@ -147,6 +155,14 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .wallet-page-wrapper {
+    padding: 15px;
+  }
+  
+  .wallet-page {
+    padding: 20px 15px;
+  }
+  
   .wallet-content {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -162,5 +178,27 @@
   
   .action-buttons {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .wallet-page-wrapper {
+    padding: 10px;
+  }
+  
+  .wallet-page {
+    padding: 15px 10px;
+  }
+  
+  .wallet-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .wallet-header p {
+    font-size: 1rem;
+  }
+  
+  .balance-section, .transaction-section {
+    padding: 15px;
   }
 }

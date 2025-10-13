@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { walletAPI } from '../services/api';
-import './Modal.css';
+import { walletAPI } from '../../services/api';
+import '../../styles/Modal.css';
 
 const DepositModal = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
