@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Header } from '../layout';
+import Header from '../layout/Header';
 import { useCart } from '../../contexts/CartContext';
 import CartItem from './CartItem';
 

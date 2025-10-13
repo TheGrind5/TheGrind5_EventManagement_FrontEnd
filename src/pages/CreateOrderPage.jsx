@@ -3,7 +3,7 @@
 //Import statements để import các thư viện cần thiết
 import React, {useState, useEffect} from 'react'; 
 import {useParams, useSearchParams} from 'react-router-dom'; 
-import { Header } from '../components/layout';
+import Header from '../components/layout/Header';
 
     //event api để lấy thông tin event từ backend
 import {eventsAPI, ordersAPI, ticketsAPI} from '../services/api';

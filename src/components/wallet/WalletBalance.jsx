@@ -1,5 +1,25 @@
 import React from 'react';
-import '../../styles/WalletBalance.css';
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Box, 
+  IconButton, 
+  Chip,
+  Stack,
+  Grid,
+  Paper
+} from '@mui/material';
+import { 
+  AccountBalanceWallet, 
+  Refresh, 
+  TrendingUp, 
+  TrendingDown, 
+  SwapHoriz,
+  CheckCircle,
+  Warning,
+  Error
+} from '@mui/icons-material';
 
 const WalletBalance = ({ balance, currency, onRefresh }) => {
   const formatCurrency = (amount) => {
@@ -12,80 +32,120 @@ const WalletBalance = ({ balance, currency, onRefresh }) => {
   };
 
   const getBalanceStatus = () => {
-    if (balance === 0) return { status: 'empty', message: 'Ví trống' };
-    if (balance < 100000) return { status: 'low', message: 'Số dư thấp' };
-    return { status: 'good', message: 'Số dư khả dụng' };
+    if (balance === 0) return { status: 'empty', message: 'Ví trống', color: 'error', icon: Error };
+    if (balance < 100000) return { status: 'low', message: 'Số dư thấp', color: 'warning', icon: Warning };
+    return { status: 'good', message: 'Số dư khả dụng', color: 'success', icon: CheckCircle };
   };
 
   const balanceInfo = getBalanceStatus();
+  const StatusIcon = balanceInfo.icon;
 
   return (
-    <div className="wallet-balance">
-      <div className="balance-card">
-        <div className="balance-header">
-          <h2>💰 Số dư ví</h2>
-          <button 
-            className="refresh-btn"
-            onClick={onRefresh}
-            title="Làm mới"
-          >
-            🔄
-          </button>
-        </div>
-        
-        <div className="balance-amount">
-          <span className="amount">{formatCurrency(balance)}</span>
-          <span className="currency">{currency}</span>
-        </div>
+    <Stack spacing={3}>
+      <Card>
+        <CardContent>
+          <Stack spacing={3}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AccountBalanceWallet color="primary" />
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  Số dư ví
+                </Typography>
+              </Box>
+              <IconButton 
+                onClick={onRefresh}
+                title="Làm mới"
+                color="primary"
+              >
+                <Refresh />
+              </IconButton>
+            </Box>
+            
+            {/* Balance Amount */}
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                {formatCurrency(balance)}
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                {currency}
+              </Typography>
+            </Box>
 
-        <div className="balance-status">
-          <span className={`status-indicator ${balanceInfo.status}`}>
-            {balanceInfo.status === 'good' && '✅'}
-            {balanceInfo.status === 'low' && '⚠️'}
-            {balanceInfo.status === 'empty' && '❌'}
-          </span>
-          <span className="status-text">{balanceInfo.message}</span>
-        </div>
+            {/* Status */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+              <StatusIcon color={balanceInfo.color} />
+              <Typography variant="body1" color={`${balanceInfo.color}.main`}>
+                {balanceInfo.message}
+              </Typography>
+            </Box>
 
-        <div className="balance-details">
-          <div className="detail-item">
-            <span className="label">Trạng thái:</span>
-            <span className="value">Hoạt động</span>
-          </div>
-          <div className="detail-item">
-            <span className="label">Cập nhật:</span>
-            <span className="value">Vừa xong</span>
-          </div>
-        </div>
-      </div>
+            {/* Details */}
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Paper sx={{ p: 2, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Trạng thái
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    Hoạt động
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6}>
+                <Paper sx={{ p: 2, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Cập nhật
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    Vừa xong
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </Stack>
+        </CardContent>
+      </Card>
 
       {/* Quick Stats */}
-      <div className="quick-stats">
-        <div className="stat-item">
-          <div className="stat-icon">📈</div>
-          <div className="stat-content">
-            <span className="stat-label">Tổng nạp</span>
-            <span className="stat-value">-</span>
-          </div>
-        </div>
+      <Grid container spacing={2}>
+        <Grid item xs={4}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <TrendingUp color="success" sx={{ mb: 1 }} />
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Tổng nạp
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              -
+            </Typography>
+          </Paper>
+        </Grid>
         
-        <div className="stat-item">
-          <div className="stat-icon">📉</div>
-          <div className="stat-content">
-            <span className="stat-label">Tổng chi</span>
-            <span className="stat-value">-</span>
-          </div>
-        </div>
+        <Grid item xs={4}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <TrendingDown color="warning" sx={{ mb: 1 }} />
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Tổng chi
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              -
+            </Typography>
+          </Paper>
+        </Grid>
         
-        <div className="stat-item">
-          <div className="stat-icon">🔄</div>
-          <div className="stat-content">
-            <span className="stat-label">Giao dịch</span>
-            <span className="stat-value">-</span>
-          </div>
-        </div>
-      </div>
-    </div>
+        <Grid item xs={4}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <SwapHoriz color="info" sx={{ mb: 1 }} />
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Giao dịch
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              -
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Stack>
   );
 };
 

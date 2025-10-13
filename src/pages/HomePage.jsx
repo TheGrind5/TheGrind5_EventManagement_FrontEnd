@@ -1,6 +1,48 @@
+// React & Router
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Header } from '../components/layout';
+
+// Material-UI Components
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  Card, 
+  CardContent, 
+  CardActions, 
+  Button, 
+  TextField, 
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem, 
+  Grid, 
+  Chip, 
+  Paper,
+  InputAdornment,
+  IconButton,
+  Alert,
+  CircularProgress,
+  Stack,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
+
+// Material-UI Icons
+import { 
+  Search, 
+  Clear, 
+  Event, 
+  LocationOn, 
+  Person, 
+  AccessTime,
+  TrendingUp,
+  People,
+  Business
+} from '@mui/icons-material';
+
+// Components & Services
+import Header from '../components/layout/Header';
 import { eventsAPI } from '../services/api';
 
 const HomePage = () => {
@@ -14,6 +56,9 @@ const HomePage = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   //useEffect hook để fetch events từ backend
   useEffect(() => {
@@ -44,6 +89,59 @@ const HomePage = () => {
     });
   };
 
+  // Hàm để xác định trạng thái event dựa trên thời gian
+  const getEventStatus = (startTime, endTime) => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const end = endTime ? new Date(endTime) : null;
+    
+    // Nếu có endTime, so sánh với endTime
+    if (end) {
+      if (now < start) {
+        return 'Upcoming';
+      } else if (now >= start && now <= end) {
+        return 'Active';
+      } else {
+        return 'Completed';
+      }
+    } else {
+      // Nếu không có endTime, chỉ so sánh với startTime
+      if (now < start) {
+        return 'Upcoming';
+      } else {
+        return 'Completed';
+      }
+    }
+  };
+
+  // Hàm để lấy text hiển thị cho status
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'Active':
+        return 'Đang diễn ra';
+      case 'Upcoming':
+        return 'Sắp diễn ra';
+      case 'Completed':
+        return 'Đã kết thúc';
+      default:
+        return 'Không xác định';
+    }
+  };
+
+  // Hàm để lấy màu cho status
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Active':
+        return 'success';
+      case 'Upcoming':
+        return 'warning';
+      case 'Completed':
+        return 'default';
+      default:
+        return 'default';
+    }
+  };
+
   // Hàm constants để filter valid events (eventId > 0)
   const validEvents = events.filter(event => event.eventId && event.eventId > 0);
 
@@ -61,8 +159,9 @@ const HomePage = () => {
     // Category filter
     const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
 
-    // Status filter
-    const matchesStatus = statusFilter === 'all' || event.status === statusFilter;
+    // Status filter - sử dụng status được tính toán thực tế
+    const currentEventStatus = getEventStatus(event.startTime, event.endTime);
+    const matchesStatus = statusFilter === 'all' || currentEventStatus === statusFilter;
 
     // Date filter
     const eventDate = new Date(event.startTime);
@@ -85,165 +184,338 @@ const HomePage = () => {
   });
 
   // Hàm constants để render individual event card
-  const renderEventCard = (event) => (
-    <div key={event.eventId} className="event-card">
-      <div className="event-card-header">
-        <div className="event-category-badge">
-          {event.category}
-        </div>
-        <div className="event-status-badge">
-          {event.status === 'Active' ? 'Đang diễn ra' : 
-           event.status === 'Upcoming' ? 'Sắp diễn ra' : 
-           'Đã kết thúc'}
-        </div>
-      </div>
-      
-      <div className="event-card-body">
-        <h3 className="event-title">{event.title}</h3>
-        <p className="event-description">{event.description}</p>
-        
-        <div className="event-details">
-          <div className="event-detail-item">
-            <span className="detail-text">{formatDate(event.startTime)}</span>
-          </div>
-          <div className="event-detail-item">
-            <span className="detail-text">{event.location}</span>
-          </div>
-          {event.hostName && (
-            <div className="event-detail-item">
-              <span className="detail-text">Host: {event.hostName}</span>
-            </div>
-          )}
-        </div>
-      </div>
-      
-      <div className="event-card-footer">
-        <Link 
-          to={`/event/${event.eventId}`} 
-          className="btn btn-primary event-btn"
-          onClick={() => console.log('HomePage - Clicking event:', event.eventId, event.title)}
-        >
-          Xem Chi Tiết
-        </Link>
-        <Link 
-          to={`/event/${event.eventId}/order/create`} 
-          className="btn btn-secondary event-btn"
-        >
-          Mua Vé
-        </Link>
-      </div>
-    </div>
-  );
-
-  // Hàm constants để render search and filter UI
-  const renderSearchAndFilter = () => (
-    <div className="search-filter-section">
-      <div className="search-filter-container">
-        {/* Search Bar */}
-        <div className="search-group">
-          <div className="search-input-wrapper">
-            <input
-              type="text"
-              placeholder="Tìm kiếm sự kiện..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
+  const renderEventCard = (event) => {
+    // Tính toán status dựa trên thời gian thực tế
+    const currentStatus = getEventStatus(event.startTime, event.endTime);
+    
+    return (
+    <Grid 
+      item 
+      xs={12} 
+      sm={6} 
+      md={4} 
+      lg={3}
+      key={event.eventId}
+      sx={{
+        display: 'flex',
+        justifyContent: 'center'
+      }}
+    >
+      <Card 
+        sx={{ 
+          width: '100%',
+          maxWidth: 320,
+          height: 420,
+          display: 'flex', 
+          flexDirection: 'column',
+          borderRadius: 3,
+          transition: 'all 0.3s ease',
+          boxShadow: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+          overflow: 'hidden',
+          '&:hover': {
+            transform: 'translateY(-6px)',
+            boxShadow: theme.palette.mode === 'dark' 
+              ? '0 12px 30px rgba(0, 0, 0, 0.4)' 
+              : '0 12px 30px rgba(0, 0, 0, 0.2)',
+            borderColor: 'primary.main'
+          }
+        }}
+      >
+        <CardContent sx={{ 
+          p: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          height: 340,
+          flex: 1
+        }}>
+          {/* Header with chips - Fixed height */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'flex-start', 
+            mb: 2,
+            minHeight: 32
+          }}>
+            <Chip 
+              label={event.category} 
+              color="primary" 
+              size="small"
+              sx={{ 
+                fontWeight: 600,
+                borderRadius: 2,
+                fontSize: '0.75rem',
+                height: 26,
+                px: 1
+              }}
             />
-            {searchTerm && (
-              <button
-                className="clear-search"
-                onClick={() => setSearchTerm('')}
-                title="Xóa tìm kiếm"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Filter Controls */}
-        <div className="filter-controls">
-          <div className="filter-group">
-            <label>Danh mục</label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Tất cả</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Trạng thái</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Tất cả</option>
-              <option value="Active">Đang diễn ra</option>
-              <option value="Upcoming">Sắp diễn ra</option>
-              <option value="Completed">Đã kết thúc</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Thời gian</label>
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Tất cả</option>
-              <option value="today">Hôm nay</option>
-              <option value="upcoming">Sắp tới</option>
-              <option value="past">Đã qua</option>
-            </select>
-          </div>
-
-          <button
-            className="reset-filters"
-            onClick={() => {
-              setSearchTerm('');
-              setCategoryFilter('all');
-              setStatusFilter('all');
-              setDateFilter('all');
+            <Chip 
+              label={getStatusText(currentStatus)}
+              color={getStatusColor(currentStatus)}
+              size="small"
+              variant="outlined"
+              sx={{ 
+                borderRadius: 2,
+                fontSize: '0.75rem',
+                height: 26,
+                px: 1,
+                fontWeight: 500
+              }}
+            />
+          </Box>
+          
+          {/* Title - Fixed height */}
+          <Typography 
+            variant="h6" 
+            component="h3" 
+            sx={{ 
+              fontWeight: 700,
+              lineHeight: 1.3,
+              mb: 2,
+              minHeight: 44,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              fontSize: '1.1rem',
+              color: 'text.primary'
             }}
-            title="Đặt lại bộ lọc"
           >
-            Đặt lại
-          </button>
-        </div>
-      </div>
+            {event.title}
+          </Typography>
+          
+          {/* Description - Fixed height */}
+          <Typography 
+            variant="body2" 
+            color="text.secondary" 
+            sx={{ 
+              mb: 2.5, 
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              lineHeight: 1.5,
+              minHeight: 44,
+              fontSize: '0.9rem'
+            }}
+          >
+            {event.description}
+          </Typography>
+          
+          {/* Event Details - Fixed height */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <Stack spacing={1.5}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                <AccessTime fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
+                <Typography variant="body2" color="text.secondary" sx={{ 
+                  lineHeight: 1.4,
+                  fontSize: '0.85rem',
+                  flex: 1
+                }}>
+                  {formatDate(event.startTime)}
+                </Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                <LocationOn fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
+                <Typography variant="body2" color="text.secondary" sx={{ 
+                  lineHeight: 1.4,
+                  fontSize: '0.85rem',
+                  flex: 1
+                }}>
+                  {event.location}
+                </Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                <Person fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
+                <Typography variant="body2" color="text.secondary" sx={{ 
+                  lineHeight: 1.4,
+                  fontSize: '0.85rem',
+                  flex: 1
+                }}>
+                  Host: {event.hostName || 'N/A'}
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+        </CardContent>
+        
+        <CardActions sx={{ 
+          p: 3, 
+          pt: 1, 
+          gap: 2,
+          minHeight: 90,
+          alignItems: 'stretch',
+          flexDirection: 'column',
+          justifyContent: 'center'
+        }}>
+          <Button 
+            component={Link} 
+            to={`/event/${event.eventId}`}
+            variant="outlined"
+            fullWidth
+            size="medium"
+            startIcon={<Event />}
+            sx={{ 
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              py: 1.5,
+              fontSize: '0.9rem',
+              borderWidth: 2,
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              minHeight: 44,
+              '&:hover': {
+                borderWidth: 2,
+                borderColor: 'primary.dark',
+                backgroundColor: 'primary.light',
+                color: 'primary.dark',
+                transform: 'translateY(-1px)'
+              }
+            }}
+            onClick={() => console.log('HomePage - Clicking event:', event.eventId, event.title)}
+          >
+            Xem Chi Tiết
+          </Button>
+          <Button 
+            component={Link} 
+            to={`/event/${event.eventId}/order/create`}
+            variant="contained"
+            fullWidth
+            size="medium"
+            startIcon={<TrendingUp />}
+            sx={{ 
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              py: 1.5,
+              fontSize: '0.9rem',
+              boxShadow: 3,
+              minHeight: 44,
+              '&:hover': {
+                boxShadow: 6,
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            Mua Vé
+          </Button>
+        </CardActions>
+      </Card>
+    </Grid>
+    );
+  };
 
-      {/* Results Summary */}
-      <div className="results-summary">
-        <span>
-          Hiển thị {filteredEvents.length} / {validEvents.length} sự kiện
-        </span>
-        {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all') && (
-          <span className="filter-active">
-            Đang lọc
-          </span>
-        )}
-      </div>
-    </div>
+  // Hàm constants để render filter UI (không còn search bar)
+  const renderFilterControls = () => (
+    <Paper 
+      sx={{ 
+        p: 3, 
+        mb: 3,
+        borderRadius: 2,
+        boxShadow: 1
+      }}
+    >
+      <Stack spacing={3}>
+        {/* Filter Controls */}
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Danh mục</InputLabel>
+              <Select
+                value={categoryFilter}
+                label="Danh mục"
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                {categories.map(category => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Trạng thái</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Trạng thái"
+                onChange={(e) => setStatusFilter(e.target.value)}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                <MenuItem value="Active">Đang diễn ra</MenuItem>
+                <MenuItem value="Upcoming">Sắp diễn ra</MenuItem>
+                <MenuItem value="Completed">Đã kết thúc</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Thời gian</InputLabel>
+              <Select
+                value={dateFilter}
+                label="Thời gian"
+                onChange={(e) => setDateFilter(e.target.value)}
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                <MenuItem value="today">Hôm nay</MenuItem>
+                <MenuItem value="upcoming">Sắp tới</MenuItem>
+                <MenuItem value="past">Đã qua</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={() => {
+                setSearchTerm('');
+                setCategoryFilter('all');
+                setStatusFilter('all');
+                setDateFilter('all');
+              }}
+              sx={{ height: '56px' }}
+            >
+              Đặt lại
+            </Button>
+          </Grid>
+        </Grid>
+
+        {/* Results Summary */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Hiển thị {filteredEvents.length} / {validEvents.length} sự kiện
+          </Typography>
+          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all') && (
+            <Chip label="Đang lọc" color="primary" size="small" />
+          )}
+        </Box>
+      </Stack>
+    </Paper>
   );
 
   // Hàm constants để render events grid
   const renderEventsGrid = () => {
     if (filteredEvents.length === 0) {
       return (
-        <div className="text-center no-results">
-          <div className="no-results-icon"></div>
-          <h3>Không tìm thấy sự kiện</h3>
-          <p>Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
-          <button
-            className="btn btn-secondary"
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Event sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h5" gutterBottom>
+            Không tìm thấy sự kiện
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc
+          </Typography>
+          <Button
+            variant="outlined"
             onClick={() => {
               setSearchTerm('');
               setCategoryFilter('all');
@@ -252,90 +524,152 @@ const HomePage = () => {
             }}
           >
             Đặt lại bộ lọc
-          </button>
-        </div>
+          </Button>
+        </Box>
       );
     }
 
     return (
-      <div className="grid grid-3">
+      <Grid 
+        container 
+        spacing={3}
+        sx={{
+          justifyContent: 'center',
+          alignItems: 'flex-start'
+        }}
+      >
         {filteredEvents.map(renderEventCard)}
-      </div>
+      </Grid>
     );
   };
 
   // Hàm constants để render loading state
   if (loading) {
     return (
-      <div>
+      <Box>
         <Header />
-        <div className="loading-container">
-          <div className="loading-spinner">Loading events...</div>
-        </div>
-      </div>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '50vh' 
+        }}>
+          <Stack alignItems="center" spacing={2}>
+            <CircularProgress />
+            <Typography>Loading events...</Typography>
+          </Stack>
+        </Box>
+      </Box>
     );
   }
 
   // Hàm constants để render home page
   return (
-    <div>
-      <Header />
+    <Box>
+      <Header 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
       
       {/* Hero Section */}
-      <section className="hero">
-        <div className="container">
-          <div className="hero-content">
-            <h1 className="hero-title">
+      <Box
+        sx={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          py: 8,
+          textAlign: 'center'
+        }}
+      >
+        <Container maxWidth="lg">
+          <Stack spacing={4} alignItems="center">
+            <Typography variant="h2" component="h1" sx={{ fontWeight: 700 }}>
               Khám Phá Sự Kiện Tuyệt Vời
-            </h1>
-            <p className="hero-subtitle">
+            </Typography>
+            <Typography variant="h5" sx={{ opacity: 0.9, maxWidth: 600 }}>
               Tìm kiếm và tham gia những sự kiện thú vị nhất tại thành phố của bạn
-            </p>
-            <div className="hero-actions">
-              <Link to="/register" className="btn btn-primary btn-large">
+            </Typography>
+            <Stack 
+              direction={isMobile ? 'column' : 'row'} 
+              spacing={2} 
+              sx={{ mt: 2 }}
+            >
+              <Button 
+                component={Link} 
+                to="/register" 
+                variant="contained" 
+                size="large"
+                sx={{ 
+                  bgcolor: 'white', 
+                  color: 'primary.main',
+                  '&:hover': { bgcolor: 'grey.100' }
+                }}
+              >
                 Bắt Đầu Ngay
-              </Link>
-              <Link to="/" className="btn btn-secondary btn-large">
+              </Button>
+              <Button 
+                component={Link} 
+                to="/" 
+                variant="outlined" 
+                size="large"
+                sx={{ 
+                  borderColor: 'white', 
+                  color: 'white',
+                  '&:hover': { 
+                    borderColor: 'white', 
+                    bgcolor: 'rgba(255, 255, 255, 0.1)' 
+                  }
+                }}
+              >
                 Khám Phá Sự Kiện
-              </Link>
-            </div>
-            <div className="hero-stats">
-              <div className="stat-item">
-                <span className="stat-number">100+</span>
-                <span className="stat-label">Sự Kiện</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">5000+</span>
-                <span className="stat-label">Người Tham Gia</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">50+</span>
-                <span className="stat-label">Đối Tác</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+              </Button>
+            </Stack>
+            
+            <Grid container spacing={4} sx={{ mt: 4, maxWidth: 600 }}>
+              <Grid item xs={4}>
+                <Stack alignItems="center" spacing={1}>
+                  <TrendingUp sx={{ fontSize: 40 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>100+</Typography>
+                  <Typography variant="body2">Sự Kiện</Typography>
+                </Stack>
+              </Grid>
+              <Grid item xs={4}>
+                <Stack alignItems="center" spacing={1}>
+                  <People sx={{ fontSize: 40 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>5000+</Typography>
+                  <Typography variant="body2">Người Tham Gia</Typography>
+                </Stack>
+              </Grid>
+              <Grid item xs={4}>
+                <Stack alignItems="center" spacing={1}>
+                  <Business sx={{ fontSize: 40 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>50+</Typography>
+                  <Typography variant="body2">Đối Tác</Typography>
+                </Stack>
+              </Grid>
+            </Grid>
+          </Stack>
+        </Container>
+      </Box>
 
       {/* Events Section */}
-      <section className="p-4">
-        <div className="container">
-          <h2 className="text-center mb-4">Sự Kiện Sắp Diễn Ra</h2>
-          
-          {error && (
-            <div className="alert alert-error text-center">
-              {error}
-            </div>
-          )}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Typography variant="h4" component="h2" textAlign="center" gutterBottom sx={{ mb: 4 }}>
+          Sự Kiện Sắp Diễn Ra
+        </Typography>
+        
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
-          {/* Search and Filter Section */}
-          {renderSearchAndFilter()}
+        {/* Filter Section */}
+        {renderFilterControls()}
 
-          {/* Events Grid */}
-          {renderEventsGrid()}
-        </div>
-      </section>
-    </div>
+        {/* Events Grid */}
+        {renderEventsGrid()}
+      </Container>
+    </Box>
   );
 };
 

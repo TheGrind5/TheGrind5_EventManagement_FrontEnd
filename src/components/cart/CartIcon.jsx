@@ -1,32 +1,40 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { IconButton, Badge, Tooltip } from '@mui/material';
+import { ShoppingCart } from '@mui/icons-material';
 import { useCart } from '../../contexts/CartContext';
 
 const CartIcon = () => {
   const { totalItems } = useCart();
 
   return (
-    <Link to="/cart" className="cart-icon">
-      <div className="cart-icon-container">
-        <svg 
-          width="24" 
-          height="24" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="2"
+    <Tooltip title="Shopping Cart">
+      <IconButton
+        component={Link}
+        to="/cart"
+        color="inherit"
+        sx={{
+          borderRadius: 2,
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        }}
+      >
+        <Badge 
+          badgeContent={totalItems} 
+          color="error"
+          sx={{
+            '& .MuiBadge-badge': {
+              fontSize: '0.75rem',
+              height: 18,
+              minWidth: 18,
+            }
+          }}
         >
-          <circle cx="9" cy="21" r="1"></circle>
-          <circle cx="20" cy="21" r="1"></circle>
-          <path d="m1 1 4 4 13 1 4 8H7l-2-4"></path>
-        </svg>
-        {totalItems > 0 && (
-          <span className="cart-badge">
-            {totalItems}
-          </span>
-        )}
-      </div>
-    </Link>
+          <ShoppingCart />
+        </Badge>
+      </IconButton>
+    </Tooltip>
   );
 };
 
