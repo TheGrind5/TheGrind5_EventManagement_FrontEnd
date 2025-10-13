@@ -5,12 +5,33 @@ export class InventoryService {
   // Kiểm tra tính khả dụng của vé
   static async checkAvailability(ticketTypeId, requestedQuantity) {
     try {
-      // TODO: Implement API call to check availability
-      // For now, return mock data
+      const response = await fetch(`/api/Ticket/event/${ticketTypeId}/types`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check ticket availability');
+      }
+
+      const ticketTypes = await response.json();
+      const ticketType = ticketTypes.find(tt => tt.ticketTypeId === ticketTypeId);
+      
+      if (!ticketType) {
+        return {
+          available: false,
+          availableQuantity: 0,
+          canPurchase: false
+        };
+      }
+
       return {
-        available: true,
-        availableQuantity: 100,
-        canPurchase: requestedQuantity <= 100
+        available: ticketType.availableQuantity > 0,
+        availableQuantity: ticketType.availableQuantity,
+        canPurchase: requestedQuantity <= ticketType.availableQuantity
       };
     } catch (error) {
       console.error('Error checking availability:', error);
@@ -65,15 +86,13 @@ export class InventoryService {
   // Update inventory after successful purchase
   static async updateInventoryAfterPurchase(ticketTypeId, quantity) {
     try {
-      // TODO: Implement inventory update
-      // This would typically:
-      // 1. Reduce available quantity
-      // 2. Update sold quantity
-      // 3. Log the transaction
+      // This is handled automatically by the backend when creating tickets
+      // The inventory is updated when tickets are generated for the order
+      // We just need to verify the purchase was successful
       
       return {
         success: true,
-        newAvailableQuantity: 100 - quantity // Mock calculation
+        message: 'Inventory updated successfully'
       };
     } catch (error) {
       console.error('Error updating inventory:', error);
@@ -87,28 +106,38 @@ export class InventoryService {
   // Get inventory status for an event
   static async getEventInventory(eventId) {
     try {
-      // TODO: Implement API call to get event inventory
-      // This would return:
-      // - Total tickets per type
-      // - Available tickets per type
-      // - Sold tickets per type
-      // - Revenue per type
+      const response = await fetch(`/api/Ticket/event/${eventId}/types`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get event inventory');
+      }
+
+      const ticketTypes = await response.json();
       
+      const totalSold = ticketTypes.reduce((sum, tt) => sum + (tt.quantity - tt.availableQuantity), 0);
+      const totalAvailable = ticketTypes.reduce((sum, tt) => sum + tt.availableQuantity, 0);
+      const totalRevenue = ticketTypes.reduce((sum, tt) => 
+        sum + ((tt.quantity - tt.availableQuantity) * tt.price), 0);
+
       return {
         eventId,
-        ticketTypes: [
-          {
-            ticketTypeId: 1,
-            typeName: 'Standard',
-            totalQuantity: 100,
-            availableQuantity: 80,
-            soldQuantity: 20,
-            revenue: 2000000
-          }
-        ],
-        totalRevenue: 2000000,
-        totalSold: 20,
-        totalAvailable: 80
+        ticketTypes: ticketTypes.map(tt => ({
+          ticketTypeId: tt.ticketTypeId,
+          typeName: tt.typeName,
+          totalQuantity: tt.quantity,
+          availableQuantity: tt.availableQuantity,
+          soldQuantity: tt.quantity - tt.availableQuantity,
+          revenue: (tt.quantity - tt.availableQuantity) * tt.price
+        })),
+        totalRevenue,
+        totalSold,
+        totalAvailable
       };
     } catch (error) {
       console.error('Error getting event inventory:', error);

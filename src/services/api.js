@@ -1,13 +1,18 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
+// Helper function to ensure UTF-8 encoding
+const createHeaders = (additionalHeaders = {}) => ({
+  'Content-Type': 'application/json; charset=utf-8',
+  'Accept': 'application/json; charset=utf-8',
+  ...additionalHeaders
+});
+
 // Auth API
 export const authAPI = {
   login: async (email, password) => {
     const response = await fetch(`${API_BASE_URL}/Auth/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
       body: JSON.stringify({ email, password }),
     });
 
@@ -22,9 +27,7 @@ export const authAPI = {
   register: async (userData) => {
     const response = await fetch(`${API_BASE_URL}/Auth/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
       body: JSON.stringify(userData),
     });
 
@@ -39,9 +42,7 @@ export const authAPI = {
   getUser: async (userId) => {
     const response = await fetch(`${API_BASE_URL}/Auth/user/${userId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -54,10 +55,9 @@ export const authAPI = {
   getCurrentUserProfile: async (token) => {
     const response = await fetch(`${API_BASE_URL}/Auth/profile`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
     });
 
     if (!response.ok) {
@@ -70,10 +70,9 @@ export const authAPI = {
   updateProfile: async (profileData, token) => {
     const response = await fetch(`${API_BASE_URL}/Auth/profile`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
       body: JSON.stringify(profileData),
     });
 
@@ -91,9 +90,7 @@ export const eventsAPI = {
   getAll: async () => {
     const response = await fetch(`${API_BASE_URL}/Event`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -106,9 +103,7 @@ export const eventsAPI = {
   getById: async (eventId) => {
     const response = await fetch(`${API_BASE_URL}/Event/${eventId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -121,9 +116,7 @@ export const eventsAPI = {
   create: async (eventData) => {
     const response = await fetch(`${API_BASE_URL}/Event`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
       body: JSON.stringify(eventData),
     });
 
@@ -137,9 +130,7 @@ export const eventsAPI = {
   update: async (eventId, eventData) => {
     const response = await fetch(`${API_BASE_URL}/Event/${eventId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
       body: JSON.stringify(eventData),
     });
 
@@ -168,9 +159,7 @@ export const eventsAPI = {
   getByHost: async (hostId) => {
     const response = await fetch(`${API_BASE_URL}/Event/host/${hostId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -183,9 +172,7 @@ export const eventsAPI = {
   seedSample: async () => {
     const response = await fetch(`${API_BASE_URL}/Event/seed`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -206,10 +193,9 @@ const getAuthToken = () => {
 // Helper function để tạo headers với authorization
 const getAuthHeaders = () => {
   const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json',
+  const headers = createHeaders({
     ...(token && { 'Authorization': `Bearer ${token}` })
-  };
+  });
   console.log('Request headers:', headers);
   return headers;
 };
@@ -502,6 +488,97 @@ export const ticketsAPI = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to fetch ticket types');
+    }
+
+    return response.json();
+  }
+};
+
+// Wishlist API
+export const wishlistAPI = {
+  getWishlist: async () => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch wishlist');
+    }
+
+    return response.json();
+  },
+
+  addItem: async (ticketTypeId, quantity = 1) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/items`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ticketTypeId, quantity }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to add item to wishlist');
+    }
+
+    return response.json();
+  },
+
+  updateItem: async (itemId, quantity) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/items/${itemId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ quantity }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to update wishlist item');
+    }
+
+    return response.json();
+  },
+
+  deleteItem: async (itemId) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/items/${itemId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to delete wishlist item');
+    }
+
+    return response.json();
+  },
+
+  bulkDelete: async (itemIds) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/bulk-delete`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ Ids: itemIds }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to delete wishlist items');
+    }
+
+    return response.json();
+  },
+
+  checkout: async (itemIds) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/checkout`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ Ids: itemIds }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to checkout wishlist');
     }
 
     return response.json();

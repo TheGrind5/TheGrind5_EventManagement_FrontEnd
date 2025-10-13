@@ -2,7 +2,7 @@
 
 //Import statements để import các thư viện cần thiết
 import React, {useState, useEffect} from 'react'; 
-import {useParams, useSearchParams} from 'react-router-dom'; 
+import {useParams, useSearchParams, useLocation} from 'react-router-dom'; 
 import Header from '../components/layout/Header';
 
     //event api để lấy thông tin event từ backend
@@ -13,6 +13,7 @@ const CreateOrderPage = () => {
     //State declaration để quản lý trạng thái của component
     const {id} = useParams(); //Lấy id từ url 
     const [searchParams] = useSearchParams(); //Lấy query params từ URL
+    const location = useLocation(); //Lấy state từ navigation
     const [quantity, setQuantity] = useState(1); 
     /*  useState là một hook trong React để quản lý trạng thái của component.
         useState trả về một mảng gồm hai phần tử: phần tử đầu tiên là giá trị hiện tại của trạng thái, phần tử thứ hai là hàm để cập nhật giá trị của trạng thái.
@@ -27,6 +28,9 @@ const CreateOrderPage = () => {
     const[creatingOrder, setCreatingOrder] = useState(false);
     const[orderSuccess, setOrderSuccess] = useState(false);
 
+    // Check if coming from wishlist
+    const isFromWishlist = location.state?.fromWishlist || false;
+    const selectedWishlistItems = location.state?.selectedWishlistItems || [];
         
     //useEffect hook để lấy thông tin event từ backend
     useEffect(() => {
@@ -52,6 +56,26 @@ const CreateOrderPage = () => {
                     if (foundTicketType) {
                         setSelectedTicketType(ticketTypeFromUrl);
                         console.log('Auto-selected ticket type:', foundTicketType.typeName);
+                    }
+                }
+
+                // Handle wishlist items if coming from wishlist
+                if (isFromWishlist && selectedWishlistItems.length > 0) {
+                    console.log('Processing wishlist items:', selectedWishlistItems);
+                    // We need to get the ticket type ID from the wishlist item
+                    // For now, we'll need to fetch the wishlist data to get the ticket type ID
+                    // This is a temporary solution - in a real app, pass ticket type ID directly
+                    try {
+                        const { wishlistAPI } = await import('../services/api');
+                        const wishlistData = await wishlistAPI.getWishlist();
+                        const wishlistItem = wishlistData.items.find(item => 
+                            selectedWishlistItems.includes(item.id)
+                        );
+                        if (wishlistItem) {
+                            setSelectedTicketType(wishlistItem.ticketTypeId.toString());
+                        }
+                    } catch (error) {
+                        console.error('Error fetching wishlist data:', error);
                     }
                 }
 

@@ -146,7 +146,7 @@ export const CustomThemeProvider = ({ children }) => {
       // Chỉ tự động thay đổi nếu user chưa set theme manually
       const savedTheme = localStorage.getItem('theme');
       if (!savedTheme) {
-        setTheme(e.matches ? 'dark' : 'light');
+        setThemeMode(e.matches ? 'dark' : 'light');
       }
     };
 
