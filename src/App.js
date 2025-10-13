@@ -7,12 +7,11 @@ import { CssBaseline, StyledEngineProvider } from '@mui/material';
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { CartProvider } from './contexts/CartContext';
+import { WishlistProvider } from './contexts/WishlistContext';
 import { CustomThemeProvider } from './contexts/ThemeContext';
 
 // Components
 import ProtectedRoute from './components/common/ProtectedRoute';
-import CartPage from './components/cart/CartPage';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -24,7 +23,7 @@ import ProfilePage from './pages/ProfilePage';
 import CreateOrderPage from './pages/CreateOrderPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
-import CheckoutPage from './pages/CheckoutPage';
+import WishlistPage from './pages/WishlistPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -50,7 +49,7 @@ function AppRoutes() {
         element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} 
       />
       <Route path="/event/:id" element={<EventDetailsPage />} />
-      <Route path="/cart" element={<CartPage />} />
+      <Route path="/wishlist" element={<WishlistPage />} />
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
       
       {/* Protected Routes */}
@@ -86,14 +85,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-      <Route 
-        path="/checkout" 
-        element={
-          <ProtectedRoute>
-            <CheckoutPage />
-          </ProtectedRoute>
-        } 
-      />
       
       {/* Fallback Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -107,13 +98,13 @@ export default function App() {
       <CustomThemeProvider>
         <CssBaseline />
         <AuthProvider>
-          <CartProvider>
+          <WishlistProvider>
             <Router>
               <div className="App">
                 <AppRoutes />
               </div>
             </Router>
-          </CartProvider>
+          </WishlistProvider>
         </AuthProvider>
       </CustomThemeProvider>
     </StyledEngineProvider>

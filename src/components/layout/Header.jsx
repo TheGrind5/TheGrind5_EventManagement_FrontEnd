@@ -29,7 +29,8 @@ import {
   Wallet,
   ConfirmationNumber as Ticket,
   Search,
-  Clear
+  Clear,
+  Favorite
 } from '@mui/icons-material';
 
 // Contexts & Services
@@ -37,7 +38,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { walletAPI } from '../../services/api';
 
 // Components
-import CartIcon from '../cart/CartIcon';
+import WishlistIcon from '../common/WishlistIcon';
 import ThemeToggle from '../common/ThemeToggle';
 
 const Header = ({ searchTerm, onSearchChange }) => {
@@ -155,6 +156,18 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 >
                   My Tickets
                 </Button>
+                <Button 
+                  component={Link} 
+                  to="/wishlist" 
+                  color="inherit"
+                  sx={{ 
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    px: 2
+                  }}
+                >
+                  Wishlist
+                </Button>
               </>
             )}
           </Box>
@@ -233,8 +246,8 @@ const Header = ({ searchTerm, onSearchChange }) => {
           
           {user ? (
             <>
-              {/* Cart Icon */}
-              <CartIcon />
+              {/* Wishlist Icon */}
+              <WishlistIcon />
               
               {/* Wallet Balance */}
               <Chip
@@ -307,6 +320,10 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 <MenuItem onClick={handleUserMenuClose} component={Link} to="/my-tickets">
                   <Ticket sx={{ mr: 1 }} />
                   My Tickets
+                </MenuItem>
+                <MenuItem onClick={handleUserMenuClose} component={Link} to="/wishlist">
+                  <Favorite sx={{ mr: 1 }} />
+                  Wishlist
                 </MenuItem>
                 <MenuItem onClick={() => { handleUserMenuClose(); logout(); }}>
                   <Logout sx={{ mr: 1 }} />

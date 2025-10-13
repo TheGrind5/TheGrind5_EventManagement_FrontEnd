@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
@@ -26,16 +26,16 @@ import {
   ArrowBack
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
+import WishlistButton from '../components/common/WishlistButton';
 import { eventsAPI, ticketsAPI } from '../services/api';
-import { useCart } from '../contexts/CartContext';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
-  const { addToCart } = useCart();
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -92,10 +92,11 @@ const EventDetailsPage = () => {
     }).format(price) + ' ₫';
   };
 
-  const handleAddToCart = (ticket) => {
-    addToCart(ticket, 1);
-    alert(`Đã thêm ${ticket.typeName} vào giỏ hàng!`);
+  const handleBuyNow = (ticket) => {
+    // Navigate directly to order creation page
+    navigate(`/event/${id}/order/create?ticketTypeId=${ticket.ticketTypeId}&quantity=1`);
   };
+
 
   if (loading) {
     return (
@@ -300,10 +301,10 @@ const EventDetailsPage = () => {
                                     <Button 
                                       variant="outlined"
                                       startIcon={<ShoppingCart />}
-                                      onClick={() => handleAddToCart(ticket)}
+                                      onClick={() => handleBuyNow(ticket)}
                                       sx={{ flex: 1 }}
                                     >
-                                      Thêm vào giỏ
+                                      Mua ngay
                                     </Button>
                                     <Button 
                                       component={Link} 
@@ -313,6 +314,12 @@ const EventDetailsPage = () => {
                                     >
                                       Mua ngay
                                     </Button>
+                                    <WishlistButton 
+                                      ticketTypeId={ticket.ticketTypeId}
+                                      ticketName={ticket.typeName}
+                                      size="medium"
+                                      variant="outlined"
+                                    />
                                   </Stack>
                                 )}
                               </Stack>

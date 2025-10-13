@@ -104,20 +104,20 @@ export class OrderService {
   // Generate tickets for completed order
   static async generateTicketsForOrder(orderId) {
     try {
-      // This would typically call the backend to generate tickets
-      // For now, return mock data
-      const order = await ordersAPI.getById(orderId);
-      
-      const tickets = [];
-      for (let i = 0; i < order.quantity; i++) {
-        tickets.push({
-          ticketId: `ticket_${orderId}_${i + 1}`,
-          serialNumber: `EVENT${order.eventId}-${orderId}-${i + 1}`,
-          status: 'Assigned',
-          issuedAt: new Date().toISOString()
-        });
+      // Get tickets for the order from the backend
+      const response = await fetch(`/api/Ticket/event/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get tickets for order');
       }
 
+      const tickets = await response.json();
       return tickets;
     } catch (error) {
       console.error('Error generating tickets:', error);
@@ -173,16 +173,19 @@ export class OrderService {
   // Get tickets for an order
   static async getOrderTickets(orderId) {
     try {
-      // This would call the tickets API
-      // For now, return mock data
-      return [
-        {
-          ticketId: 1,
-          serialNumber: `EVENT1-${orderId}-1`,
-          status: 'Assigned',
-          issuedAt: new Date().toISOString()
+      const response = await fetch(`/api/Ticket/event/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      ];
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get order tickets');
+      }
+
+      return await response.json();
     } catch (error) {
       console.error('Error getting order tickets:', error);
       return [];
@@ -192,17 +195,32 @@ export class OrderService {
   // Get payment history for an order
   static async getOrderPaymentHistory(orderId) {
     try {
-      // This would call the payment API
-      // For now, return mock data
-      return [
-        {
-          paymentId: 1,
-          amount: 500000,
-          method: 'wallet',
-          status: 'Succeeded',
-          timestamp: new Date().toISOString()
+      // Get wallet transactions related to the order
+      const response = await fetch(`/api/Wallet/transactions?page=1&pageSize=100`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      ];
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get payment history');
+      }
+
+      const data = await response.json();
+      // Filter transactions related to this order
+      const orderTransactions = data.transactions.filter(t => 
+        t.referenceId && t.referenceId.toString().includes(orderId.toString())
+      );
+
+      return orderTransactions.map(t => ({
+        paymentId: t.transactionId,
+        amount: t.amount,
+        method: t.transactionType === 'Deposit' ? 'wallet' : 'external',
+        status: t.status === 'Completed' ? 'Succeeded' : 'Failed',
+        timestamp: t.createdAt
+      }));
     } catch (error) {
       console.error('Error getting payment history:', error);
       return [];
