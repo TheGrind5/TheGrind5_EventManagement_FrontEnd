@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login, register } from '../api/auth';
+import { authAPI } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -16,40 +16,99 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Kiểm tra user đã đăng nhập chưa
-    const savedUser = localStorage.getItem('ems:user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    // Check if user is logged in on app start
+    const checkAuth = async () => {
+      try {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  const loginUser = async (identifier, password) => {
-    const response = await login(identifier, password);
-    // Backend trả về { accessToken, expiresAt, user }
-    const userData = response.user;
-    setUser(userData);
-    localStorage.setItem('ems:user', JSON.stringify(userData));
-    localStorage.setItem('ems:token', response.accessToken);
-    return userData;
+  const login = async (email, password) => {
+    try {
+      const response = await authAPI.login(email, password);
+
+      if (response.user && response.accessToken) {
+        setUser(response.user);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('token', response.accessToken);
+        return { success: true };
+      }
+      return { success: false, message: 'Login failed' };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Login failed' 
+      };
+    }
   };
 
-  const registerUser = async (userData) => {
-    const newUser = await register(userData);
-    setUser(newUser);
-    localStorage.setItem('ems:user', JSON.stringify(newUser));
-    return newUser;
+  const register = async (userData) => {
+    try {
+      const response = await authAPI.register(userData);
+      // Backend trả về UserId, FullName, etc. (PascalCase)
+      if (response.UserId) {
+        // Không tự động login sau khi register
+        // Chỉ trả về thông báo thành công
+        return { success: true, message: 'Đăng ký thành công. Vui lòng đăng nhập.' };
+      }
+      return { success: false, message: 'Registration failed' };
+    } catch (error) {
+      console.error('Register error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Registration failed' 
+      };
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('ems:user');
-    localStorage.removeItem('ems:token');
-    localStorage.removeItem('ems:last_id');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+
+  };
+
+  const refreshProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      const profileData = await authAPI.getCurrentUserProfile(token);
+      setUser(profileData);
+      localStorage.setItem('user', JSON.stringify(profileData));
+      return profileData;
+    } catch (error) {
+      console.error('Refresh profile error:', error);
+      return null;
+    }
+
+  };
+
+  const value = {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    refreshProfile
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginUser, registerUser, logout, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
