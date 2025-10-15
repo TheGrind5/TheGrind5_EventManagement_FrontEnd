@@ -304,6 +304,55 @@ export const ordersAPI = {
   }
 };
 
+// Voucher API
+export const voucherAPI = {
+  validate: async (voucherCode, originalAmount) => {
+    const response = await fetch(`${API_BASE_URL}/Voucher/validate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        voucherCode,
+        originalAmount
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to validate voucher');
+    }
+
+    return response.json();
+  },
+
+  getByCode: async (voucherCode) => {
+    const response = await fetch(`${API_BASE_URL}/Voucher/code/${voucherCode}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to get voucher');
+    }
+
+    return response.json();
+  },
+
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/Voucher`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to get vouchers');
+    }
+
+    return response.json();
+  }
+};
+
 // Wallet API
 export const walletAPI = {
   getBalance: async () => {

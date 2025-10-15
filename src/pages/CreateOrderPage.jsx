@@ -4,6 +4,7 @@
 import React, {useState, useEffect} from 'react'; 
 import {useParams, useSearchParams, useLocation} from 'react-router-dom'; 
 import Header from '../components/layout/Header';
+import VoucherSelector from '../components/common/VoucherSelector';
 
     //event api để lấy thông tin event từ backend
 import {eventsAPI, ordersAPI, ticketsAPI} from '../services/api';
@@ -27,6 +28,7 @@ const CreateOrderPage = () => {
     const[error, setError] = useState(null);
     const[creatingOrder, setCreatingOrder] = useState(false);
     const[orderSuccess, setOrderSuccess] = useState(false);
+    const[appliedVoucher, setAppliedVoucher] = useState(null);
 
     // Check if coming from wishlist
     const isFromWishlist = location.state?.fromWishlist || false;
@@ -129,7 +131,11 @@ const CreateOrderPage = () => {
                 eventId: parseInt(id),
                 ticketTypeId: parseInt(selectedTicketType),
                 quantity: quantity,
-                seatNo: null // Có thể thêm seat selection sau
+                seatNo: null, // Có thể thêm seat selection sau
+                voucherCode: appliedVoucher?.voucherCode || null,
+                originalAmount: pricing?.originalAmount || 0,
+                discountAmount: pricing?.discountAmount || 0,
+                finalAmount: pricing?.finalAmount || pricing?.originalAmount || 0
             };
             
             console.log('Creating order with data:', orderData);
@@ -154,6 +160,52 @@ const CreateOrderPage = () => {
             setCreatingOrder(false);
         }
     };
+
+    // Voucher handling functions
+    const handleVoucherApplied = (voucherData) => {
+        setAppliedVoucher(voucherData);
+        console.log('Voucher applied:', voucherData);
+    };
+
+    const handleRemoveVoucher = () => {
+        setAppliedVoucher(null);
+        console.log('Voucher removed');
+    };
+
+    // Calculate pricing with voucher
+    const calculatePricing = () => {
+        if (!selectedTicketType || !ticketTypes.length) return null;
+        
+        const ticketType = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
+        if (!ticketType) return null;
+
+        const originalAmount = ticketType.price * quantity;
+        let finalAmount = originalAmount;
+        let discountAmount = 0;
+
+        if (appliedVoucher) {
+            discountAmount = appliedVoucher.discountAmount;
+            finalAmount = appliedVoucher.finalAmount;
+        }
+
+        return {
+            originalAmount,
+            discountAmount,
+            finalAmount,
+            ticketType
+        };
+    };
+
+    // Tính toán pricing mỗi khi state thay đổi
+    const pricing = calculatePricing();
+
+    // Debug useEffect để kiểm tra pricing
+    useEffect(() => {
+        console.log('Pricing calculated:', pricing);
+        console.log('Selected ticket type:', selectedTicketType);
+        console.log('Quantity:', quantity);
+        console.log('Applied voucher:', appliedVoucher);
+    }, [pricing, selectedTicketType, quantity, appliedVoucher]);
 
 
     //Return JSX để hiển thị form
@@ -271,26 +323,35 @@ const CreateOrderPage = () => {
                                            placeholder="Nhập số lượng vé"/>
                                 </div>
 
+                                {/* Voucher Selector */}
+                                {selectedTicketType && quantity > 0 && pricing && (
+                                    <VoucherSelector
+                                        originalAmount={pricing.originalAmount}
+                                        onVoucherApplied={handleVoucherApplied}
+                                        appliedVoucher={appliedVoucher}
+                                        onRemoveVoucher={handleRemoveVoucher}
+                                    />
+                                )}
+
                                 {/* Hiển thị tổng tiền */}
-                                {selectedTicketType && quantity > 0 && (
+                                {selectedTicketType && quantity > 0 && pricing && (
                                     <div className="form-group">
                                         <div className="alert alert-info">
                                             <h5>💰 Tổng tiền:</h5>
-                                            {(() => {
-                                                const ticketType = ticketTypes.find(tt => tt.ticketTypeId === parseInt(selectedTicketType));
-                                                if (ticketType) {
-                                                    const totalAmount = ticketType.price * quantity;
-                                                    return (
-                                                        <>
-                                                            <p><strong>Loại vé:</strong> {ticketType.typeName}</p>
-                                                            <p><strong>Đơn giá:</strong> {ticketType.price?.toLocaleString()} VND</p>
-                                                            <p><strong>Số lượng:</strong> {quantity}</p>
-                                                            <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{totalAmount.toLocaleString()} VND</span></p>
-                                                        </>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
+                                            <p><strong>Loại vé:</strong> {pricing.ticketType.typeName}</p>
+                                            <p><strong>Đơn giá:</strong> {pricing.ticketType.price?.toLocaleString()} VND</p>
+                                            <p><strong>Số lượng:</strong> {quantity}</p>
+                                            
+                                            {appliedVoucher ? (
+                                                <>
+                                                    <p><strong>Giá gốc:</strong> <span className="text-decoration-line-through">{pricing.originalAmount.toLocaleString()} VND</span></p>
+                                                    <p><strong>Giảm giá:</strong> <span className="text-danger">-{pricing.discountAmount.toLocaleString()} VND</span></p>
+                                                    <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{pricing.finalAmount.toLocaleString()} VND</span></p>
+                                                    <p><strong>Voucher:</strong> <span className="text-primary">{appliedVoucher.voucherCode} (-{appliedVoucher.discountPercentage}%)</span></p>
+                                                </>
+                                            ) : (
+                                                <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{pricing.originalAmount.toLocaleString()} VND</span></p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
