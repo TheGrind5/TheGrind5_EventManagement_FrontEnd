@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/api';
-import Header from '../components/Header';
+import Header from '../components/layout/Header';
 
 const ProfilePage = () => {
   const { refreshProfile } = useAuth();

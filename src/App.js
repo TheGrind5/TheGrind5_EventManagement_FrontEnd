@@ -1,22 +1,29 @@
+// React & Router
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Material-UI
+import { CssBaseline, StyledEngineProvider } from '@mui/material';
+
+// Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { WishlistProvider } from './contexts/WishlistContext';
+import { CustomThemeProvider } from './contexts/ThemeContext';
+
+// Components
+import ProtectedRoute from './components/common/ProtectedRoute';
+
+// Pages
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import EventDetailsPage from './pages/EventDetailsPage';
 import DashboardPage from './pages/DashboardPage';
-
 import ProfilePage from './pages/ProfilePage';
-
-//Thêm trang create order
 import CreateOrderPage from './pages/CreateOrderPage';
-//Thêm trang wallet
 import WalletPage from './pages/WalletPage';
-
-
-import ProtectedRoute from './components/ProtectedRoute';
-import './App.css';
+import MyTicketsPage from './pages/MyTicketsPage';
+import WishlistPage from './pages/WishlistPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -31,6 +38,7 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
       <Route 
         path="/login" 
@@ -41,6 +49,10 @@ function AppRoutes() {
         element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} 
       />
       <Route path="/event/:id" element={<EventDetailsPage />} />
+      <Route path="/wishlist" element={<WishlistPage />} />
+      <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
+      
+      {/* Protected Routes */}
       <Route 
         path="/dashboard" 
         element={
@@ -49,7 +61,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-
       <Route 
         path="/profile" 
         element={
@@ -58,12 +69,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-
-
-      {/* Thêm route tới trang create order */}
-      <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
-      
-      {/* Thêm route tới trang wallet */}
       <Route 
         path="/wallet" 
         element={
@@ -72,9 +77,16 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-
-      //Route mặc định, nếu người dùng nhập sai link thì sẽ redirect về trang home
-
+      <Route 
+        path="/my-tickets" 
+        element={
+          <ProtectedRoute>
+            <MyTicketsPage />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Fallback Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -82,12 +94,19 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <AppRoutes />
-        </div>
-      </Router>
-    </AuthProvider>
+    <StyledEngineProvider injectFirst>
+      <CustomThemeProvider>
+        <CssBaseline />
+        <AuthProvider>
+          <WishlistProvider>
+            <Router>
+              <div className="App">
+                <AppRoutes />
+              </div>
+            </Router>
+          </WishlistProvider>
+        </AuthProvider>
+      </CustomThemeProvider>
+    </StyledEngineProvider>
   );
 }

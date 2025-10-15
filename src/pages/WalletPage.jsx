@@ -1,10 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  Button, 
+  Stack, 
+  CircularProgress,
+  Alert,
+  Paper
+} from '@mui/material';
+import { 
+  AccountBalanceWallet, 
+  Add, 
+  Remove 
+} from '@mui/icons-material';
 import { walletAPI } from '../services/api';
-import WalletBalance from '../components/WalletBalance';
-import DepositModal from '../components/DepositModal';
-import WithdrawModal from '../components/WithdrawModal';
-import TransactionHistory from '../components/TransactionHistory';
-import './WalletPage.css';
+import Header from '../components/layout/Header';
+import WalletBalance from '../components/wallet/WalletBalance';
+import DepositModal from '../components/wallet/DepositModal';
+import WithdrawModal from '../components/wallet/WithdrawModal';
+import TransactionHistory from '../components/wallet/TransactionHistory';
 
 const WalletPage = () => {
   const [balance, setBalance] = useState(0);
@@ -49,71 +64,121 @@ const WalletPage = () => {
 
   if (loading) {
     return (
-      <div className="wallet-page">
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Đang tải thông tin ví...</p>
-        </div>
-      </div>
+      <Box>
+        <Header />
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Box 
+            display="flex" 
+            flexDirection="column" 
+            alignItems="center" 
+            justifyContent="center" 
+            minHeight="400px"
+            gap={2}
+          >
+            <CircularProgress size={60} />
+            <Typography variant="h6" color="text.secondary">
+              Đang tải thông tin ví...
+            </Typography>
+          </Box>
+        </Container>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <div className="wallet-page">
-        <div className="error-container">
-          <div className="error-icon">⚠️</div>
-          <h3>Lỗi tải thông tin ví</h3>
-          <p>{error}</p>
-          <button 
-            className="retry-btn"
-            onClick={fetchWalletBalance}
+      <Box>
+        <Header />
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Box 
+            display="flex" 
+            flexDirection="column" 
+            alignItems="center" 
+            justifyContent="center" 
+            minHeight="400px"
+            gap={2}
           >
-            Thử lại
-          </button>
-        </div>
-      </div>
+            <Alert severity="error" sx={{ width: '100%', maxWidth: 500 }}>
+              <Typography variant="h6" gutterBottom>
+                Lỗi tải thông tin ví
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                {error}
+              </Typography>
+              <Button 
+                variant="contained" 
+                color="error"
+                onClick={fetchWalletBalance}
+                startIcon={<AccountBalanceWallet />}
+              >
+                Thử lại
+              </Button>
+            </Alert>
+          </Box>
+        </Container>
+      </Box>
     );
   }
 
   return (
-    <div className="wallet-page">
-      <div className="wallet-header">
-        <h1>💳 Quản lý ví của tôi</h1>
-        <p>Quản lý số dư và giao dịch ví điện tử</p>
-      </div>
+    <Box>
+      <Header />
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Stack spacing={4}>
+          {/* Header */}
+          <Box textAlign="center">
+            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+              💳 Quản lý ví của tôi
+            </Typography>
+            <Typography variant="h6" color="text.secondary">
+              Quản lý số dư và giao dịch ví điện tử
+            </Typography>
+          </Box>
 
-      <div className="wallet-content">
-        {/* Wallet Balance Section */}
-        <div className="balance-section">
-          <WalletBalance 
-            balance={balance}
-            currency={currency}
-            onRefresh={fetchWalletBalance}
-          />
-          
-          <div className="action-buttons">
-            <button 
-              className="deposit-btn"
-              onClick={() => setShowDepositModal(true)}
+          {/* Wallet Balance Section */}
+          <Box>
+            <WalletBalance 
+              balance={balance}
+              currency={currency}
+              onRefresh={fetchWalletBalance}
+            />
+            
+            <Stack 
+              direction="row" 
+              spacing={2} 
+              justifyContent="center" 
+              sx={{ mt: 3 }}
             >
-              💰 Nạp tiền
-            </button>
-            <button 
-              className="withdraw-btn"
-              onClick={() => setShowWithdrawModal(true)}
-              disabled={balance <= 0}
-            >
-              💸 Rút tiền
-            </button>
-          </div>
-        </div>
+              <Button
+                variant="contained"
+                color="success"
+                size="large"
+                startIcon={<Add />}
+                onClick={() => setShowDepositModal(true)}
+                sx={{ minWidth: 150 }}
+              >
+                Nạp tiền
+              </Button>
+              <Button
+                variant="contained"
+                color="warning"
+                size="large"
+                startIcon={<Remove />}
+                onClick={() => setShowWithdrawModal(true)}
+                disabled={balance <= 0}
+                sx={{ minWidth: 150 }}
+              >
+                Rút tiền
+              </Button>
+            </Stack>
+          </Box>
 
-        {/* Transaction History Section */}
-        <div className="transaction-section">
-          <TransactionHistory />
-        </div>
-      </div>
+          {/* Transaction History Section */}
+          <Paper sx={{ p: 3 }}>
+            <TransactionHistory />
+          </Paper>
+        </Stack>
+      </Container>
 
       {/* Modals */}
       {showDepositModal && (
@@ -130,7 +195,7 @@ const WalletPage = () => {
           onSuccess={handleWithdrawSuccess}
         />
       )}
-    </div>
+    </Box>
   );
 };
 

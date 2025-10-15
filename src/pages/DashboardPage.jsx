@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Header from '../components/Header';
+import Header from '../components/layout/Header';
 import { useAuth } from '../contexts/AuthContext';
 import { eventsAPI } from '../services/api';
 
