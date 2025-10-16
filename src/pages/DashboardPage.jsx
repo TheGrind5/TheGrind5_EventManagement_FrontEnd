@@ -71,15 +71,15 @@ const DashboardPage = () => {
           ) : (
             <div className="grid grid-2">
               {events.map((event) => (
-                <div key={event.EventId} className="card">
+                <div key={event.eventId} className="card">
                   <div className="card-body">
-                    <h3 className="card-title">{event.Title}</h3>
-                    <p className="card-text">{event.Description}</p>
-                    <p><strong>Date:</strong> {formatDate(event.StartTime)}</p>
-                    <p><strong>Location:</strong> {event.Location}</p>
-                    <p><strong>Category:</strong> {event.Category}</p>
+                    <h3 className="card-title">{event.title}</h3>
+                    <p className="card-text">{event.description}</p>
+                    <p><strong>Date:</strong> {formatDate(event.startTime)}</p>
+                    <p><strong>Location:</strong> {event.location}</p>
+                    <p><strong>Category:</strong> {event.category}</p>
                     <Link 
-                      to={`/event/${event.EventId}`} 
+                      to={`/event/${event.eventId}`} 
                       className="btn btn-primary"
                     >
                       View Details
