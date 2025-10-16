@@ -22,19 +22,21 @@ const WishlistIcon = () => {
 
   return (
     <Tooltip title="Danh sách yêu thích">
-      <IconButton 
-        color="inherit" 
-        onClick={handleClick}
-        disabled={loading}
-      >
-        <Badge 
-          badgeContent={wishlistCount} 
-          color="error"
-          max={99}
+      <span>
+        <IconButton 
+          color="inherit" 
+          onClick={handleClick}
+          disabled={loading}
         >
-          <FavoriteIcon />
-        </Badge>
-      </IconButton>
+          <Badge 
+            badgeContent={wishlistCount} 
+            color="error"
+            max={99}
+          >
+            <FavoriteIcon />
+          </Badge>
+        </IconButton>
+      </span>
     </Tooltip>
   );
 };

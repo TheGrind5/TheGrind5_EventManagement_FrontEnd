@@ -203,32 +203,52 @@ const getAuthHeaders = () => {
 // Orders API
 export const ordersAPI = {
   create: async (orderData) => {
-    const response = await fetch(`${API_BASE_URL}/Order`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(orderData),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/Order`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(orderData),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to create order');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Order creation failed:', errorData);
+        throw new Error(errorData.message || 'Failed to create order');
+      }
+
+      const result = await response.json();
+      console.log('Order created successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error in ordersAPI.create:', error);
+      throw error;
     }
-
-    return response.json();
   },
 
   getById: async (orderId) => {
+    console.log('=== API DEBUG ===');
+    console.log('API URL:', `${API_BASE_URL}/Order/${orderId}`);
+    console.log('Headers:', getAuthHeaders());
+    
     const response = await fetch(`${API_BASE_URL}/Order/${orderId}`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
 
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.log('Error data:', errorData);
+      console.log('==================');
       throw new Error(errorData.message || 'Failed to fetch order');
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Success result:', result);
+    console.log('==================');
+    return result;
   },
 
   getMyOrders: async () => {
@@ -537,6 +557,20 @@ export const ticketsAPI = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to fetch ticket types');
+    }
+
+    return response.json();
+  },
+
+  getTicketsByOrder: async (orderId) => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/order/${orderId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch tickets by order');
     }
 
     return response.json();

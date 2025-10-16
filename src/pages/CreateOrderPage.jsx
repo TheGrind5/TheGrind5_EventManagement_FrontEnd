@@ -2,9 +2,10 @@
 
 //Import statements để import các thư viện cần thiết
 import React, {useState, useEffect} from 'react'; 
-import {useParams, useSearchParams, useLocation} from 'react-router-dom'; 
+import {useParams, useSearchParams, useLocation, useNavigate} from 'react-router-dom'; 
 import Header from '../components/layout/Header';
 import VoucherSelector from '../components/common/VoucherSelector';
+import { useAuth } from '../contexts/AuthContext';
 
     //event api để lấy thông tin event từ backend
 import {eventsAPI, ordersAPI, ticketsAPI} from '../services/api';
@@ -15,6 +16,8 @@ const CreateOrderPage = () => {
     const {id} = useParams(); //Lấy id từ url 
     const [searchParams] = useSearchParams(); //Lấy query params từ URL
     const location = useLocation(); //Lấy state từ navigation
+    const navigate = useNavigate(); //Navigation hook
+    const { user, loading: authLoading } = useAuth(); //Auth context
     const [quantity, setQuantity] = useState(1); 
     /*  useState là một hook trong React để quản lý trạng thái của component.
         useState trả về một mảng gồm hai phần tử: phần tử đầu tiên là giá trị hiện tại của trạng thái, phần tử thứ hai là hàm để cập nhật giá trị của trạng thái.
@@ -36,6 +39,13 @@ const CreateOrderPage = () => {
         
     //useEffect hook để lấy thông tin event từ backend
     useEffect(() => {
+        // Check authentication first
+        if (!authLoading && !user) {
+            setError('Bạn cần đăng nhập để tạo đơn hàng');
+            setLoading(false);
+            return;
+        }
+
         const fetchEventData = async () => {
             try{
                 setLoading(true); 
@@ -94,10 +104,10 @@ const CreateOrderPage = () => {
                 setLoading(false);
             }
         };
-        if(id){
+        if(id && user){
             fetchEventData();
         }
-    }, [id, searchParams])
+    }, [id, searchParams, user, authLoading])
 
         // Debug useEffect để kiểm tra event state
     useEffect(() => {
@@ -122,20 +132,21 @@ const CreateOrderPage = () => {
             return;
         }
 
+        if (!id || isNaN(parseInt(id))) {
+            setError('ID sự kiện không hợp lệ');
+            return;
+        }
+
         try {
             setCreatingOrder(true);
             setError(null);
             
-            // Tạo order data
+            // Tạo order data - sử dụng camelCase vì backend có JsonNamingPolicy.CamelCase
             const orderData = {
                 eventId: parseInt(id),
                 ticketTypeId: parseInt(selectedTicketType),
                 quantity: quantity,
-                seatNo: null, // Có thể thêm seat selection sau
-                voucherCode: appliedVoucher?.voucherCode || null,
-                originalAmount: pricing?.originalAmount || 0,
-                discountAmount: pricing?.discountAmount || 0,
-                finalAmount: pricing?.finalAmount || pricing?.originalAmount || 0
+                seatNo: null // Có thể thêm seat selection sau
             };
             
             console.log('Creating order with data:', orderData);
@@ -148,14 +159,24 @@ const CreateOrderPage = () => {
             // Hiển thị thành công
             setOrderSuccess(true);
             
-            // Redirect đến order details hoặc order list sau 2 giây
+            // Redirect đến PaymentPage với orderId sau 2 giây
+            // Backend trả về { message, order } nên cần access response.order.orderId
             setTimeout(() => {
-                window.location.href = '/dashboard'; // Hoặc redirect đến order details
+                window.location.href = `/payment/${response.order.orderId}`;
             }, 2000);
             
         } catch (error) {
             console.error('Error creating order:', error);
-            setError(error.message || 'Có lỗi xảy ra khi tạo đơn hàng');
+            
+            // Parse error message from response if available
+            let errorMessage = 'Có lỗi xảy ra khi tạo đơn hàng';
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+            
+            setError(errorMessage);
         } finally {
             setCreatingOrder(false);
         }
@@ -230,13 +251,23 @@ const CreateOrderPage = () => {
                             <div>
                                 <strong>Lỗi:</strong> {error}
                             </div>
-                            <button 
-                                type="button" 
-                                className="btn btn-outline-danger btn-sm ms-2"
-                                onClick={() => window.location.reload()}
-                            >
-                                Thử lại
-                            </button>
+                            {error.includes('đăng nhập') ? (
+                                <button 
+                                    type="button" 
+                                    className="btn btn-primary btn-sm ms-2"
+                                    onClick={() => navigate('/login')}
+                                >
+                                    Đăng nhập
+                                </button>
+                            ) : (
+                                <button 
+                                    type="button" 
+                                    className="btn btn-outline-danger btn-sm ms-2"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    Thử lại
+                                </button>
+                            )}
                         </div>
                     )}
 
