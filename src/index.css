@@ -9,9 +9,10 @@
 
 html, body, #root {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Inter', 'Noto Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga' 1, 'kern' 1;
 }
 
 body {
@@ -875,6 +876,211 @@ body {
   line-height: 1.5;
 }
 
+/* ===== PAYMENT PAGE STYLING - REMOVED (Using Material-UI) ===== */
+
+/* ===== ORDER CONFIRMATION PAGE STYLING ===== */
+.confirmation-container {
+  min-height: 100vh !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  padding: 40px 20px !important;
+  transition: background 0.3s ease;
+}
+
+.confirmation-card {
+  max-width: 900px !important;
+  margin: 0 auto !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 20px !important;
+  padding: 40px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.success-header {
+  text-align: center !important;
+  margin-bottom: 40px !important;
+}
+
+.success-icon {
+  font-size: 4rem !important;
+  margin-bottom: 20px !important;
+}
+
+.success-title {
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+  color: #22c55e !important;
+  margin-bottom: 15px !important;
+}
+
+.success-message {
+  font-size: 1.1rem !important;
+  color: #4a5568 !important;
+  max-width: 600px !important;
+  margin: 0 auto !important;
+}
+
+.payment-info, .tickets-info, .next-steps {
+  background: rgba(248, 250, 252, 0.8) !important;
+  border-radius: 15px !important;
+  padding: 25px !important;
+  margin-bottom: 25px !important;
+  border: 1px solid rgba(226, 232, 240, 0.5) !important;
+}
+
+.payment-info h3, .tickets-info h3, .next-steps h3 {
+  color: #2d3748 !important;
+  font-size: 1.3rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 15px !important;
+}
+
+.detail-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.3) !important;
+}
+
+.detail-row:last-child {
+  border-bottom: none !important;
+}
+
+.detail-label {
+  font-weight: 500 !important;
+  color: #4a5568 !important;
+}
+
+.detail-value {
+  color: #2d3748 !important;
+  font-weight: 600 !important;
+}
+
+.detail-value.amount {
+  color: #22c55e !important;
+  font-size: 1.1rem !important;
+}
+
+.tickets-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 15px !important;
+}
+
+.ticket-item {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  padding: 20px !important;
+}
+
+.ticket-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 15px !important;
+}
+
+.ticket-number {
+  font-weight: 600 !important;
+  color: #2d3748 !important;
+}
+
+.ticket-details p {
+  margin-bottom: 5px !important;
+  color: #4a5568 !important;
+}
+
+.steps-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+.step-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 15px !important;
+}
+
+.step-number {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
+}
+
+.step-content strong {
+  color: #2d3748 !important;
+  font-weight: 600 !important;
+}
+
+.step-content p {
+  color: #4a5568 !important;
+  margin-top: 5px !important;
+}
+
+.action-buttons {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 15px !important;
+  margin-top: 30px !important;
+  flex-wrap: wrap !important;
+}
+
+.support-info {
+  text-align: center !important;
+  margin-top: 30px !important;
+}
+
+/* Dark mode support for payment and confirmation pages */
+@media (prefers-color-scheme: dark) {
+  .payment-container, .confirmation-container {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  }
+  
+  .payment-card, .confirmation-card {
+    background: rgba(30, 30, 60, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  .payment-title {
+    color: #ffffff !important;
+  }
+  
+  .order-summary, .payment-amount, .payment-method, 
+  .payment-info, .tickets-info, .next-steps {
+    background: rgba(40, 40, 80, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  .order-summary h3, .payment-amount h3, .payment-method h3,
+  .payment-info h3, .tickets-info h3, .next-steps h3 {
+    color: #ffffff !important;
+  }
+  
+  .detail-label {
+    color: #a0aec0 !important;
+  }
+  
+  .detail-value {
+    color: #ffffff !important;
+  }
+  
+  .ticket-item {
+    background: rgba(50, 50, 100, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .header-content {
@@ -892,5 +1098,55 @@ body {
   .events-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+  
+  .create-order-container, .payment-container, .confirmation-container {
+    padding: 20px 10px !important;
+  }
+  
+  .create-order-card, .payment-card, .confirmation-card {
+    padding: 20px !important;
+  }
+  
+  .create-order-title, .payment-title {
+    font-size: 1.8rem !important;
+  }
+  
+  .success-title {
+    font-size: 2rem !important;
+  }
+  
+  .event-info, .order-summary, .payment-amount, .payment-method,
+  .payment-info, .tickets-info, .next-steps {
+    padding: 15px !important;
+  }
+  
+  .order-form {
+    gap: 20px !important;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem !important;
+  }
+  
+  .btn-create-order {
+    padding: 12px 24px !important;
+    font-size: 1rem !important;
+  }
+  
+  .payment-actions, .action-buttons {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  
+  .detail-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 5px !important;
+  }
+  
+  .step-item {
+    flex-direction: column !important;
+    text-align: center !important;
   }
 }
