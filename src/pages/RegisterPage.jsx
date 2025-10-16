@@ -23,6 +23,7 @@ const RegisterPage = () => {
     });
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -118,6 +119,7 @@ const RegisterPage = () => {
               required
             />
           </div>
+
 
           <button 
             type="submit" 

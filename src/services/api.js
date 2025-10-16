@@ -64,7 +64,16 @@ export const authAPI = {
       throw new Error('Failed to get profile');
     }
 
-    return response.json();
+    const profile = await response.json();
+    
+    // Convert relative avatar URL to absolute URL
+    if (profile.avatar && profile.avatar.startsWith('/')) {
+      // Extract filename from path like /uploads/avatars/filename.jpg
+      const fileName = profile.avatar.split('/').pop();
+      profile.avatar = `${API_BASE_URL}/Auth/avatar/${fileName}`;
+    }
+
+    return profile;
   },
 
   updateProfile: async (profileData, token) => {
@@ -83,6 +92,35 @@ export const authAPI = {
     }
 
     return response.json();
+  },
+
+  uploadAvatar: async (file, token) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const response = await fetch(`${API_BASE_URL}/Auth/upload-avatar`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to upload avatar');
+    }
+
+    const result = await response.json();
+    
+    // Convert relative URL to absolute URL
+    if (result.avatarUrl && result.avatarUrl.startsWith('/')) {
+      // Extract filename from path like /uploads/avatars/filename.jpg
+      const fileName = result.avatarUrl.split('/').pop();
+      result.avatarUrl = `${API_BASE_URL}/Auth/avatar/${fileName}`;
+    }
+
+    return result;
   }
 };
 
