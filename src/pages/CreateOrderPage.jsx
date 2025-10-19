@@ -2,8 +2,10 @@
 
 //Import statements để import các thư viện cần thiết
 import React, {useState, useEffect} from 'react'; 
-import {useParams, useSearchParams} from 'react-router-dom'; 
+import {useParams, useSearchParams, useLocation, useNavigate} from 'react-router-dom'; 
 import Header from '../components/layout/Header';
+import VoucherSelector from '../components/common/VoucherSelector';
+import { useAuth } from '../contexts/AuthContext';
 
     //event api để lấy thông tin event từ backend
 import {eventsAPI, ordersAPI, ticketsAPI} from '../services/api';
@@ -13,6 +15,9 @@ const CreateOrderPage = () => {
     //State declaration để quản lý trạng thái của component
     const {id} = useParams(); //Lấy id từ url 
     const [searchParams] = useSearchParams(); //Lấy query params từ URL
+    const location = useLocation(); //Lấy state từ navigation
+    const navigate = useNavigate(); //Navigation hook
+    const { user, loading: authLoading } = useAuth(); //Auth context
     const [quantity, setQuantity] = useState(1); 
     /*  useState là một hook trong React để quản lý trạng thái của component.
         useState trả về một mảng gồm hai phần tử: phần tử đầu tiên là giá trị hiện tại của trạng thái, phần tử thứ hai là hàm để cập nhật giá trị của trạng thái.
@@ -26,10 +31,21 @@ const CreateOrderPage = () => {
     const[error, setError] = useState(null);
     const[creatingOrder, setCreatingOrder] = useState(false);
     const[orderSuccess, setOrderSuccess] = useState(false);
+    const[appliedVoucher, setAppliedVoucher] = useState(null);
 
+    // Check if coming from wishlist
+    const isFromWishlist = location.state?.fromWishlist || false;
+    const selectedWishlistItems = location.state?.selectedWishlistItems || [];
         
     //useEffect hook để lấy thông tin event từ backend
     useEffect(() => {
+        // Check authentication first
+        if (!authLoading && !user) {
+            setError('Bạn cần đăng nhập để tạo đơn hàng');
+            setLoading(false);
+            return;
+        }
+
         const fetchEventData = async () => {
             try{
                 setLoading(true); 
@@ -55,6 +71,26 @@ const CreateOrderPage = () => {
                     }
                 }
 
+                // Handle wishlist items if coming from wishlist
+                if (isFromWishlist && selectedWishlistItems.length > 0) {
+                    console.log('Processing wishlist items:', selectedWishlistItems);
+                    // We need to get the ticket type ID from the wishlist item
+                    // For now, we'll need to fetch the wishlist data to get the ticket type ID
+                    // This is a temporary solution - in a real app, pass ticket type ID directly
+                    try {
+                        const { wishlistAPI } = await import('../services/api');
+                        const wishlistData = await wishlistAPI.getWishlist();
+                        const wishlistItem = wishlistData.items.find(item => 
+                            selectedWishlistItems.includes(item.id)
+                        );
+                        if (wishlistItem) {
+                            setSelectedTicketType(wishlistItem.ticketTypeId.toString());
+                        }
+                    } catch (error) {
+                        console.error('Error fetching wishlist data:', error);
+                    }
+                }
+
                 // Kiểm tra nếu không có ticket types
                 if (!ticketTypesData || ticketTypesData.length === 0) {
                     setError('Sự kiện này chưa có loại vé nào để đặt');
@@ -68,10 +104,10 @@ const CreateOrderPage = () => {
                 setLoading(false);
             }
         };
-        if(id){
+        if(id && user){
             fetchEventData();
         }
-    }, [id, searchParams])
+    }, [id, searchParams, user, authLoading])
 
         // Debug useEffect để kiểm tra event state
     useEffect(() => {
@@ -96,11 +132,16 @@ const CreateOrderPage = () => {
             return;
         }
 
+        if (!id || isNaN(parseInt(id))) {
+            setError('ID sự kiện không hợp lệ');
+            return;
+        }
+
         try {
             setCreatingOrder(true);
             setError(null);
             
-            // Tạo order data
+            // Tạo order data - sử dụng camelCase vì backend có JsonNamingPolicy.CamelCase
             const orderData = {
                 eventId: parseInt(id),
                 ticketTypeId: parseInt(selectedTicketType),
@@ -118,18 +159,74 @@ const CreateOrderPage = () => {
             // Hiển thị thành công
             setOrderSuccess(true);
             
-            // Redirect đến order details hoặc order list sau 2 giây
+            // Redirect đến PaymentPage với orderId sau 2 giây
+            // Backend trả về { message, order } nên cần access response.order.orderId
             setTimeout(() => {
-                window.location.href = '/dashboard'; // Hoặc redirect đến order details
+                window.location.href = `/payment/${response.order.orderId}`;
             }, 2000);
             
         } catch (error) {
             console.error('Error creating order:', error);
-            setError(error.message || 'Có lỗi xảy ra khi tạo đơn hàng');
+            
+            // Parse error message from response if available
+            let errorMessage = 'Có lỗi xảy ra khi tạo đơn hàng';
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+            
+            setError(errorMessage);
         } finally {
             setCreatingOrder(false);
         }
     };
+
+    // Voucher handling functions
+    const handleVoucherApplied = (voucherData) => {
+        setAppliedVoucher(voucherData);
+        console.log('Voucher applied:', voucherData);
+    };
+
+    const handleRemoveVoucher = () => {
+        setAppliedVoucher(null);
+        console.log('Voucher removed');
+    };
+
+    // Calculate pricing with voucher
+    const calculatePricing = () => {
+        if (!selectedTicketType || !ticketTypes.length) return null;
+        
+        const ticketType = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
+        if (!ticketType) return null;
+
+        const originalAmount = ticketType.price * quantity;
+        let finalAmount = originalAmount;
+        let discountAmount = 0;
+
+        if (appliedVoucher) {
+            discountAmount = appliedVoucher.discountAmount;
+            finalAmount = appliedVoucher.finalAmount;
+        }
+
+        return {
+            originalAmount,
+            discountAmount,
+            finalAmount,
+            ticketType
+        };
+    };
+
+    // Tính toán pricing mỗi khi state thay đổi
+    const pricing = calculatePricing();
+
+    // Debug useEffect để kiểm tra pricing
+    useEffect(() => {
+        console.log('Pricing calculated:', pricing);
+        console.log('Selected ticket type:', selectedTicketType);
+        console.log('Quantity:', quantity);
+        console.log('Applied voucher:', appliedVoucher);
+    }, [pricing, selectedTicketType, quantity, appliedVoucher]);
 
 
     //Return JSX để hiển thị form
@@ -154,13 +251,23 @@ const CreateOrderPage = () => {
                             <div>
                                 <strong>Lỗi:</strong> {error}
                             </div>
-                            <button 
-                                type="button" 
-                                className="btn btn-outline-danger btn-sm ms-2"
-                                onClick={() => window.location.reload()}
-                            >
-                                Thử lại
-                            </button>
+                            {error.includes('đăng nhập') ? (
+                                <button 
+                                    type="button" 
+                                    className="btn btn-primary btn-sm ms-2"
+                                    onClick={() => navigate('/login')}
+                                >
+                                    Đăng nhập
+                                </button>
+                            ) : (
+                                <button 
+                                    type="button" 
+                                    className="btn btn-outline-danger btn-sm ms-2"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    Thử lại
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -247,26 +354,35 @@ const CreateOrderPage = () => {
                                            placeholder="Nhập số lượng vé"/>
                                 </div>
 
+                                {/* Voucher Selector */}
+                                {selectedTicketType && quantity > 0 && pricing && (
+                                    <VoucherSelector
+                                        originalAmount={pricing.originalAmount}
+                                        onVoucherApplied={handleVoucherApplied}
+                                        appliedVoucher={appliedVoucher}
+                                        onRemoveVoucher={handleRemoveVoucher}
+                                    />
+                                )}
+
                                 {/* Hiển thị tổng tiền */}
-                                {selectedTicketType && quantity > 0 && (
+                                {selectedTicketType && quantity > 0 && pricing && (
                                     <div className="form-group">
                                         <div className="alert alert-info">
                                             <h5>💰 Tổng tiền:</h5>
-                                            {(() => {
-                                                const ticketType = ticketTypes.find(tt => tt.ticketTypeId === parseInt(selectedTicketType));
-                                                if (ticketType) {
-                                                    const totalAmount = ticketType.price * quantity;
-                                                    return (
-                                                        <>
-                                                            <p><strong>Loại vé:</strong> {ticketType.typeName}</p>
-                                                            <p><strong>Đơn giá:</strong> {ticketType.price?.toLocaleString()} VND</p>
-                                                            <p><strong>Số lượng:</strong> {quantity}</p>
-                                                            <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{totalAmount.toLocaleString()} VND</span></p>
-                                                        </>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
+                                            <p><strong>Loại vé:</strong> {pricing.ticketType.typeName}</p>
+                                            <p><strong>Đơn giá:</strong> {pricing.ticketType.price?.toLocaleString()} VND</p>
+                                            <p><strong>Số lượng:</strong> {quantity}</p>
+                                            
+                                            {appliedVoucher ? (
+                                                <>
+                                                    <p><strong>Giá gốc:</strong> <span className="text-decoration-line-through">{pricing.originalAmount.toLocaleString()} VND</span></p>
+                                                    <p><strong>Giảm giá:</strong> <span className="text-danger">-{pricing.discountAmount.toLocaleString()} VND</span></p>
+                                                    <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{pricing.finalAmount.toLocaleString()} VND</span></p>
+                                                    <p><strong>Voucher:</strong> <span className="text-primary">{appliedVoucher.voucherCode} (-{appliedVoucher.discountPercentage}%)</span></p>
+                                                </>
+                                            ) : (
+                                                <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{pricing.originalAmount.toLocaleString()} VND</span></p>
+                                            )}
                                         </div>
                                     </div>
                                 )}

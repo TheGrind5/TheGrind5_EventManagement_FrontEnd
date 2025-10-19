@@ -1,13 +1,18 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
+// Helper function to ensure UTF-8 encoding
+const createHeaders = (additionalHeaders = {}) => ({
+  'Content-Type': 'application/json; charset=utf-8',
+  'Accept': 'application/json; charset=utf-8',
+  ...additionalHeaders
+});
+
 // Auth API
 export const authAPI = {
   login: async (email, password) => {
     const response = await fetch(`${API_BASE_URL}/Auth/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
       body: JSON.stringify({ email, password }),
     });
 
@@ -22,9 +27,7 @@ export const authAPI = {
   register: async (userData) => {
     const response = await fetch(`${API_BASE_URL}/Auth/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
       body: JSON.stringify(userData),
     });
 
@@ -39,9 +42,7 @@ export const authAPI = {
   getUser: async (userId) => {
     const response = await fetch(`${API_BASE_URL}/Auth/user/${userId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -54,26 +55,33 @@ export const authAPI = {
   getCurrentUserProfile: async (token) => {
     const response = await fetch(`${API_BASE_URL}/Auth/profile`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
     });
 
     if (!response.ok) {
       throw new Error('Failed to get profile');
     }
 
-    return response.json();
+    const profile = await response.json();
+    
+    // Convert relative avatar URL to absolute URL
+    if (profile.avatar && profile.avatar.startsWith('/')) {
+      // Extract filename from path like /uploads/avatars/filename.jpg
+      const fileName = profile.avatar.split('/').pop();
+      profile.avatar = `${API_BASE_URL}/Auth/avatar/${fileName}`;
+    }
+
+    return profile;
   },
 
   updateProfile: async (profileData, token) => {
     const response = await fetch(`${API_BASE_URL}/Auth/profile`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
       body: JSON.stringify(profileData),
     });
 
@@ -83,6 +91,35 @@ export const authAPI = {
     }
 
     return response.json();
+  },
+
+  uploadAvatar: async (file, token) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const response = await fetch(`${API_BASE_URL}/Auth/upload-avatar`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to upload avatar');
+    }
+
+    const result = await response.json();
+    
+    // Convert relative URL to absolute URL
+    if (result.avatarUrl && result.avatarUrl.startsWith('/')) {
+      // Extract filename from path like /uploads/avatars/filename.jpg
+      const fileName = result.avatarUrl.split('/').pop();
+      result.avatarUrl = `${API_BASE_URL}/Auth/avatar/${fileName}`;
+    }
+
+    return result;
   }
 };
 
@@ -91,9 +128,7 @@ export const eventsAPI = {
   getAll: async () => {
     const response = await fetch(`${API_BASE_URL}/Event`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -106,9 +141,7 @@ export const eventsAPI = {
   getById: async (eventId) => {
     const response = await fetch(`${API_BASE_URL}/Event/${eventId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -121,9 +154,7 @@ export const eventsAPI = {
   create: async (eventData) => {
     const response = await fetch(`${API_BASE_URL}/Event`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
       body: JSON.stringify(eventData),
     });
 
@@ -137,9 +168,7 @@ export const eventsAPI = {
   update: async (eventId, eventData) => {
     const response = await fetch(`${API_BASE_URL}/Event/${eventId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
       body: JSON.stringify(eventData),
     });
 
@@ -168,9 +197,7 @@ export const eventsAPI = {
   getByHost: async (hostId) => {
     const response = await fetch(`${API_BASE_URL}/Event/host/${hostId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -183,9 +210,7 @@ export const eventsAPI = {
   seedSample: async () => {
     const response = await fetch(`${API_BASE_URL}/Event/seed`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createHeaders(),
     });
 
     if (!response.ok) {
@@ -355,10 +380,9 @@ const getAuthToken = () => {
 // Helper function để tạo headers với authorization
 const getAuthHeaders = () => {
   const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json',
+  const headers = createHeaders({
     ...(token && { 'Authorization': `Bearer ${token}` })
-  };
+  });
   console.log('Request headers:', headers);
   return headers;
 };
@@ -366,32 +390,52 @@ const getAuthHeaders = () => {
 // Orders API
 export const ordersAPI = {
   create: async (orderData) => {
-    const response = await fetch(`${API_BASE_URL}/Order`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(orderData),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/Order`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(orderData),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to create order');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Order creation failed:', errorData);
+        throw new Error(errorData.message || 'Failed to create order');
+      }
+
+      const result = await response.json();
+      console.log('Order created successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error in ordersAPI.create:', error);
+      throw error;
     }
-
-    return response.json();
   },
 
   getById: async (orderId) => {
+    console.log('=== API DEBUG ===');
+    console.log('API URL:', `${API_BASE_URL}/Order/${orderId}`);
+    console.log('Headers:', getAuthHeaders());
+    
     const response = await fetch(`${API_BASE_URL}/Order/${orderId}`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
 
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.log('Error data:', errorData);
+      console.log('==================');
       throw new Error(errorData.message || 'Failed to fetch order');
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Success result:', result);
+    console.log('==================');
+    return result;
   },
 
   getMyOrders: async () => {
@@ -461,6 +505,55 @@ export const ordersAPI = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to process payment');
+    }
+
+    return response.json();
+  }
+};
+
+// Voucher API
+export const voucherAPI = {
+  validate: async (voucherCode, originalAmount) => {
+    const response = await fetch(`${API_BASE_URL}/Voucher/validate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        voucherCode,
+        originalAmount
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to validate voucher');
+    }
+
+    return response.json();
+  },
+
+  getByCode: async (voucherCode) => {
+    const response = await fetch(`${API_BASE_URL}/Voucher/code/${voucherCode}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to get voucher');
+    }
+
+    return response.json();
+  },
+
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/Voucher`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to get vouchers');
     }
 
     return response.json();
@@ -651,6 +744,111 @@ export const ticketsAPI = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to fetch ticket types');
+    }
+
+    return response.json();
+  },
+
+  getTicketsByOrder: async (orderId) => {
+    const response = await fetch(`${API_BASE_URL}/Ticket/order/${orderId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch tickets by order');
+    }
+
+    return response.json();
+  }
+};
+
+// Wishlist API
+export const wishlistAPI = {
+  getWishlist: async () => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch wishlist');
+    }
+
+    return response.json();
+  },
+
+  addItem: async (ticketTypeId, quantity = 1) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/items`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ticketTypeId, quantity }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to add item to wishlist');
+    }
+
+    return response.json();
+  },
+
+  updateItem: async (itemId, quantity) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/items/${itemId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ quantity }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to update wishlist item');
+    }
+
+    return response.json();
+  },
+
+  deleteItem: async (itemId) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/items/${itemId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to delete wishlist item');
+    }
+
+    return response.json();
+  },
+
+  bulkDelete: async (itemIds) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/bulk-delete`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ Ids: itemIds }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to delete wishlist items');
+    }
+
+    return response.json();
+  },
+
+  checkout: async (itemIds) => {
+    const response = await fetch(`${API_BASE_URL}/Wishlist/checkout`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ Ids: itemIds }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to checkout wishlist');
     }
 
     return response.json();

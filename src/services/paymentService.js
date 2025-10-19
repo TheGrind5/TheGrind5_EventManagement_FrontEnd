@@ -29,26 +29,39 @@ export class PaymentService {
     }
   }
 
-  // Process payment using external gateway (mock)
+  // Process payment using external gateway
   static async processExternalPayment(orderId, amount, paymentMethod = 'card') {
     try {
-      // Mock external payment processing
-      const mockResponse = {
-        success: Math.random() > 0.1, // 90% success rate
-        transactionId: `txn_${Date.now()}`,
+      // For now, we'll use a simplified approach
+      // In a real implementation, this would integrate with payment gateways like:
+      // - Stripe, PayPal, VNPay, MoMo, etc.
+      
+      const response = await fetch(`/api/Order/${orderId}/payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          amount,
+          paymentMethod,
+          gateway: 'external'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'External payment failed');
+      }
+
+      const result = await response.json();
+      return {
+        success: result.success,
+        transactionId: result.transactionId,
         paymentMethod,
         amount,
         timestamp: new Date().toISOString()
       };
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      if (!mockResponse.success) {
-        throw new Error('Payment gateway declined the transaction');
-      }
-
-      return mockResponse;
     } catch (error) {
       console.error('Error processing external payment:', error);
       throw error;

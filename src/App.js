@@ -7,12 +7,11 @@ import { CssBaseline, StyledEngineProvider } from '@mui/material';
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { CartProvider } from './contexts/CartContext';
+import { WishlistProvider } from './contexts/WishlistContext';
 import { CustomThemeProvider } from './contexts/ThemeContext';
 
 // Components
 import ProtectedRoute from './components/common/ProtectedRoute';
-import CartPage from './components/cart/CartPage';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -22,10 +21,12 @@ import EventDetailsPage from './pages/EventDetailsPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import CreateOrderPage from './pages/CreateOrderPage';
+import PaymentPage from './pages/PaymentPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
-import CheckoutPage from './pages/CheckoutPage';
 import CreateEventPage from './pages/CreateEventPage';
+import WishlistPage from './pages/WishlistPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -51,8 +52,26 @@ function AppRoutes() {
         element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} 
       />
       <Route path="/event/:id" element={<EventDetailsPage />} />
-      <Route path="/cart" element={<CartPage />} />
+      <Route path="/wishlist" element={<WishlistPage />} />
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
+      
+      {/* Payment Routes */}
+                <Route
+                    path="/payment/:orderId"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentPage />
+                        </ProtectedRoute>
+                    }
+                />
+      <Route 
+        path="/order-confirmation/:orderId" 
+        element={
+          <ProtectedRoute>
+            <OrderConfirmationPage />
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Protected Routes */}
       <Route 
@@ -88,14 +107,6 @@ function AppRoutes() {
         } 
       />
       <Route 
-        path="/checkout" 
-        element={
-          <ProtectedRoute>
-            <CheckoutPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
         path="/create-event" 
         element={
           <ProtectedRoute>
@@ -116,13 +127,13 @@ export default function App() {
       <CustomThemeProvider>
         <CssBaseline />
         <AuthProvider>
-          <CartProvider>
+          <WishlistProvider>
             <Router>
               <div className="App">
                 <AppRoutes />
               </div>
             </Router>
-          </CartProvider>
+          </WishlistProvider>
         </AuthProvider>
       </CustomThemeProvider>
     </StyledEngineProvider>

@@ -10,10 +10,16 @@ const ProfilePage = () => {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
-    phone: ''
+    phone: '',
+    avatar: '',
+    dateOfBirth: '',
+    gender: ''
   });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [avatarKey, setAvatarKey] = useState(0); // Key để force re-render avatar
 
   useEffect(() => {
     loadProfile();
@@ -32,7 +38,10 @@ const ProfilePage = () => {
       setProfile(profileData);
       setFormData({
         fullName: profileData.fullName || '',
-        phone: profileData.phone || ''
+        phone: profileData.phone || '',
+        avatar: '', // Không cần lưu avatar URL trong formData
+        dateOfBirth: profileData.dateOfBirth ? profileData.dateOfBirth.split('T')[0] : '',
+        gender: profileData.gender || ''
       });
     } catch (err) {
       setError('Không thể tải thông tin profile: ' + err.message);
@@ -49,6 +58,33 @@ const ProfilePage = () => {
     }));
   };
 
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Kiểm tra loại file
+      if (!file.type.startsWith('image/')) {
+        setError('Vui lòng chọn file ảnh hợp lệ');
+        return;
+      }
+      
+      // Kiểm tra kích thước file (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Kích thước file không được vượt quá 5MB');
+        return;
+      }
+
+      setAvatarFile(file);
+      setError('');
+      
+      // Tạo preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -61,12 +97,28 @@ const ProfilePage = () => {
         return;
       }
 
+      // Xử lý upload avatar nếu có file
+      let avatarUrl = profile.avatar; // Giữ nguyên avatar cũ nếu không upload mới
+      if (avatarFile) {
+        const uploadResult = await authAPI.uploadAvatar(avatarFile, token);
+        avatarUrl = uploadResult.avatarUrl;
+      }
+
       const updateData = {};
       if (formData.fullName !== profile.fullName) {
         updateData.fullName = formData.fullName;
       }
       if (formData.phone !== profile.phone) {
         updateData.phone = formData.phone;
+      }
+      if (avatarFile && avatarUrl !== profile.avatar) {
+        updateData.avatar = avatarUrl;
+      }
+      if (formData.dateOfBirth !== (profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '')) {
+        updateData.dateOfBirth = formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null;
+      }
+      if (formData.gender !== profile.gender) {
+        updateData.gender = formData.gender;
       }
 
       if (Object.keys(updateData).length === 0) {
@@ -76,10 +128,15 @@ const ProfilePage = () => {
 
       const result = await authAPI.updateProfile(updateData, token);
       setProfile(result.user);
-      // Refresh user data in context
+      // Refresh user data in context để cập nhật avatar trên header
       await refreshProfile();
       setMessage('Cập nhật profile thành công!');
       setEditing(false);
+      // Reset avatar file và preview sau khi upload thành công
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      // Force re-render avatar để tránh cache
+      setAvatarKey(prev => prev + 1);
     } catch (err) {
       setError('Lỗi khi cập nhật profile: ' + err.message);
     }
@@ -88,8 +145,13 @@ const ProfilePage = () => {
   const handleCancel = () => {
     setFormData({
       fullName: profile.fullName || '',
-      phone: profile.phone || ''
+      phone: profile.phone || '',
+      avatar: '', // Không cần lưu avatar URL trong formData nữa
+      dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '',
+      gender: profile.gender || ''
     });
+    setAvatarFile(null);
+    setAvatarPreview(null);
     setEditing(false);
     setMessage('');
     setError('');
@@ -200,11 +262,25 @@ const ProfilePage = () => {
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  border: '2px solid rgba(102, 126, 234, 0.3)'
+                  border: '2px solid rgba(102, 126, 234, 0.3)',
+                  overflow: 'hidden'
                 }}>
-                  <span style={{ fontSize: '3rem', color: '#667eea', fontWeight: '600' }}>
-                    {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
+                  {avatarPreview || profile?.avatar ? (
+                    <img 
+                      key={avatarKey}
+                      src={avatarPreview || `${profile.avatar}?t=${Date.now()}`} 
+                      alt="Avatar" 
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        objectFit: 'cover' 
+                      }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: '3rem', color: '#667eea', fontWeight: '600' }}>
+                      {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  )}
                 </div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
                   {profile?.fullName || 'Chưa có tên'}
@@ -286,6 +362,179 @@ const ProfilePage = () => {
                         <p style={{ color: '#ffffff', padding: '12px 0' }}>
                           {profile?.phone || 'Chưa cập nhật'}
                         </p>
+                      )}
+                    </div>
+
+                    {/* Avatar */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                        Ảnh đại diện
+                      </label>
+                      {editing ? (
+                        <div>
+                          {/* File Upload */}
+                          <div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAvatarChange}
+                              style={{
+                                display: 'none'
+                              }}
+                              id="avatar-upload"
+                            />
+                            <label
+                              htmlFor="avatar-upload"
+                              style={{
+                                display: 'inline-block',
+                                padding: '12px 24px',
+                                background: 'rgba(102, 126, 234, 0.1)',
+                                border: '2px dashed rgba(102, 126, 234, 0.3)',
+                                borderRadius: '12px',
+                                color: '#667eea',
+                                cursor: 'pointer',
+                                fontSize: '0.875rem',
+                                fontWeight: '500',
+                                textAlign: 'center',
+                                width: '100%',
+                                transition: 'all 0.2s ease',
+                                minHeight: '60px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexDirection: 'column',
+                                gap: '8px'
+                              }}
+                              onMouseOver={(e) => {
+                                e.target.style.background = 'rgba(102, 126, 234, 0.2)';
+                                e.target.style.borderColor = 'rgba(102, 126, 234, 0.5)';
+                                e.target.style.transform = 'translateY(-2px)';
+                              }}
+                              onMouseOut={(e) => {
+                                e.target.style.background = 'rgba(102, 126, 234, 0.1)';
+                                e.target.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                                e.target.style.transform = 'translateY(0)';
+                              }}
+                            >
+                              <div style={{ fontSize: '1.5rem' }}>📷</div>
+                              <div>Chọn ảnh từ máy tính</div>
+                              <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                                Hỗ trợ: JPG, PNG, GIF (tối đa 5MB)
+                              </div>
+                            </label>
+                          </div>
+                          
+                          {avatarPreview && (
+                            <div style={{ 
+                              marginTop: '16px', 
+                              textAlign: 'center' 
+                            }}>
+                              <p style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#9ca3af', 
+                                marginBottom: '8px' 
+                              }}>
+                                Preview:
+                              </p>
+                              <img 
+                                src={`${avatarPreview}?t=${Date.now()}`} 
+                                alt="Avatar Preview" 
+                                style={{ 
+                                  width: '80px', 
+                                  height: '80px', 
+                                  borderRadius: '50%', 
+                                  objectFit: 'cover',
+                                  border: '3px solid rgba(102, 126, 234, 0.3)',
+                                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p style={{ color: '#ffffff', padding: '12px 0' }}>
+                          {profile?.avatar ? 'Đã cập nhật' : 'Chưa cập nhật'}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Date of Birth */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                        Ngày sinh
+                      </label>
+                      {editing ? (
+                        <input
+                          type="date"
+                          name="dateOfBirth"
+                          value={formData.dateOfBirth}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      ) : (
+                        <p style={{ color: '#ffffff', padding: '12px 0' }}>
+                          {profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Gender */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                        Giới tính
+                      </label>
+                      {editing ? (
+                        <select
+                          name="gender"
+                          value={formData.gender}
+                          onChange={handleInputChange}
+                          className="form-input"
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: '#ffffff',
+                            padding: '12px 16px',
+                            fontSize: '0.875rem',
+                            width: '100%',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="" style={{ background: '#1f2937', color: '#9ca3af' }}>
+                            Chọn giới tính
+                          </option>
+                          <option value="Nam" style={{ background: '#1f2937', color: '#ffffff' }}>
+                            👨 Nam
+                          </option>
+                          <option value="Nữ" style={{ background: '#1f2937', color: '#ffffff' }}>
+                            👩 Nữ
+                          </option>
+                          <option value="Khác" style={{ background: '#1f2937', color: '#ffffff' }}>
+                            🏳️‍⚧️ Khác
+                          </option>
+                        </select>
+                      ) : (
+                        <div style={{ 
+                          color: '#ffffff', 
+                          padding: '12px 16px',
+                          background: 'rgba(255, 255, 255, 0.05)', 
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          {profile?.gender && (
+                            <span style={{ fontSize: '1rem' }}>
+                              {profile.gender === 'Nam' ? '👨' : 
+                               profile.gender === 'Nữ' ? '👩' : 
+                               profile.gender === 'Khác' ? '🏳️‍⚧️' : ''}
+                            </span>
+                          )}
+                          <span>
+                            {profile?.gender || 'Chưa cập nhật'}
+                          </span>
+                        </div>
                       )}
                     </div>
 
