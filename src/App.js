@@ -25,6 +25,7 @@ import CreateOrderPage from './pages/CreateOrderPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
 import CheckoutPage from './pages/CheckoutPage';
+import CreateEventPage from './pages/CreateEventPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -91,6 +92,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CheckoutPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/create-event" 
+        element={
+          <ProtectedRoute>
+            <CreateEventPage />
           </ProtectedRoute>
         } 
       />
