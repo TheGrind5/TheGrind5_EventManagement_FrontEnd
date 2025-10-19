@@ -14,6 +14,9 @@ const ProfilePage = () => {
   });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -47,6 +50,88 @@ const ProfilePage = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Kiểm tra loại file
+      if (!file.type.startsWith('image/')) {
+        setError('Vui lòng chọn file ảnh hợp lệ');
+        return;
+      }
+      
+      // Kiểm tra kích thước file (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+
+      setAvatarFile(file);
+      
+      // Tạo preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) {
+      setError('Vui lòng chọn ảnh để upload');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError('');
+      setMessage('');
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Không tìm thấy token xác thực');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+
+      const response = await fetch('http://localhost:5000/api/auth/upload-avatar', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Upload ảnh thất bại');
+      }
+
+      const result = await response.json();
+      setMessage('Upload ảnh avatar thành công!');
+      
+      // Cập nhật profile với ảnh mới
+      setProfile(prev => ({
+        ...prev,
+        avatarUrl: result.avatarUrl
+      }));
+
+      // Reset file
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      
+      // Refresh profile để cập nhật avatar trong header
+      await refreshProfile();
+
+    } catch (err) {
+      setError('Lỗi khi upload ảnh: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -191,21 +276,102 @@ const ProfilePage = () => {
           <div>
             <div className="card">
               <div className="card-body" style={{ textAlign: 'center' }}>
-                <div style={{ 
-                  margin: '0 auto 16px', 
-                  width: '128px', 
-                  height: '128px', 
-                  background: 'rgba(102, 126, 234, 0.2)', 
-                  borderRadius: '50%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  border: '2px solid rgba(102, 126, 234, 0.3)'
-                }}>
-                  <span style={{ fontSize: '3rem', color: '#667eea', fontWeight: '600' }}>
-                    {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <div style={{ 
+                    margin: '0 auto 16px', 
+                    width: '128px', 
+                    height: '128px', 
+                    background: 'rgba(102, 126, 234, 0.2)', 
+                    borderRadius: '50%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    border: '2px solid rgba(102, 126, 234, 0.3)',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}>
+                    {avatarPreview || profile?.avatarUrl ? (
+                      <img 
+                        src={avatarPreview || (profile?.avatarUrl?.startsWith('http') ? profile.avatarUrl : `http://localhost:5000${profile.avatarUrl}`)} 
+                        alt="Avatar" 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover',
+                          borderRadius: '50%'
+                        }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '3rem', color: '#667eea', fontWeight: '600' }}>
+                        {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Camera Icon Button */}
+                  <label 
+                    htmlFor="avatar-upload"
+                    style={{
+                      position: 'absolute',
+                      bottom: '8px',
+                      right: '8px',
+                      background: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#5a67d8';
+                      e.target.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = '#667eea';
+                      e.target.style.transform = 'scale(1)';
+                    }}
+                  >
+                    📷
+                  </label>
+                  
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    style={{ display: 'none' }}
+                  />
                 </div>
+
+                {/* Upload Button */}
+                {avatarFile && (
+                  <div style={{ marginTop: '16px' }}>
+                    <button
+                      onClick={handleAvatarUpload}
+                      disabled={uploading}
+                      style={{
+                        background: uploading ? '#6b7280' : '#667eea',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        fontSize: '0.875rem',
+                        cursor: uploading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {uploading ? 'Đang upload...' : 'Lưu ảnh'}
+                    </button>
+                  </div>
+                )}
+
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
                   {profile?.fullName || 'Chưa có tên'}
                 </h3>

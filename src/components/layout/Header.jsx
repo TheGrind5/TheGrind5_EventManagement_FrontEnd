@@ -287,14 +287,17 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   transition: 'all 0.2s ease'
                 }}
               >
-                <Avatar sx={{ 
-                  width: 36, 
-                  height: 36, 
-                  bgcolor: 'primary.main',
-                  fontWeight: 700,
-                  fontSize: '1rem'
-                }}>
-                  {user.fullName?.charAt(0) || 'U'}
+                <Avatar 
+                  src={user.avatarUrl?.startsWith('http') ? user.avatarUrl : `http://localhost:5000${user.avatarUrl}`}
+                  sx={{ 
+                    width: 36, 
+                    height: 36, 
+                    bgcolor: 'primary.main',
+                    fontWeight: 700,
+                    fontSize: '1rem'
+                  }}
+                >
+                  {user.avatarUrl ? null : (user.fullName?.charAt(0) || 'U')}
                 </Avatar>
               </IconButton>
               
