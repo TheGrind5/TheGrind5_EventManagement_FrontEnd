@@ -25,6 +25,7 @@ import PaymentPage from './pages/PaymentPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
+import CreateEventPage from './pages/CreateEventPage';
 import WishlistPage from './pages/WishlistPage';
 
 function AppRoutes() {
@@ -102,6 +103,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <MyTicketsPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/create-event" 
+        element={
+          <ProtectedRoute>
+            <CreateEventPage />
           </ProtectedRoute>
         } 
       />

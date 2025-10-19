@@ -249,6 +249,26 @@ const Header = ({ searchTerm, onSearchChange }) => {
               {/* Wishlist Icon */}
               <WishlistIcon />
               
+              {/* Create Event Button */}
+              <Button
+                component={Link}
+                to="/create-event"
+                variant="contained"
+                sx={{
+                  borderRadius: 3,
+                  fontWeight: 600,
+                  px: 2,
+                  py: 1,
+                  textTransform: 'none',
+                  '&:hover': {
+                    transform: 'scale(1.05)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Tạo sự kiện
+              </Button>
+              
               {/* Wallet Balance */}
               <Chip
                 icon={<Wallet />}

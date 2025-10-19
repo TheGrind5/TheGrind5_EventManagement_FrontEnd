@@ -218,6 +218,155 @@ export const eventsAPI = {
     }
 
     return response.json();
+  },
+
+  uploadImage: async (file) => {
+    // Validation file
+    if (!file) {
+      throw new Error('Không có file được chọn');
+    }
+
+    // Kiểm tra kích thước file (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new Error('File quá lớn. Vui lòng chọn file nhỏ hơn 5MB');
+    }
+
+    // Kiểm tra loại file
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Định dạng file không được hỗ trợ. Vui lòng chọn file JPG, PNG, GIF hoặc WebP');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = getAuthToken();
+    console.log('Uploading image:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      hasToken: !!token
+    });
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/Event/upload-image`, {
+        method: 'POST',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: formData,
+      });
+
+      console.log('Upload response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Upload error:', errorData);
+        throw new Error(errorData.message || `Upload failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Upload success:', result);
+      return result;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+  },
+
+  // Multi-step event creation APIs
+  createEventStep1: async (eventData) => {
+    const response = await fetch(`${API_BASE_URL}/Event/create/step1`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(eventData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to create event step 1');
+    }
+
+    return response.json();
+  },
+
+  updateEventStep2: async (eventId, eventData) => {
+    console.log('=== API updateEventStep2 Debug ===');
+    console.log('EventId:', eventId);
+    console.log('EventData:', eventData);
+    console.log('EventData JSON:', JSON.stringify(eventData, null, 2));
+    
+    const response = await fetch(`${API_BASE_URL}/Event/${eventId}/create/step2`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(eventData),
+    });
+
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error:', errorData);
+      throw new Error(errorData.message || 'Failed to update event step 2');
+    }
+
+    const result = await response.json();
+    console.log('API Success:', result);
+    return result;
+  },
+
+  updateEventStep3: async (eventId, eventData) => {
+    console.log('=== API updateEventStep3 Debug ===');
+    console.log('EventId:', eventId);
+    console.log('EventData:', eventData);
+    console.log('EventData JSON:', JSON.stringify(eventData, null, 2));
+    
+    const response = await fetch(`${API_BASE_URL}/Event/${eventId}/create/step3`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(eventData),
+    });
+
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error:', errorData);
+      throw new Error(errorData.message || 'Failed to update event step 3');
+    }
+
+    const result = await response.json();
+    console.log('API Success:', result);
+    return result;
+  },
+
+  updateEventStep4: async (eventId, eventData) => {
+    console.log('=== API updateEventStep4 Debug ===');
+    console.log('EventId:', eventId);
+    console.log('EventData:', eventData);
+    console.log('EventData JSON:', JSON.stringify(eventData, null, 2));
+    
+    const response = await fetch(`${API_BASE_URL}/Event/${eventId}/create/step4`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(eventData),
+    });
+
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error:', errorData);
+      throw new Error(errorData.message || 'Failed to update event step 4');
+    }
+
+    const result = await response.json();
+    console.log('API Success:', result);
+    return result;
   }
 };
 
