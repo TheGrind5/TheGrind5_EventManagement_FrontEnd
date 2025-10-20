@@ -35,7 +35,7 @@ import {
   Payment as CheckoutIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { wishlistAPI } from '../services/api';
+import { wishlistAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/layout/Header';
 
@@ -61,7 +61,7 @@ const WishlistPage = () => {
     try {
       setLoading(true);
       const data = await wishlistAPI.getWishlist();
-      setWishlist(data);
+      setWishlist(data.data);
       setError(null);
     } catch (err) {
       setError(err.message);

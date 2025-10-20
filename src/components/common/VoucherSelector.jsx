@@ -15,7 +15,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
-import { voucherAPI } from '../../services/api';
+import { voucherAPI } from '../../services/apiClient';
 
 const VoucherSelector = ({ 
   originalAmount, 
@@ -49,13 +49,13 @@ const VoucherSelector = ({
 
       const response = await voucherAPI.validate(voucherCode.trim(), originalAmount);
       
-      if (response.success && response.data.isValid) {
+      if (response.data.success && response.data.data.isValid) {
         setSuccess('Áp dụng voucher thành công!');
-        onVoucherApplied(response.data);
+        onVoucherApplied(response.data.data);
         setVoucherCode('');
         setShowVoucherForm(false);
       } else {
-        setError(response.data?.message || 'Voucher không hợp lệ');
+        setError(response.data.data?.message || 'Voucher không hợp lệ');
       }
     } catch (error) {
       console.error('Error applying voucher:', error);

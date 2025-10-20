@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,10 +25,40 @@ const RegisterPage = () => {
   };
 
 
+  const validateForm = () => {
+    if (!formData.username.trim()) {
+      setError('Username không được để trống');
+      return false;
+    }
+    if (!formData.fullName.trim()) {
+      setError('Họ tên không được để trống');
+      return false;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setError('Email không hợp lệ');
+      return false;
+    }
+    if (!formData.password || formData.password.length < 8) {
+      setError('Mật khẩu phải có ít nhất 8 ký tự');
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      setError('Số điện thoại không được để trống');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Validate form
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const result = await register(formData);

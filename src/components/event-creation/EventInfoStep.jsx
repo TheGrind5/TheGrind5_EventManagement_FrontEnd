@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import {
   Box,
   Typography,
@@ -20,7 +20,8 @@ import {
 import { CloudUpload, Image, Folder } from '@mui/icons-material';
 // import ReactQuill from 'react-quill';
 // import 'react-quill/dist/quill.snow.css';
-import { eventsAPI } from '../../services/api';
+import { eventsAPI } from '../../services/apiClient';
+import DebouncedTextField from '../common/DebouncedTextField';
 
 const EventInfoStep = ({ data, onChange }) => {
   const theme = useTheme();
@@ -28,7 +29,7 @@ const EventInfoStep = ({ data, onChange }) => {
   const [errors, setErrors] = useState({});
   
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = useCallback((field, value) => {
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
@@ -41,7 +42,7 @@ const EventInfoStep = ({ data, onChange }) => {
       ...data,
       [field]: value
     });
-  };
+  }, [data, errors, onChange]);
 
   const validateField = (field, value) => {
     const newErrors = { ...errors };
@@ -101,7 +102,7 @@ const EventInfoStep = ({ data, onChange }) => {
     try {
       setUploading(true);
       const response = await eventsAPI.uploadImage(file);
-      handleInputChange(field, response.imageUrl);
+      handleInputChange(field, response.data.imageUrl);
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Upload ảnh thất bại: ' + error.message);
@@ -492,10 +493,10 @@ const EventInfoStep = ({ data, onChange }) => {
             Tên sự kiện <span style={{ color: 'red' }}>*</span>
           </Typography>
           
-          <TextField
+          <DebouncedTextField
             label="Tên sự kiện"
             value={data.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
+            onChange={(value) => handleInputChange('title', value)}
             fullWidth
             required
             variant="outlined"
@@ -543,9 +544,9 @@ const EventInfoStep = ({ data, onChange }) => {
                 <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
                   Tên địa điểm <span style={{ color: 'red' }}>*</span>
                 </Typography>
-                <TextField
+                <DebouncedTextField
                   value={data.venueName}
-                  onChange={(e) => handleInputChange('venueName', e.target.value)}
+                  onChange={(value) => handleInputChange('venueName', value)}
                   onBlur={(e) => handleFieldBlur('venueName', e.target.value)}
                   fullWidth
                   required
@@ -1038,4 +1039,4 @@ Chi tiết sự kiện:
   );
 };
 
-export default EventInfoStep;
+export default memo(EventInfoStep);

@@ -16,7 +16,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Close, Remove } from '@mui/icons-material';
-import { walletAPI } from '../../services/api';
+import { walletAPI } from '../../services/apiClient';
 
 const WithdrawModal = ({ currentBalance, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -60,7 +60,7 @@ const WithdrawModal = ({ currentBalance, onClose, onSuccess }) => {
       });
 
       // Success
-      onSuccess(response.newBalance);
+      onSuccess(response.data.newBalance);
       
     } catch (err) {
       setError(err.message);

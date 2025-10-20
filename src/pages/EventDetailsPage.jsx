@@ -27,7 +27,7 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
-import { eventsAPI, ticketsAPI } from '../services/api';
+import { eventsAPI, ticketsAPI } from '../services/apiClient';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
@@ -53,13 +53,13 @@ const EventDetailsPage = () => {
         console.log('Fetching event with ID:', id);
         const response = await eventsAPI.getById(id);
         console.log('Event response:', response);
-        setEvent(response);
+        setEvent(response.data);
         
         // Fetch real ticket types from API
         try {
           const ticketTypesResponse = await ticketsAPI.getTicketTypesByEvent(id);
           console.log('Ticket types response:', ticketTypesResponse);
-          setTicketTypes(ticketTypesResponse || []);
+          setTicketTypes(ticketTypesResponse.data || []);
         } catch (ticketErr) {
           console.warn('Failed to fetch ticket types, using empty array:', ticketErr);
           setTicketTypes([]);

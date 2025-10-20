@@ -16,7 +16,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Close, AccountBalanceWallet } from '@mui/icons-material';
-import { walletAPI } from '../../services/api';
+import { walletAPI } from '../../services/apiClient';
 
 const DepositModal = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -53,7 +53,7 @@ const DepositModal = ({ onClose, onSuccess }) => {
       });
 
       // Success
-      onSuccess(response.newBalance);
+      onSuccess(response.data.newBalance);
       
     } catch (err) {
       setError(err.message);

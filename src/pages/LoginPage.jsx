@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Stack
 } from '@mui/material';
+
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
@@ -44,10 +45,28 @@ const LoginPage = () => {
     });
   };
 
+  const validateForm = () => {
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setError('Email không hợp lệ');
+      return false;
+    }
+    if (!formData.password || formData.password.length < 1) {
+      setError('Mật khẩu không được để trống');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Validate form
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const result = await login(formData.email, formData.password);
