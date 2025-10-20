@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
-import { ordersAPI, walletAPI } from '../services/api';
+import { ordersAPI, walletAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Container,
@@ -75,13 +75,28 @@ const PaymentPage = () => {
                 // Fetch order details
                 const orderData = await ordersAPI.getById(orderId);
                 console.log('Order data received:', orderData);
-                setOrder(orderData);
+                console.log('Order data structure:', {
+                    data: orderData.data,
+                    status: orderData.status,
+                    headers: orderData.headers
+                });
+                
+                // Check if orderData has the expected structure
+                if (orderData.data) {
+                    setOrder(orderData.data);
+                } else {
+                    setOrder(orderData);
+                }
                 
                 // Fetch wallet balance from real API
                 try {
                     const balanceData = await walletAPI.getBalance();
                     console.log('Real wallet balance:', balanceData);
-                    setWalletBalance(balanceData.balance || 0);
+                    const parsedBalance =
+                        (balanceData && balanceData.data && typeof balanceData.data.balance === 'number')
+                            ? balanceData.data.balance
+                            : (typeof balanceData.balance === 'number' ? balanceData.balance : 0);
+                    setWalletBalance(parsedBalance);
                 } catch (walletError) {
                     console.error('Error fetching wallet balance:', walletError);
                     setWalletBalance(0);
@@ -330,7 +345,7 @@ const PaymentPage = () => {
                                             Sự kiện:
                                         </Typography>
                                         <Typography variant="body1" fontWeight="medium">
-                                            {order.event?.title || 'N/A'}
+                                            {order.orderItems?.[0]?.eventTitle || 'N/A'}
                                         </Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
@@ -338,7 +353,7 @@ const PaymentPage = () => {
                                             Loại vé:
                                         </Typography>
                                         <Typography variant="body1" fontWeight="medium">
-                                            {order.ticketType?.typeName || 'N/A'}
+                                            {order.orderItems?.[0]?.ticketTypeName || 'N/A'}
                                         </Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
@@ -346,7 +361,7 @@ const PaymentPage = () => {
                                             Số lượng:
                                         </Typography>
                                         <Typography variant="body1" fontWeight="medium">
-                                            {order.quantity || 1}
+                                            {order.orderItems?.[0]?.quantity || 1}
                                         </Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
@@ -380,7 +395,7 @@ const PaymentPage = () => {
                                     <Box display="flex" justifyContent="space-between" alignItems="center">
                                         <Typography variant="h6">Tổng cộng:</Typography>
                                         <Typography variant="h4" fontWeight="bold">
-                                            {formatCurrency(order.amount || 0)}
+                                            {formatCurrency(order.amount || order.Amount || 0)}
                                         </Typography>
                                     </Box>
                                 </Box>
