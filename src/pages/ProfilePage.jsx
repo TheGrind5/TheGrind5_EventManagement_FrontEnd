@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { authAPI } from '../services/api';
+import { authAPI } from '../services/apiClient';
 import Header from '../components/layout/Header';
+import config from '../config/environment';
 
 const ProfilePage = () => {
   const { refreshProfile } = useAuth();
@@ -34,7 +35,8 @@ const ProfilePage = () => {
         return;
       }
 
-      const profileData = await authAPI.getCurrentUserProfile(token);
+      const response = await authAPI.getCurrentUserProfile();
+      const profileData = response.data;
       setProfile(profileData);
       setFormData({
         fullName: profileData.fullName || '',
@@ -98,36 +100,59 @@ const ProfilePage = () => {
       }
 
       // Xử lý upload avatar nếu có file
-      let avatarUrl = profile.avatar; // Giữ nguyên avatar cũ nếu không upload mới
+      let avatarUrl = null;
       if (avatarFile) {
-        const uploadResult = await authAPI.uploadAvatar(avatarFile, token);
-        avatarUrl = uploadResult.avatarUrl;
+        console.log('📤 Uploading avatar file:', avatarFile.name);
+        const uploadResult = await authAPI.uploadAvatar(avatarFile);
+        avatarUrl = uploadResult.data.avatarUrl;
+        console.log('✅ Avatar uploaded:', avatarUrl);
       }
 
+      // Debug logging
+      console.log('🔍 DEBUG Profile Update:');
+      console.log('- formData:', formData);
+      console.log('- profile:', profile);
+      console.log('- avatarFile:', avatarFile);
+
       const updateData = {};
-      if (formData.fullName !== profile.fullName) {
+      if (formData.fullName !== profile?.fullName) {
+        console.log('✅ FullName changed:', formData.fullName, '->', profile?.fullName);
         updateData.fullName = formData.fullName;
       }
-      if (formData.phone !== profile.phone) {
+      if (formData.phone !== profile?.phone) {
+        console.log('✅ Phone changed:', formData.phone, '->', profile?.phone);
         updateData.phone = formData.phone;
       }
-      if (avatarFile && avatarUrl !== profile.avatar) {
+      if (avatarFile && avatarUrl) {
+        console.log('✅ Avatar changed:', avatarUrl, '->', profile?.avatar);
         updateData.avatar = avatarUrl;
       }
-      if (formData.dateOfBirth !== (profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '')) {
+      if (formData.dateOfBirth !== (profile?.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '')) {
+        console.log('✅ DateOfBirth changed:', formData.dateOfBirth, '->', profile?.dateOfBirth);
         updateData.dateOfBirth = formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null;
       }
-      if (formData.gender !== profile.gender) {
+      if (formData.gender !== profile?.gender) {
+        console.log('✅ Gender changed:', formData.gender, '->', profile?.gender);
         updateData.gender = formData.gender;
       }
 
+      console.log('📝 UpdateData:', updateData);
+
       if (Object.keys(updateData).length === 0) {
+        console.log('❌ No changes detected');
         setMessage('Không có thay đổi nào để cập nhật');
         return;
       }
 
-      const result = await authAPI.updateProfile(updateData, token);
-      setProfile(result.user);
+      const result = await authAPI.updateProfile(updateData);
+      
+      // Fix avatar URL nếu cần
+      const updatedUser = result.data.user;
+      if (updatedUser.avatar && updatedUser.avatar.startsWith("/")) {
+        updatedUser.avatar = `${config.BASE_URL}${updatedUser.avatar}`;
+      }
+      
+      setProfile(updatedUser);
       // Refresh user data in context để cập nhật avatar trên header
       await refreshProfile();
       setMessage('Cập nhật profile thành công!');
@@ -144,11 +169,11 @@ const ProfilePage = () => {
 
   const handleCancel = () => {
     setFormData({
-      fullName: profile.fullName || '',
-      phone: profile.phone || '',
+      fullName: profile?.fullName || '',
+      phone: profile?.phone || '',
       avatar: '', // Không cần lưu avatar URL trong formData nữa
-      dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '',
-      gender: profile.gender || ''
+      dateOfBirth: profile?.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '',
+      gender: profile?.gender || ''
     });
     setAvatarFile(null);
     setAvatarPreview(null);
@@ -268,7 +293,7 @@ const ProfilePage = () => {
                   {avatarPreview || profile?.avatar ? (
                     <img 
                       key={avatarKey}
-                      src={avatarPreview || `${profile.avatar}?t=${Date.now()}`} 
+                      src={avatarPreview || profile?.avatar} 
                       alt="Avatar" 
                       style={{ 
                         width: '100%', 
@@ -437,7 +462,7 @@ const ProfilePage = () => {
                                 Preview:
                               </p>
                               <img 
-                                src={`${avatarPreview}?t=${Date.now()}`} 
+                                src={avatarPreview} 
                                 alt="Avatar Preview" 
                                 style={{ 
                                   width: '80px', 

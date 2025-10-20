@@ -35,7 +35,7 @@ import {
 
 // Contexts & Services
 import { useAuth } from '../../contexts/AuthContext';
-import { walletAPI } from '../../services/api';
+import { walletAPI } from '../../services/apiClient';
 
 // Components
 import WishlistIcon from '../common/WishlistIcon';
@@ -61,7 +61,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
     try {
       setBalanceLoading(true);
       const response = await walletAPI.getBalance();
-      setWalletBalance(response.balance);
+      setWalletBalance(response.data.balance);
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
       // Don't show error to user in header, just log it
@@ -307,14 +307,18 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   transition: 'all 0.2s ease'
                 }}
               >
-                <Avatar sx={{ 
-                  width: 36, 
-                  height: 36, 
-                  bgcolor: 'primary.main',
-                  fontWeight: 700,
-                  fontSize: '1rem'
-                }}>
-                  {user.fullName?.charAt(0) || 'U'}
+                <Avatar 
+                  src={user?.avatar || undefined}
+                  sx={{ 
+                    width: 36, 
+                    height: 36, 
+                    bgcolor: 'primary.main',
+                    fontWeight: 700,
+                    fontSize: '1rem'
+                  }}
+                  imgProps={{ onError: (e) => { e.currentTarget.src = ''; } }}
+                >
+                  {!user?.avatar && (user?.fullName?.charAt(0) || 'U')}
                 </Avatar>
               </IconButton>
               

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../services/api';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { authAPI } from '../services/apiClient';
+import config from '../config/environment';
 
 const AuthContext = createContext();
 
@@ -34,7 +33,7 @@ export const AuthProvider = ({ children }) => {
             // Fallback nếu không fetch được profile
             const userData = JSON.parse(savedUser);
             if (userData.avatar && userData.avatar.startsWith("/")) {
-              userData.avatar = `${API_BASE_URL.replace('/api', '')}${userData.avatar}`;
+              userData.avatar = `${config.BASE_URL}${userData.avatar}`;
             }
             setUser(userData);
           }
@@ -55,20 +54,21 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login(email, password);
 
-      if (response.user && response.accessToken) {
+      // Fix: Check response.data instead of response directly
+      if (response.data && response.data.user && response.data.accessToken) {
         // Lưu token trước
-        localStorage.setItem('token', response.accessToken);
+        localStorage.setItem('token', response.data.accessToken);
         
         // Fetch profile đầy đủ với avatar
-        const profileData = await fetchUserProfile(response.accessToken);
+        const profileData = await fetchUserProfile(response.data.accessToken);
         if (profileData) {
           setUser(profileData);
           localStorage.setItem('user', JSON.stringify(profileData));
         } else {
           // Fallback nếu không fetch được profile
-          const userData = { ...response.user };
+          const userData = { ...response.data.user };
           if (userData.avatar && userData.avatar.startsWith("/")) {
-            userData.avatar = `${API_BASE_URL.replace('/api', '')}${userData.avatar}`;
+            userData.avatar = `${config.BASE_URL}${userData.avatar}`;
           }
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.register(userData);
       // Backend trả về UserId, FullName, etc. (PascalCase)
-      if (response.UserId) {
+      if (response.data && response.data.userId) {
         // Không tự động login sau khi register
         // Chỉ trả về thông báo thành công
         return { success: true, message: 'Đăng ký thành công. Vui lòng đăng nhập.' };
@@ -114,11 +114,12 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async (token) => {
     try {
-      const profile = await authAPI.getCurrentUserProfile(token);
+      const response = await authAPI.getCurrentUserProfile();
+      const profile = response.data;
       
       // ✅ Fix đường dẫn avatar tuyệt đối
       if (profile.avatar && profile.avatar.startsWith("/")) {
-        profile.avatar = `${API_BASE_URL.replace('/api', '')}${profile.avatar}`;
+        profile.avatar = `${config.BASE_URL}${profile.avatar}`;
       }
       
       return profile;

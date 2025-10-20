@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { wishlistAPI } from '../services/api';
+import { wishlistAPI } from '../services/apiClient';
 import { useAuth } from './AuthContext';
 
 const WishlistContext = createContext();
@@ -31,7 +31,7 @@ export const WishlistProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       const data = await wishlistAPI.getWishlist();
-      setWishlist(data);
+      setWishlist(data?.data ?? data);
     } catch (err) {
       setError(err.message);
       console.error('Failed to fetch wishlist:', err);

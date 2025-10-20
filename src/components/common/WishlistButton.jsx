@@ -5,7 +5,7 @@ import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const WishlistButton = ({ ticketTypeId, ticketName, size = 'medium', variant = 'outlined' }) => {
-  const { addItem: addToWishlist, isInWishlist } = useWishlist();
+  const { addItem: addToWishlist, deleteItem, isInWishlist, getWishlistItem } = useWishlist();
   const { user } = useAuth();
 
   const handleAddToWishlist = async () => {
@@ -13,21 +13,23 @@ const WishlistButton = ({ ticketTypeId, ticketName, size = 'medium', variant = '
       alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích!');
       return;
     }
-    
-    const success = await addToWishlist(ticketTypeId, 1);
-    if (success) {
-      alert(`Đã thêm ${ticketName} vào danh sách yêu thích!`);
-    } else {
-      alert('Có lỗi xảy ra khi thêm vào danh sách yêu thích!');
+    const currentlyIn = isInWishlistValue;
+    if (currentlyIn) {
+      const item = getWishlistItem(ticketTypeId);
+      const ok = await deleteItem(item?.id || item?.itemId);
+      if (!ok) alert('Có lỗi khi hủy yêu thích');
+      return;
     }
+    const success = await addToWishlist(ticketTypeId, 1);
+    if (!success) alert('Có lỗi xảy ra khi thêm vào danh sách yêu thích!');
   };
 
   const isInWishlistValue = isInWishlist(ticketTypeId);
 
   return (
-    <Tooltip title={isInWishlistValue ? 'Đã có trong danh sách yêu thích' : 'Thêm vào danh sách yêu thích'}>
+    <Tooltip title={isInWishlistValue ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}>
       <Button
-        variant={variant}
+        variant={isInWishlistValue ? 'contained' : variant}
         color="secondary"
         size={size}
         startIcon={isInWishlistValue ? <Favorite /> : <FavoriteBorder />}
