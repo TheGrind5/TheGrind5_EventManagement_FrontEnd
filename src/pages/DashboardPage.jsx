@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import { useAuth } from '../contexts/AuthContext';
-import { eventsAPI } from '../services/api';
+import { eventsAPI } from '../services/apiClient';
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -14,7 +14,7 @@ const DashboardPage = () => {
     const fetchEvents = async () => {
       try {
         const response = await eventsAPI.getAll();
-        setEvents(response || []);
+        setEvents(response.data || []);
       } catch (err) {
         setError('Failed to load events');
         console.error('Error fetching events:', err);

@@ -14,7 +14,7 @@ import {
   Add, 
   Remove 
 } from '@mui/icons-material';
-import { walletAPI } from '../services/api';
+import { walletAPI } from '../services/apiClient';
 import Header from '../components/layout/Header';
 import WalletBalance from '../components/wallet/WalletBalance';
 import DepositModal from '../components/wallet/DepositModal';

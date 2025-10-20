@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, memo } from 'react';
 import {
   Box,
   Typography,
@@ -42,14 +42,14 @@ const DateTimeTicketStep = ({ data, onChange }) => {
     return null; // Không có lỗi
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = useCallback((field, value) => {
     onChange({
       ...data,
       [field]: value
     });
-  };
+  }, [data, onChange]);
 
-  const handleTicketTypeChange = (index, field, value) => {
+  const handleTicketTypeChange = useCallback((index, field, value) => {
     const newTicketTypes = [...data.ticketTypes];
     newTicketTypes[index] = {
       ...newTicketTypes[index],
@@ -57,9 +57,9 @@ const DateTimeTicketStep = ({ data, onChange }) => {
     };
     
     handleInputChange('ticketTypes', newTicketTypes);
-  };
+  }, [data.ticketTypes, handleInputChange]);
 
-  const addTicketType = () => {
+  const addTicketType = useCallback(() => {
     const newTicketType = {
       typeName: '',
       price: 0,
@@ -71,12 +71,12 @@ const DateTimeTicketStep = ({ data, onChange }) => {
     };
     
     handleInputChange('ticketTypes', [...data.ticketTypes, newTicketType]);
-  };
+  }, [data.ticketTypes, handleInputChange]);
 
-  const removeTicketType = (index) => {
+  const removeTicketType = useCallback((index) => {
     const newTicketTypes = data.ticketTypes.filter((_, i) => i !== index);
     handleInputChange('ticketTypes', newTicketTypes);
-  };
+  }, [data.ticketTypes, handleInputChange]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
@@ -229,4 +229,4 @@ const DateTimeTicketStep = ({ data, onChange }) => {
   );
 };
 
-export default DateTimeTicketStep;
+export default memo(DateTimeTicketStep);

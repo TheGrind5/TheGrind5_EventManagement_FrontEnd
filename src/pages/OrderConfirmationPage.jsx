@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
-import { ordersAPI, ticketsAPI } from '../services/api';
+import { ordersAPI, ticketsAPI } from '../services/apiClient';
 
 const OrderConfirmationPage = () => {
     const { orderId } = useParams();
@@ -41,7 +41,40 @@ const OrderConfirmationPage = () => {
                 
             } catch (err) {
                 console.error('Error fetching data:', err);
-                setError(err.message || 'Không thể tải thông tin đơn hàng');
+                
+                // 🔧 FIX: Cải thiện error handling với specific error messages
+                let errorMessage = 'Không thể tải thông tin đơn hàng';
+                let errorCode = 500;
+                
+                // Parse error từ apiClient response format
+                if (err.success === false) {
+                    errorMessage = err.message || errorMessage;
+                    errorCode = err.code || 500;
+                }
+                // Parse error từ axios response
+                else if (err.response?.data?.message) {
+                    errorMessage = err.response.data.message;
+                    errorCode = err.response.status;
+                }
+                // Parse error từ fetch response
+                else if (err.data?.message) {
+                    errorMessage = err.data.message;
+                }
+                // Parse error từ exception message
+                else if (err.message) {
+                    errorMessage = err.message;
+                }
+                
+                // 🔧 FIX: Thêm specific error handling
+                if (errorCode === 404) {
+                    errorMessage = 'Không tìm thấy đơn hàng. Có thể đơn hàng đã bị xóa hoặc không tồn tại.';
+                } else if (errorCode === 401) {
+                    errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                } else if (errorCode === 0) {
+                    errorMessage = 'Lỗi kết nối. Vui lòng kiểm tra internet và thử lại.';
+                }
+                
+                setError(errorMessage);
             } finally {
                 setLoading(false);
             }

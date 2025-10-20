@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -20,7 +20,7 @@ import EventInfoStep from '../components/event-creation/EventInfoStep';
 import DateTimeTicketStep from '../components/event-creation/DateTimeTicketStep';
 import SettingsStep from '../components/event-creation/SettingsStep';
 import PaymentStep from '../components/event-creation/PaymentStep';
-import { eventsAPI } from '../services/api';
+import { eventsAPI } from '../services/apiClient';
 
 const CreateEventPage = () => {
   const navigate = useNavigate();
@@ -32,54 +32,66 @@ const CreateEventPage = () => {
   const [error, setError] = useState(null);
   const [eventId, setEventId] = useState(null);
 
-  // State cho từng bước
-  const [step1Data, setStep1Data] = useState({
-    title: '',
-    eventIntroduction: '',
-    category: '',
-    eventMode: 'Offline',
-    venueName: '',
-    province: '',
-    district: '',
-    ward: '',
-    streetAddress: '',
-    location: '',
-    organizerName: '',
-    organizerInfo: '',
-    eventImage: '',
-    backgroundImage: '',
-    organizerLogo: ''
+  // State cho từng bước với localStorage
+  const [step1Data, setStep1Data] = useState(() => {
+    const saved = localStorage.getItem('createEvent_step1');
+    return saved ? JSON.parse(saved) : {
+      title: '',
+      eventIntroduction: '',
+      category: '',
+      eventMode: 'Offline',
+      venueName: '',
+      province: '',
+      district: '',
+      ward: '',
+      streetAddress: '',
+      location: '',
+      organizerName: '',
+      organizerInfo: '',
+      eventImage: '',
+      backgroundImage: '',
+      organizerLogo: ''
+    };
   });
 
-  const [step2Data, setStep2Data] = useState({
-    startTime: '',
-    endTime: '',
-    ticketTypes: []
+  const [step2Data, setStep2Data] = useState(() => {
+    const saved = localStorage.getItem('createEvent_step2');
+    return saved ? JSON.parse(saved) : {
+      startTime: '',
+      endTime: '',
+      ticketTypes: []
+    };
   });
 
-  const [step3Data, setStep3Data] = useState({
-    eventStatus: 'Draft',
-    priority: 'Normal',
-    maxAttendees: 0,
-    registrationDeadline: 0,
-    contactEmail: '',
-    contactPhone: '',
-    internalNotes: ''
+  const [step3Data, setStep3Data] = useState(() => {
+    const saved = localStorage.getItem('createEvent_step3');
+    return saved ? JSON.parse(saved) : {
+      eventStatus: 'Draft',
+      priority: 'Normal',
+      maxAttendees: 0,
+      registrationDeadline: 0,
+      contactEmail: '',
+      contactPhone: '',
+      internalNotes: ''
+    };
   });
 
-  const [step4Data, setStep4Data] = useState({
-    selectedPaymentMethods: ['bank_transfer'],
-    bankAccounts: [
-      {
-        bankName: 'MB Bank',
-        accountNumber: '04358345653',
-        accountHolder: 'Khanh Ngu da',
-        isDefault: true
-      }
-    ],
-    autoConfirm: false,
-    requirePaymentProof: false,
-    taxInfo: ''
+  const [step4Data, setStep4Data] = useState(() => {
+    const saved = localStorage.getItem('createEvent_step4');
+    return saved ? JSON.parse(saved) : {
+      selectedPaymentMethods: ['bank_transfer'],
+      bankAccounts: [
+        {
+          bankName: 'MB Bank',
+          accountNumber: '04358345653',
+          accountHolder: 'Khanh Ngu da',
+          isDefault: true
+        }
+      ],
+      autoConfirm: false,
+      requirePaymentProof: false,
+      taxInfo: ''
+    };
   });
 
   const steps = [
@@ -88,6 +100,35 @@ const CreateEventPage = () => {
     'Cài đặt',
     'Thanh toán'
   ];
+
+  // Lưu dữ liệu vào localStorage với debounce để tránh chạy quá nhiều
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('createEvent_step1', JSON.stringify(step1Data));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [step1Data]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('createEvent_step2', JSON.stringify(step2Data));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [step2Data]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('createEvent_step3', JSON.stringify(step3Data));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [step3Data]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('createEvent_step4', JSON.stringify(step4Data));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [step4Data]);
 
   const handleNext = async () => {
     if (activeStep === 0) {
@@ -190,9 +231,9 @@ const CreateEventPage = () => {
         console.log('- District:', eventData.district);
         console.log('- Ward:', eventData.ward);
         
-        const response = await eventsAPI.createEventStep1(eventData);
+        const response = await eventsAPI.createStep1(eventData);
         
-        setEventId(response.eventId);
+        setEventId(response.data.eventId);
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
       } catch (err) {
         setError(err.message || 'Có lỗi xảy ra khi tạo sự kiện');
@@ -217,6 +258,11 @@ const CreateEventPage = () => {
         
         if (!step2Data.endTime) {
           throw new Error('Vui lòng chọn thời gian kết thúc');
+        }
+        
+        // Validate ticket types
+        if (!step2Data.ticketTypes || step2Data.ticketTypes.length === 0) {
+          throw new Error('Vui lòng thêm ít nhất một loại vé cho sự kiện');
         }
         
         const startDate = new Date(step2Data.startTime);
@@ -302,13 +348,16 @@ const CreateEventPage = () => {
             
             // Nếu không có SaleStart, sử dụng thời gian hiện tại
             if (!saleStart) {
-              saleStart = new Date().toISOString();
+              saleStart = new Date();
+            } else {
+              saleStart = new Date(saleStart);
             }
             
             // Nếu không có SaleEnd hoặc SaleEnd <= SaleStart, sử dụng 30 ngày sau SaleStart
-            if (!saleEnd || new Date(saleEnd) <= new Date(saleStart)) {
-              const startDate = new Date(saleStart);
-              saleEnd = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days from SaleStart
+            if (!saleEnd || new Date(saleEnd) <= saleStart) {
+              saleEnd = new Date(saleStart.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from SaleStart
+            } else {
+              saleEnd = new Date(saleEnd);
             }
             
             // Đảm bảo tất cả các trường đều có giá trị hợp lệ
@@ -318,8 +367,8 @@ const CreateEventPage = () => {
               Quantity: parseInt(ticket.quantity),
               MinOrder: minOrder,
               MaxOrder: maxOrder,
-              SaleStart: saleStart,
-              SaleEnd: saleEnd,
+              SaleStart: saleStart.toISOString(),
+              SaleEnd: saleEnd.toISOString(),
               Status: 'Active' // Đúng format theo model
             };
             
@@ -342,6 +391,12 @@ const CreateEventPage = () => {
         
         console.log('Step 2 Request Data:', step2Request);
         console.log('Step 2 Request Data JSON:', JSON.stringify(step2Request, null, 2));
+        console.log('Step 2 Request Data Types:', {
+          StartTime: typeof step2Request.StartTime,
+          EndTime: typeof step2Request.EndTime,
+          TicketTypes: Array.isArray(step2Request.TicketTypes),
+          TicketTypesLength: step2Request.TicketTypes.length
+        });
         
         // Kiểm tra từng trường trong request
         console.log('StartTime:', step2Request.StartTime, typeof step2Request.StartTime);
@@ -361,7 +416,7 @@ const CreateEventPage = () => {
           });
         });
         
-        await eventsAPI.updateEventStep2(eventId, step2Request);
+        await eventsAPI.updateStep2(eventId, step2Request);
         
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
       } catch (err) {
@@ -399,7 +454,7 @@ const CreateEventPage = () => {
         console.log('Step 3 Request Data:', step3Request);
         console.log('Step 3 Request Data JSON:', JSON.stringify(step3Request, null, 2));
         
-        await eventsAPI.updateEventStep3(eventId, step3Request);
+        await eventsAPI.updateStep3(eventId, step3Request);
         
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
       } catch (err) {
@@ -435,7 +490,13 @@ const CreateEventPage = () => {
         console.log('Step 4 Request Data:', step4Request);
         console.log('Step 4 Request Data JSON:', JSON.stringify(step4Request, null, 2));
         
-        await eventsAPI.updateEventStep4(eventId, step4Request);
+        await eventsAPI.updateStep4(eventId, step4Request);
+        
+        // Xóa dữ liệu tạm trong localStorage
+        localStorage.removeItem('createEvent_step1');
+        localStorage.removeItem('createEvent_step2');
+        localStorage.removeItem('createEvent_step3');
+        localStorage.removeItem('createEvent_step4');
         
         // Chuyển đến trang chi tiết event
         navigate(`/events/${eventId}`);
@@ -449,6 +510,66 @@ const CreateEventPage = () => {
 
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
+  };
+
+  const clearFormData = () => {
+    localStorage.removeItem('createEvent_step1');
+    localStorage.removeItem('createEvent_step2');
+    localStorage.removeItem('createEvent_step3');
+    localStorage.removeItem('createEvent_step4');
+    
+    // Reset all states
+    setStep1Data({
+      title: '',
+      eventIntroduction: '',
+      category: '',
+      eventMode: 'Offline',
+      venueName: '',
+      province: '',
+      district: '',
+      ward: '',
+      streetAddress: '',
+      location: '',
+      organizerName: '',
+      organizerInfo: '',
+      eventImage: '',
+      backgroundImage: '',
+      organizerLogo: ''
+    });
+    
+    setStep2Data({
+      startTime: '',
+      endTime: '',
+      ticketTypes: []
+    });
+    
+    setStep3Data({
+      eventStatus: 'Draft',
+      priority: 'Normal',
+      maxAttendees: 0,
+      registrationDeadline: 0,
+      contactEmail: '',
+      contactPhone: '',
+      internalNotes: ''
+    });
+    
+    setStep4Data({
+      selectedPaymentMethods: ['bank_transfer'],
+      bankAccounts: [
+        {
+          bankName: 'MB Bank',
+          accountNumber: '04358345653',
+          accountHolder: 'Khanh Ngu da',
+          isDefault: true
+        }
+      ],
+      autoConfirm: false,
+      requirePaymentProof: false,
+      taxInfo: ''
+    });
+    
+    setActiveStep(0);
+    setError(null);
   };
 
   const isStepValid = () => {
@@ -650,13 +771,24 @@ const CreateEventPage = () => {
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Button
-              disabled={activeStep === 0 || loading}
-              onClick={handleBack}
-              sx={{ mr: 1 }}
-            >
-              Quay lại
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                disabled={activeStep === 0 || loading}
+                onClick={handleBack}
+                sx={{ mr: 1 }}
+              >
+                Quay lại
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={clearFormData}
+                disabled={loading}
+                sx={{ mr: 1 }}
+              >
+                Xóa dữ liệu tạm
+              </Button>
+            </Box>
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {loading && <CircularProgress size={20} />}

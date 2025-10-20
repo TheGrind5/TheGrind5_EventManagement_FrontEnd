@@ -12,6 +12,7 @@ import { CustomThemeProvider } from './contexts/ThemeContext';
 
 // Components
 import ProtectedRoute from './components/common/ProtectedRoute';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -126,15 +127,17 @@ export default function App() {
     <StyledEngineProvider injectFirst>
       <CustomThemeProvider>
         <CssBaseline />
-        <AuthProvider>
-          <WishlistProvider>
-            <Router>
-              <div className="App">
-                <AppRoutes />
-              </div>
-            </Router>
-          </WishlistProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <WishlistProvider>
+              <Router>
+                <div className="App">
+                  <AppRoutes />
+                </div>
+              </Router>
+            </WishlistProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </CustomThemeProvider>
     </StyledEngineProvider>
   );

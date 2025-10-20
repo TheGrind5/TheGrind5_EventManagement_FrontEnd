@@ -43,7 +43,7 @@ import {
 
 // Components & Services
 import Header from '../components/layout/Header';
-import { eventsAPI } from '../services/api';
+import { eventsAPI } from '../services/apiClient';
 
 const HomePage = () => {
   //State declaration để quản lý trạng thái của component
@@ -66,7 +66,7 @@ const HomePage = () => {
       try {
         const response = await eventsAPI.getAll();
         console.log('HomePage - Events loaded:', response);
-        setEvents(response || []);
+        setEvents(response.data || []);
       } catch (err) {
         setError('Failed to load events');
         console.error('Error fetching events:', err);
