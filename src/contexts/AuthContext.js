@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI } from '../services/apiClient';
+import config from '../config/environment';
 
 const AuthContext = createContext();
 
@@ -19,10 +20,23 @@ export const AuthProvider = ({ children }) => {
     // Check if user is logged in on app start
     const checkAuth = async () => {
       try {
+        const token = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-          const userData = JSON.parse(savedUser);
-          setUser(userData);
+        
+        if (token && savedUser) {
+          // Refresh profile để lấy avatar mới nhất
+          const profileData = await fetchUserProfile(token);
+          if (profileData) {
+            setUser(profileData);
+            localStorage.setItem('user', JSON.stringify(profileData));
+          } else {
+            // Fallback nếu không fetch được profile
+            const userData = JSON.parse(savedUser);
+            if (userData.avatar && userData.avatar.startsWith("/")) {
+              userData.avatar = `${config.BASE_URL}${userData.avatar}`;
+            }
+            setUser(userData);
+          }
         }
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -40,10 +54,26 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login(email, password);
 
-      if (response.user && response.accessToken) {
-        setUser(response.user);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        localStorage.setItem('token', response.accessToken);
+      // Fix: Check response.data instead of response directly
+      if (response.data && response.data.user && response.data.accessToken) {
+        // Lưu token trước
+        localStorage.setItem('token', response.data.accessToken);
+        
+        // Fetch profile đầy đủ với avatar
+        const profileData = await fetchUserProfile(response.data.accessToken);
+        if (profileData) {
+          setUser(profileData);
+          localStorage.setItem('user', JSON.stringify(profileData));
+        } else {
+          // Fallback nếu không fetch được profile
+          const userData = { ...response.data.user };
+          if (userData.avatar && userData.avatar.startsWith("/")) {
+            userData.avatar = `${config.BASE_URL}${userData.avatar}`;
+          }
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
         return { success: true };
       }
       return { success: false, message: 'Login failed' };
@@ -60,7 +90,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.register(userData);
       // Backend trả về UserId, FullName, etc. (PascalCase)
-      if (response.UserId) {
+      if (response.data && response.data.userId) {
         // Không tự động login sau khi register
         // Chỉ trả về thông báo thành công
         return { success: true, message: 'Đăng ký thành công. Vui lòng đăng nhập.' };
@@ -82,14 +112,33 @@ export const AuthProvider = ({ children }) => {
 
   };
 
+  const fetchUserProfile = async (token) => {
+    try {
+      const response = await authAPI.getCurrentUserProfile();
+      const profile = response.data;
+      
+      // ✅ Fix đường dẫn avatar tuyệt đối
+      if (profile.avatar && profile.avatar.startsWith("/")) {
+        profile.avatar = `${config.BASE_URL}${profile.avatar}`;
+      }
+      
+      return profile;
+    } catch (error) {
+      console.error("Lỗi lấy thông tin user:", error);
+      return null;
+    }
+  };
+
   const refreshProfile = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return null;
 
-      const profileData = await authAPI.getCurrentUserProfile(token);
-      setUser(profileData);
-      localStorage.setItem('user', JSON.stringify(profileData));
+      const profileData = await fetchUserProfile(token);
+      if (profileData) {
+        setUser(profileData);
+        localStorage.setItem('user', JSON.stringify(profileData));
+      }
       return profileData;
     } catch (error) {
       console.error('Refresh profile error:', error);

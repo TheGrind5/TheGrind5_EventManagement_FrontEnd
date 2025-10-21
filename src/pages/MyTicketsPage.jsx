@@ -34,7 +34,7 @@ import {
   FilterList
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
-import { ticketsAPI } from '../services/api';
+import { ticketsAPI } from '../services/apiClient';
 
 const MyTicketsPage = () => {
   const [tickets, setTickets] = useState([]);
@@ -59,7 +59,12 @@ const MyTicketsPage = () => {
     try {
       setLoading(true);
       const response = await ticketsAPI.getMyTickets();
-      const newTickets = response.tickets || [];
+      const newTickets =
+        (response && Array.isArray(response.data))
+          ? response.data
+          : (response && response.data && Array.isArray(response.data.tickets))
+            ? response.data.tickets
+            : (Array.isArray(response.tickets) ? response.tickets : []);
       
       // Check if there are new tickets (recently created)
       const recentTickets = newTickets.filter(ticket => {

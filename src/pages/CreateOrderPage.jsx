@@ -2,12 +2,13 @@
 
 //Import statements để import các thư viện cần thiết
 import React, {useState, useEffect} from 'react'; 
-import {useParams, useSearchParams, useLocation} from 'react-router-dom'; 
+import {useParams, useSearchParams, useLocation, useNavigate} from 'react-router-dom'; 
 import Header from '../components/layout/Header';
 import VoucherSelector from '../components/common/VoucherSelector';
+import { useAuth } from '../contexts/AuthContext';
 
     //event api để lấy thông tin event từ backend
-import {eventsAPI, ordersAPI, ticketsAPI} from '../services/api';
+import {eventsAPI, ordersAPI, ticketsAPI} from '../services/apiClient';
 
 const CreateOrderPage = () => {
 
@@ -15,6 +16,8 @@ const CreateOrderPage = () => {
     const {id} = useParams(); //Lấy id từ url 
     const [searchParams] = useSearchParams(); //Lấy query params từ URL
     const location = useLocation(); //Lấy state từ navigation
+    const navigate = useNavigate(); //Navigation hook
+    const { user, loading: authLoading } = useAuth(); //Auth context
     const [quantity, setQuantity] = useState(1); 
     /*  useState là một hook trong React để quản lý trạng thái của component.
         useState trả về một mảng gồm hai phần tử: phần tử đầu tiên là giá trị hiện tại của trạng thái, phần tử thứ hai là hàm để cập nhật giá trị của trạng thái.
@@ -36,6 +39,21 @@ const CreateOrderPage = () => {
         
     //useEffect hook để lấy thông tin event từ backend
     useEffect(() => {
+        // Check authentication first
+        if (!authLoading && !user) {
+            setError('Bạn cần đăng nhập để tạo đơn hàng');
+            setLoading(false);
+            return;
+        }
+
+        // Check token exists
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('Token không tồn tại. Vui lòng đăng nhập lại');
+            setLoading(false);
+            return;
+        }
+
         const fetchEventData = async () => {
             try{
                 setLoading(true); 
@@ -44,20 +62,54 @@ const CreateOrderPage = () => {
                 // Fetch event data
                 const eventData = await eventsAPI.getById(id);
                 console.log('Event data: ', eventData);
-                setEvent(eventData);
+                setEvent(eventData?.data ?? eventData);
                 
                 // Fetch ticket types separately
-                const ticketTypesData = await ticketsAPI.getTicketTypesByEvent(id);
-                console.log('Ticket Types: ', ticketTypesData);
-                setTicketTypes(ticketTypesData || []);
+                let ticketTypesData;
+                try {
+                    ticketTypesData = await ticketsAPI.getTicketTypesByEvent(id);
+                    console.log('🔍 DEBUG TICKET TYPES API:');
+                    console.log('Ticket Types API Response: ', ticketTypesData);
+                    console.log('Ticket Types Data: ', ticketTypesData?.data);
+                    console.log('Ticket Types Count: ', ticketTypesData?.data?.length || 0);
+                    
+                    const ticketTypesArray = ticketTypesData?.data || [];
+                    console.log('🔍 DEBUG: Setting ticket types:', ticketTypesArray);
+                    setTicketTypes(ticketTypesArray);
+                    
+                    // Check if no ticket types found
+                    if (ticketTypesArray.length === 0) {
+                        console.warn('🔍 DEBUG: No ticket types found for event', id);
+                        setError('Sự kiện này chưa có loại vé nào để đặt');
+                        return;
+                    }
+                } catch (ticketTypesError) {
+                    console.error('🔍 DEBUG: Error fetching ticket types:', ticketTypesError);
+                    setError('Không thể tải danh sách loại vé. Vui lòng thử lại sau.');
+                    return;
+                }
                 
                 // Auto-select ticket type from URL params if provided
                 const ticketTypeFromUrl = searchParams.get('ticketType');
+                console.log('🔍 DEBUG URL PARAMS:');
+                console.log('ticketTypeFromUrl:', ticketTypeFromUrl);
+                console.log('ticketTypeFromUrl type:', typeof ticketTypeFromUrl);
+                console.log('ticketTypesData:', ticketTypesData);
+                
                 if (ticketTypeFromUrl) {
-                    const foundTicketType = ticketTypesData?.find(tt => tt.ticketTypeId == ticketTypeFromUrl);
+                    // 🔧 FIX: Convert to number for comparison
+                    const ticketTypeId = parseInt(ticketTypeFromUrl);
+                    console.log('🔍 DEBUG: Looking for ticketTypeId:', ticketTypeId);
+                    
+                    const foundTicketType = ticketTypesData?.data?.find(tt => tt.ticketTypeId === ticketTypeId);
+                    console.log('🔍 DEBUG: Found ticket type:', foundTicketType);
+                    
                     if (foundTicketType) {
-                        setSelectedTicketType(ticketTypeFromUrl);
+                        setSelectedTicketType(ticketTypeFromUrl); // Keep as string for form
                         console.log('Auto-selected ticket type:', foundTicketType.typeName);
+                    } else {
+                        console.warn('🔍 DEBUG: Ticket type not found in fetched data');
+                        console.log('Available ticket types:', ticketTypesData?.data?.map(tt => ({ id: tt.ticketTypeId, name: tt.typeName })));
                     }
                 }
 
@@ -68,9 +120,9 @@ const CreateOrderPage = () => {
                     // For now, we'll need to fetch the wishlist data to get the ticket type ID
                     // This is a temporary solution - in a real app, pass ticket type ID directly
                     try {
-                        const { wishlistAPI } = await import('../services/api');
+                        const { wishlistAPI } = await import('../services/apiClient');
                         const wishlistData = await wishlistAPI.getWishlist();
-                        const wishlistItem = wishlistData.items.find(item => 
+                        const wishlistItem = (wishlistData?.data?.items || wishlistData?.items || []).find(item => 
                             selectedWishlistItems.includes(item.id)
                         );
                         if (wishlistItem) {
@@ -82,7 +134,8 @@ const CreateOrderPage = () => {
                 }
 
                 // Kiểm tra nếu không có ticket types
-                if (!ticketTypesData || ticketTypesData.length === 0) {
+                const ticketArray = ticketTypesData?.data || ticketTypesData || [];
+                if (!ticketArray || ticketArray.length === 0) {
                     setError('Sự kiện này chưa có loại vé nào để đặt');
                     setTicketTypes([]);
                 }
@@ -94,24 +147,19 @@ const CreateOrderPage = () => {
                 setLoading(false);
             }
         };
-        if(id){
+        if(id && user){
             fetchEventData();
         }
-    }, [id, searchParams])
+    }, [id, user, authLoading])
 
-        // Debug useEffect để kiểm tra event state
-    useEffect(() => {
-        console.log('Event state changed:', event);
-        console.log('Loading state:', loading);
-        console.log('Error state:', error);
-    }, [event, loading, error]);
+        // Debug useEffect để kiểm tra event state - REMOVED để tránh infinite loop
 
     
     //Handle functions để xử lý event
     const handleCreateOrder = async (e) => {
         e.preventDefault(); // Ngăn form submit mặc định
         
-        // Validate form
+        // 🔧 FIX: Cải thiện validation với business rules
         if (!selectedTicketType) {
             setError('Vui lòng chọn loại vé');
             return;
@@ -122,40 +170,168 @@ const CreateOrderPage = () => {
             return;
         }
 
+        if (!id || isNaN(parseInt(id))) {
+            setError('ID sự kiện không hợp lệ');
+            return;
+        }
+
+        // 🔧 FIX: Validate ticket type availability với business rules
+        const selectedTicket = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
+        if (selectedTicket) {
+            // Check if ticket type is active
+            if (selectedTicket.status !== 'Active') {
+                setError('Loại vé này hiện không khả dụng');
+                return;
+            }
+
+            // Check sale time
+            const now = new Date();
+            if (selectedTicket.saleStart && new Date(selectedTicket.saleStart) > now) {
+                setError(`Vé chưa được bán. Thời gian bán bắt đầu: ${new Date(selectedTicket.saleStart).toLocaleString('vi-VN')}`);
+                return;
+            }
+
+            if (selectedTicket.saleEnd && new Date(selectedTicket.saleEnd) < now) {
+                setError(`Hết thời gian bán vé. Thời gian bán kết thúc: ${new Date(selectedTicket.saleEnd).toLocaleString('vi-VN')}`);
+                return;
+            }
+
+            // Check availability - sử dụng strict comparison
+            if (selectedTicket.availableQuantity < quantity) {
+                setError(`Chỉ còn ${selectedTicket.availableQuantity} vé. Vui lòng chọn số lượng ít hơn.`);
+                return;
+            }
+
+            // Check min/max order rules
+            if (selectedTicket.minOrder && quantity < selectedTicket.minOrder) {
+                setError(`Số lượng tối thiểu là ${selectedTicket.minOrder} vé.`);
+                return;
+            }
+
+            if (selectedTicket.maxOrder && quantity > selectedTicket.maxOrder) {
+                setError(`Số lượng tối đa là ${selectedTicket.maxOrder} vé.`);
+                return;
+            }
+
+            // Check if user has sufficient balance (if using wallet payment)
+            if (appliedVoucher && appliedVoucher.finalAmount > 0) {
+                // This will be validated on backend, but we can show a warning
+                console.log('Voucher applied, final amount:', appliedVoucher.finalAmount);
+            }
+        } else {
+            setError('Loại vé được chọn không tồn tại');
+            return;
+        }
+
         try {
             setCreatingOrder(true);
             setError(null);
             
-            // Tạo order data
-            const orderData = {
-                eventId: parseInt(id),
-                ticketTypeId: parseInt(selectedTicketType),
-                quantity: quantity,
-                seatNo: null, // Có thể thêm seat selection sau
-                voucherCode: appliedVoucher?.voucherCode || null,
-                originalAmount: pricing?.originalAmount || 0,
-                discountAmount: pricing?.discountAmount || 0,
-                finalAmount: pricing?.finalAmount || pricing?.originalAmount || 0
-            };
+            // 🔍 DEBUG: Log ticket type validation
+            console.log('🔍 DEBUG TICKET TYPE VALIDATION:');
+            console.log('selectedTicketType:', selectedTicketType);
+            console.log('selectedTicketType type:', typeof selectedTicketType);
+            console.log('ticketTypes:', ticketTypes);
+            console.log('selectedTicket:', ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType));
             
-            console.log('Creating order with data:', orderData);
+            // Validate ticket type exists before sending - sử dụng strict comparison
+            const selectedTicket = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
+            if (!selectedTicket) {
+                setError('Loại vé được chọn không tồn tại trong danh sách');
+                return;
+            }
+            
+            // Tạo order data - sử dụng PascalCase vì backend expect PascalCase
+            const orderData = {
+                EventId: parseInt(id),
+                TicketTypeId: parseInt(selectedTicketType),
+                Quantity: quantity,
+                SeatNo: null // Có thể thêm seat selection sau
+            };
             
             // Gọi API tạo order
             const response = await ordersAPI.create(orderData);
             
-            console.log('Order created successfully:', response);
+            // Debug: Log toàn bộ response để xem cấu trúc
+            console.log('Full API response:', response);
+            console.log('Response data:', response.data);
             
             // Hiển thị thành công
             setOrderSuccess(true);
             
-            // Redirect đến order details hoặc order list sau 2 giây
+            // 🔧 FIX: Handle different response structures
+            let orderId;
+            if (response.data?.order?.orderId) {
+                orderId = response.data.order.orderId;
+                console.log('Found orderId in response.data.order.orderId:', orderId);
+            } else if (response.data?.orderId) {
+                orderId = response.data.orderId;
+                console.log('Found orderId in response.data.orderId:', orderId);
+            } else if (response.order?.orderId) {
+                orderId = response.order.orderId;
+                console.log('Found orderId in response.order.orderId:', orderId);
+            } else {
+                console.error('Cannot find orderId in response:', response);
+                console.error('Response structure analysis:');
+                console.error('- response.data:', response.data);
+                console.error('- response.data?.order:', response.data?.order);
+                console.error('- response.order:', response.order);
+                setError('Không thể lấy ID đơn hàng từ phản hồi');
+                return;
+            }
+            
+            
+            // 🔧 FIX: Sử dụng React Router thay vì window.location để preserve state
             setTimeout(() => {
-                window.location.href = '/dashboard'; // Hoặc redirect đến order details
+                navigate(`/payment/${orderId}`, {
+                    state: {
+                        order: response.data?.order || response.order,
+                        fromOrderCreation: true,
+                        orderData: orderData
+                    }
+                });
             }, 2000);
             
         } catch (error) {
-            console.error('Error creating order:', error);
-            setError(error.message || 'Có lỗi xảy ra khi tạo đơn hàng');
+            
+            // 🔧 FIX: Cải thiện error handling với nhiều fallback options
+            let errorMessage = 'Có lỗi xảy ra khi tạo đơn hàng';
+            let errorCode = 500;
+            
+            // Parse error từ apiClient response format
+            if (error.success === false) {
+                errorMessage = error.message || errorMessage;
+                errorCode = error.code || 500;
+            }
+            // Parse error từ axios response
+            else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+                errorCode = error.response.status;
+            }
+            // Parse error từ fetch response
+            else if (error.data?.message) {
+                errorMessage = error.data.message;
+            }
+            // Parse error từ exception message
+            else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            
+            // 🔧 FIX: Thêm specific error handling cho các trường hợp thường gặp
+            if (errorCode === 401) {
+                errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                // Auto redirect to login after 3 seconds
+                setTimeout(() => {
+                    navigate('/login');
+                }, 3000);
+            } else if (errorCode === 400) {
+                // Keep the specific error message from backend
+            } else if (errorCode === 0) {
+                errorMessage = 'Lỗi kết nối. Vui lòng kiểm tra internet và thử lại.';
+            }
+            
+            setError(errorMessage);
         } finally {
             setCreatingOrder(false);
         }
@@ -172,8 +348,8 @@ const CreateOrderPage = () => {
         console.log('Voucher removed');
     };
 
-    // Calculate pricing with voucher
-    const calculatePricing = () => {
+    // Calculate pricing with voucher - memoized để tránh re-render
+    const pricing = React.useMemo(() => {
         if (!selectedTicketType || !ticketTypes.length) return null;
         
         const ticketType = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
@@ -194,18 +370,9 @@ const CreateOrderPage = () => {
             finalAmount,
             ticketType
         };
-    };
+    }, [selectedTicketType, ticketTypes, quantity, appliedVoucher]);
 
-    // Tính toán pricing mỗi khi state thay đổi
-    const pricing = calculatePricing();
-
-    // Debug useEffect để kiểm tra pricing
-    useEffect(() => {
-        console.log('Pricing calculated:', pricing);
-        console.log('Selected ticket type:', selectedTicketType);
-        console.log('Quantity:', quantity);
-        console.log('Applied voucher:', appliedVoucher);
-    }, [pricing, selectedTicketType, quantity, appliedVoucher]);
+    // Debug useEffect để kiểm tra pricing - REMOVED để tránh infinite loop
 
 
     //Return JSX để hiển thị form
@@ -230,13 +397,23 @@ const CreateOrderPage = () => {
                             <div>
                                 <strong>Lỗi:</strong> {error}
                             </div>
-                            <button 
-                                type="button" 
-                                className="btn btn-outline-danger btn-sm ms-2"
-                                onClick={() => window.location.reload()}
-                            >
-                                Thử lại
-                            </button>
+                            {error.includes('đăng nhập') ? (
+                                <button 
+                                    type="button" 
+                                    className="btn btn-primary btn-sm ms-2"
+                                    onClick={() => navigate('/login')}
+                                >
+                                    Đăng nhập
+                                </button>
+                            ) : (
+                                <button 
+                                    type="button" 
+                                    className="btn btn-outline-danger btn-sm ms-2"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    Thử lại
+                                </button>
+                            )}
                         </div>
                     )}
 

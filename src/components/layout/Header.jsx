@@ -35,7 +35,7 @@ import {
 
 // Contexts & Services
 import { useAuth } from '../../contexts/AuthContext';
-import { walletAPI } from '../../services/api';
+import { walletAPI } from '../../services/apiClient';
 
 // Components
 import WishlistIcon from '../common/WishlistIcon';
@@ -61,7 +61,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
     try {
       setBalanceLoading(true);
       const response = await walletAPI.getBalance();
-      setWalletBalance(response.balance);
+      setWalletBalance(response.data.balance);
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
       // Don't show error to user in header, just log it
@@ -249,6 +249,26 @@ const Header = ({ searchTerm, onSearchChange }) => {
               {/* Wishlist Icon */}
               <WishlistIcon />
               
+              {/* Create Event Button */}
+              <Button
+                component={Link}
+                to="/create-event"
+                variant="contained"
+                sx={{
+                  borderRadius: 3,
+                  fontWeight: 600,
+                  px: 2,
+                  py: 1,
+                  textTransform: 'none',
+                  '&:hover': {
+                    transform: 'scale(1.05)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Tạo sự kiện
+              </Button>
+              
               {/* Wallet Balance */}
               <Chip
                 icon={<Wallet />}
@@ -288,7 +308,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 }}
               >
                 <Avatar 
-                  src={user.avatarUrl?.startsWith('http') ? user.avatarUrl : `http://localhost:5000${user.avatarUrl}`}
+                  src={user?.avatar || undefined}
                   sx={{ 
                     width: 36, 
                     height: 36, 
@@ -296,8 +316,9 @@ const Header = ({ searchTerm, onSearchChange }) => {
                     fontWeight: 700,
                     fontSize: '1rem'
                   }}
+                  imgProps={{ onError: (e) => { e.currentTarget.src = ''; } }}
                 >
-                  {user.avatarUrl ? null : (user.fullName?.charAt(0) || 'U')}
+                  {!user?.avatar && (user?.fullName?.charAt(0) || 'U')}
                 </Avatar>
               </IconButton>
               

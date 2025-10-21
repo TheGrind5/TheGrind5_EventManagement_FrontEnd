@@ -25,7 +25,7 @@ import {
   SwapHoriz,
   Inbox
 } from '@mui/icons-material';
-import { walletAPI } from '../../services/api';
+import { walletAPI } from '../../services/apiClient';
 
 const TransactionHistory = () => {
   const [transactions, setTransactions] = useState([]);
@@ -56,12 +56,12 @@ const TransactionHistory = () => {
       const response = await walletAPI.getTransactions(currentPage, 10);
       
       if (reset) {
-        setTransactions(response.transactions);
+        setTransactions(response.data.transactions);
       } else {
-        setTransactions(prev => [...prev, ...response.transactions]);
+        setTransactions(prev => [...prev, ...response.data.transactions]);
       }
       
-      setHasMore(response.transactions.length === 10);
+      setHasMore(response.data.transactions.length === 10);
       setPage(currentPage + 1);
       
     } catch (err) {

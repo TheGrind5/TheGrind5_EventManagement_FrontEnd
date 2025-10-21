@@ -1,17 +1,6 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Container, 
-  Paper, 
-  TextField, 
-  Button, 
-  Typography, 
-  Box, 
-  Alert,
-  CircularProgress,
-  Stack,
-  Grid
-} from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 
 const RegisterPage = () => {
@@ -35,10 +24,41 @@ const RegisterPage = () => {
     });
   };
 
+
+  const validateForm = () => {
+    if (!formData.username.trim()) {
+      setError('Username không được để trống');
+      return false;
+    }
+    if (!formData.fullName.trim()) {
+      setError('Họ tên không được để trống');
+      return false;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setError('Email không hợp lệ');
+      return false;
+    }
+    if (!formData.password || formData.password.length < 8) {
+      setError('Mật khẩu phải có ít nhất 8 ký tự');
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      setError('Số điện thoại không được để trống');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Validate form
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const result = await register(formData);
@@ -61,112 +81,98 @@ const RegisterPage = () => {
   };
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      bgcolor: 'background.default',
-      py: 4
-    }}>
-      <Container maxWidth="md">
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Stack spacing={3}>
-            <Typography variant="h4" component="h1" textAlign="center" gutterBottom>
-              Đăng Ký
-            </Typography>
-            
-            {error && (
-              <Alert severity="error">
-                {error}
-              </Alert>
-            )}
+    <div className="loading-container">
+      <div className="form">
+        <h2 className="text-center mb-4">Register</h2>
+        
+        {error && (
+          <div className="alert alert-error">
+            {error}
+          </div>
+        )}
 
-            <Box component="form" onSubmit={handleSubmit}>
-              <Stack spacing={3}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Tên đăng nhập"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Họ và tên"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Email"
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Số điện thoại"
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Mật khẩu"
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Grid>
-                </Grid>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="username" className="form-label">Username</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
 
-                <Button 
-                  type="submit" 
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  disabled={loading}
-                  sx={{ py: 1.5 }}
-                >
-                  {loading ? (
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <CircularProgress size={20} />
-                      <Typography>Đang tạo tài khoản...</Typography>
-                    </Stack>
-                  ) : (
-                    'Đăng Ký'
-                  )}
-                </Button>
-              </Stack>
-            </Box>
+          <div className="form-group">
+            <label htmlFor="fullName" className="form-label">Full Name</label>
+            <input
+              type="text"
+              id="fullName"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
 
-            <Typography textAlign="center">
-              Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
-            </Typography>
-          </Stack>
-        </Paper>
-      </Container>
-    </Box>
+          <div className="form-group">
+            <label htmlFor="email" className="form-label">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="phone" className="form-label">Phone</label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password" className="form-label">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+
+
+          <button 
+            type="submit" 
+            className="btn btn-primary"
+            disabled={loading}
+            style={{ width: '100%' }}
+          >
+            {loading ? 'Creating account...' : 'Register'}
+          </button>
+        </form>
+
+        <p className="text-center mt-4">
+          Already have an account? <Link to="/login">Login here</Link>
+        </p>
+      </div>
+    </div>
   );
 };
 

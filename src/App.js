@@ -12,6 +12,7 @@ import { CustomThemeProvider } from './contexts/ThemeContext';
 
 // Components
 import ProtectedRoute from './components/common/ProtectedRoute';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -21,8 +22,11 @@ import EventDetailsPage from './pages/EventDetailsPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import CreateOrderPage from './pages/CreateOrderPage';
+import PaymentPage from './pages/PaymentPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
+import CreateEventPage from './pages/CreateEventPage';
 import WishlistPage from './pages/WishlistPage';
 
 function AppRoutes() {
@@ -51,6 +55,24 @@ function AppRoutes() {
       <Route path="/event/:id" element={<EventDetailsPage />} />
       <Route path="/wishlist" element={<WishlistPage />} />
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
+      
+      {/* Payment Routes */}
+                <Route
+                    path="/payment/:orderId"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentPage />
+                        </ProtectedRoute>
+                    }
+                />
+      <Route 
+        path="/order-confirmation/:orderId" 
+        element={
+          <ProtectedRoute>
+            <OrderConfirmationPage />
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Protected Routes */}
       <Route 
@@ -85,6 +107,14 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/create-event" 
+        element={
+          <ProtectedRoute>
+            <CreateEventPage />
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Fallback Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -97,15 +127,17 @@ export default function App() {
     <StyledEngineProvider injectFirst>
       <CustomThemeProvider>
         <CssBaseline />
-        <AuthProvider>
-          <WishlistProvider>
-            <Router>
-              <div className="App">
-                <AppRoutes />
-              </div>
-            </Router>
-          </WishlistProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <WishlistProvider>
+              <Router>
+                <div className="App">
+                  <AppRoutes />
+                </div>
+              </Router>
+            </WishlistProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </CustomThemeProvider>
     </StyledEngineProvider>
   );
