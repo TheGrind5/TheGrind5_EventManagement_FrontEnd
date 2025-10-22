@@ -9,9 +9,7 @@ import {
   Box, 
   Card, 
   CardContent, 
-  CardActions, 
   Button, 
-  TextField, 
   FormControl, 
   InputLabel, 
   Select, 
@@ -19,8 +17,6 @@ import {
   Grid, 
   Chip, 
   Paper,
-  InputAdornment,
-  IconButton,
   Alert,
   CircularProgress,
   Stack,
@@ -30,15 +26,13 @@ import {
 
 // Material-UI Icons
 import { 
-  Search, 
-  Clear, 
-  Event, 
   LocationOn, 
   Person, 
   AccessTime,
-  TrendingUp,
   People,
-  Business
+  Business,
+  Event,
+  TrendingUp
 } from '@mui/icons-material';
 
 // Components & Services
@@ -188,6 +182,10 @@ const HomePage = () => {
     // Tính toán status dựa trên thời gian thực tế
     const currentStatus = getEventStatus(event.startTime, event.endTime);
     
+    // Lấy ảnh sự kiện từ EventDetails hoặc sử dụng ảnh mặc định
+    const eventImage = event.EventDetails?.EventImage || event.EventImage || '/default-event.svg';
+    const imageUrl = eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`;
+    
     return (
     <Grid 
       item 
@@ -202,6 +200,8 @@ const HomePage = () => {
       }}
     >
       <Card 
+        component={Link}
+        to={`/event/${event.eventId}`}
         sx={{ 
           width: '100%',
           maxWidth: 320,
@@ -214,29 +214,49 @@ const HomePage = () => {
           border: '1px solid',
           borderColor: 'divider',
           overflow: 'hidden',
+          textDecoration: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
           '&:hover': {
             transform: 'translateY(-6px)',
             boxShadow: theme.palette.mode === 'dark' 
               ? '0 12px 30px rgba(0, 0, 0, 0.4)' 
               : '0 12px 30px rgba(0, 0, 0, 0.2)',
-            borderColor: 'primary.main'
+            borderColor: 'primary.main',
+            '& img': {
+              transform: 'scale(1.05)'
+            }
           }
         }}
       >
-        <CardContent sx={{ 
-          p: 3,
-          display: 'flex',
-          flexDirection: 'column',
-          height: 340,
-          flex: 1
+        {/* Event Image */}
+        <Box sx={{ 
+          height: 200,
+          position: 'relative',
+          overflow: 'hidden'
         }}>
-          {/* Header with chips - Fixed height */}
+          <img
+            src={imageUrl}
+            alt={event.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.3s ease'
+            }}
+            onError={(e) => {
+              e.target.src = '/default-event.svg';
+            }}
+          />
+          {/* Overlay with chips */}
           <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'flex-start', 
-            mb: 2,
-            minHeight: 32
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            right: 12,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start'
           }}>
             <Chip 
               label={event.category} 
@@ -247,7 +267,12 @@ const HomePage = () => {
                 borderRadius: 2,
                 fontSize: '0.75rem',
                 height: 26,
-                px: 1
+                px: 1,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                color: 'primary.main',
+                '& .MuiChip-label': {
+                  color: 'primary.main'
+                }
               }}
             />
             <Chip 
@@ -260,10 +285,24 @@ const HomePage = () => {
                 fontSize: '0.75rem',
                 height: 26,
                 px: 1,
-                fontWeight: 500
+                fontWeight: 500,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderColor: 'rgba(255, 255, 255, 0.8)',
+                '& .MuiChip-label': {
+                  color: currentStatus === 'Active' ? 'success.main' : 
+                         currentStatus === 'Upcoming' ? 'warning.main' : 'text.secondary'
+                }
               }}
             />
           </Box>
+        </Box>
+
+        <CardContent sx={{ 
+          p: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1
+        }}>
           
           {/* Title - Fixed height */}
           <Typography 
@@ -341,69 +380,6 @@ const HomePage = () => {
             </Stack>
           </Box>
         </CardContent>
-        
-        <CardActions sx={{ 
-          p: 3, 
-          pt: 1, 
-          gap: 2,
-          minHeight: 90,
-          alignItems: 'stretch',
-          flexDirection: 'column',
-          justifyContent: 'center'
-        }}>
-          <Button 
-            component={Link} 
-            to={`/event/${event.eventId}`}
-            variant="outlined"
-            fullWidth
-            size="medium"
-            startIcon={<Event />}
-            sx={{ 
-              borderRadius: 2.5,
-              textTransform: 'none',
-              fontWeight: 600,
-              py: 1.5,
-              fontSize: '0.9rem',
-              borderWidth: 2,
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              minHeight: 44,
-              '&:hover': {
-                borderWidth: 2,
-                borderColor: 'primary.dark',
-                backgroundColor: 'primary.light',
-                color: 'primary.dark',
-                transform: 'translateY(-1px)'
-              }
-            }}
-            onClick={() => console.log('HomePage - Clicking event:', event.eventId, event.title)}
-          >
-            Xem Chi Tiết
-          </Button>
-          <Button 
-            component={Link} 
-            to={`/event/${event.eventId}/order/create`}
-            variant="contained"
-            fullWidth
-            size="medium"
-            startIcon={<TrendingUp />}
-            sx={{ 
-              borderRadius: 2.5,
-              textTransform: 'none',
-              fontWeight: 600,
-              py: 1.5,
-              fontSize: '0.9rem',
-              boxShadow: 3,
-              minHeight: 44,
-              '&:hover': {
-                boxShadow: 6,
-                transform: 'translateY(-2px)'
-              }
-            }}
-          >
-            Mua Vé
-          </Button>
-        </CardActions>
       </Card>
     </Grid>
     );

@@ -145,26 +145,23 @@ const WishlistPage = () => {
       }
       
       const result = await wishlistAPI.checkout(selectedItems);
+      console.log('🔍 DEBUG: Wishlist checkout result:', result);
+      
       setShowCheckoutDialog(false);
       setSelectedItems([]);
       
-      if (selectedWishlistItems.length > 0) {
-        // Get the first event ID (assuming all items are from same event for now)
-        const eventId = selectedWishlistItems[0].eventId;
+      // Backend trả về OrderDraftId và Next URL
+      if (result?.data?.orderDraftId || result?.orderDraftId) {
+        const orderDraftId = result?.data?.orderDraftId || result?.orderDraftId;
+        const nextUrl = result?.data?.next || result?.next || `/checkout/${orderDraftId}`;
         
-        if (eventId && eventId > 0) {
-          navigate(`/event/${eventId}/order/create`, { 
-            state: { 
-              selectedWishlistItems: selectedItems,
-              fromWishlist: true 
-            } 
-          });
-        } else {
-          // Fallback: redirect to first available event or show error
-          setError('Không thể xác định sự kiện. Vui lòng thử lại.');
-        }
+        console.log('🔍 DEBUG: OrderDraftId:', orderDraftId);
+        console.log('🔍 DEBUG: Next URL:', nextUrl);
+        
+        // Navigate đến trang checkout với orderDraftId
+        navigate(nextUrl);
       } else {
-        setError('Không tìm thấy thông tin sự kiện.');
+        setError('Không thể tạo order draft từ wishlist');
       }
     } catch (err) {
       setError(`Lỗi checkout: ${err.message}`);
