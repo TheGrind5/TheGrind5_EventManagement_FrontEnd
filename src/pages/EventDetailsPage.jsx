@@ -135,30 +135,72 @@ const EventDetailsPage = () => {
     );
   }
 
+  // Lấy ảnh sự kiện
+  const eventImage = event.EventDetails?.EventImage || event.EventImage || '/default-event.svg';
+  const imageUrl = eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`;
+
   return (
     <Box>
       <Header />
       
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Card>
+          {/* Event Image Header */}
+          <Box sx={{ 
+            height: 400,
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <img
+              src={imageUrl}
+              alt={event.title}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+              onError={(e) => {
+                e.target.src = '/default-event.svg';
+              }}
+            />
+            {/* Overlay with title and chips */}
+            <Box sx={{ 
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+              p: 3,
+              color: 'white'
+            }}>
+              <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
+                {event.title}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip 
+                  label={event.category} 
+                  color="primary" 
+                  sx={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: 'primary.main'
+                  }}
+                />
+                <Chip 
+                  label={event.status} 
+                  color={event.status === 'Active' ? 'success' : 
+                         event.status === 'Upcoming' ? 'warning' : 'default'}
+                  sx={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: event.status === 'Active' ? 'success.main' : 
+                           event.status === 'Upcoming' ? 'warning.main' : 'text.secondary'
+                  }}
+                />
+              </Box>
+            </Box>
+          </Box>
+
           <CardContent sx={{ p: 4 }}>
             <Stack spacing={4}>
-              {/* Header */}
-              <Box>
-                <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-                  {event.title}
-                </Typography>
-                
-                <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                  <Chip label={event.category} color="primary" />
-                  <Chip 
-                    label={event.status} 
-                    color={event.status === 'Active' ? 'success' : 
-                           event.status === 'Upcoming' ? 'warning' : 'default'} 
-                  />
-                </Box>
-              </Box>
-
               {/* Description */}
               <Box>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>

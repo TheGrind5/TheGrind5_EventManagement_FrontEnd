@@ -1,0 +1,6 @@
+<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="320" height="200" fill="#F5F5F5"/>
+<path d="M160 80L180 100L160 120L140 100L160 80Z" fill="#2196F2"/>
+<circle cx="160" cy="100" r="40" stroke="#2196F2" stroke-width="4" fill="none"/>
+<text x="160" y="160" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="14">Sự Kiện</text>
+</svg>
