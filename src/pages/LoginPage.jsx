@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Container, 
+  Paper, 
+  TextField, 
+  Button, 
+  Typography, 
+  Box, 
+  Alert,
+  CircularProgress,
+  Stack
+} from '@mui/material';
+
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
@@ -33,10 +45,28 @@ const LoginPage = () => {
     });
   };
 
+  const validateForm = () => {
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setError('Email không hợp lệ');
+      return false;
+    }
+    if (!formData.password || formData.password.length < 1) {
+      setError('Mật khẩu không được để trống');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Validate form
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const result = await login(formData.email, formData.password);
@@ -53,64 +83,81 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="loading-container">
-      <div className="form">
-        <h2 className="text-center mb-4">Login</h2>
-        
-        {successMessage && (
-          <div className="alert alert-success">
-            {successMessage}
-          </div>
-        )}
+    <Box sx={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      bgcolor: 'background.default'
+    }}>
+      <Container maxWidth="sm">
+        <Paper elevation={3} sx={{ p: 4 }}>
+          <Stack spacing={3}>
+            <Typography variant="h4" component="h1" textAlign="center" gutterBottom>
+              Đăng Nhập
+            </Typography>
+            
+            {successMessage && (
+              <Alert severity="success">
+                {successMessage}
+              </Alert>
+            )}
 
-        {error && (
-          <div className="alert alert-error">
-            {error}
-          </div>
-        )}
+            {error && (
+              <Alert severity="error">
+                {error}
+              </Alert>
+            )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+            <Box component="form" onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
 
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+                <TextField
+                  fullWidth
+                  label="Mật khẩu"
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
 
-          <button 
-            type="submit" 
-            className="btn btn-primary"
-            disabled={loading}
-            style={{ width: '100%' }}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
+                <Button 
+                  type="submit" 
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  disabled={loading}
+                  sx={{ py: 1.5 }}
+                >
+                  {loading ? (
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <CircularProgress size={20} />
+                      <Typography>Đang đăng nhập...</Typography>
+                    </Stack>
+                  ) : (
+                    'Đăng Nhập'
+                  )}
+                </Button>
+              </Stack>
+            </Box>
 
-        <p className="text-center mt-4">
-          Don't have an account? <Link to="/register">Register here</Link>
-        </p>
-      </div>
-    </div>
+            <Typography textAlign="center">
+              Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
+            </Typography>
+          </Stack>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 
