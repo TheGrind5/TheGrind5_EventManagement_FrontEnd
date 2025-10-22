@@ -5,7 +5,7 @@ import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const WishlistButton = ({ ticketTypeId, ticketName, size = 'medium', variant = 'outlined' }) => {
-  const { addItem: addToWishlist, deleteItem, isInWishlist, getWishlistItem } = useWishlist();
+  const { addItem: addToWishlist, deleteItem, isInWishlist, getWishlistItem, fetchWishlist } = useWishlist();
   const { user } = useAuth();
 
   const handleAddToWishlist = async () => {
@@ -15,8 +15,18 @@ const WishlistButton = ({ ticketTypeId, ticketName, size = 'medium', variant = '
     }
     const currentlyIn = isInWishlistValue;
     if (currentlyIn) {
-      const item = getWishlistItem(ticketTypeId);
-      const ok = await deleteItem(item?.id || item?.itemId);
+      let item = getWishlistItem(ticketTypeId);
+      console.log('Wishlist item to delete (before refresh):', item);
+      if (!item) {
+        await fetchWishlist();
+        item = getWishlistItem(ticketTypeId);
+        console.log('Wishlist item to delete (after refresh):', item);
+      }
+      if (!item || (item.id === undefined && item.Id === undefined)) {
+        alert('Không tìm thấy item trong wishlist');
+        return;
+      }
+      const ok = await deleteItem(item.id ?? item.Id);
       if (!ok) alert('Có lỗi khi hủy yêu thích');
       return;
     }

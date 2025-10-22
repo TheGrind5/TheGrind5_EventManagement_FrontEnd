@@ -31,6 +31,8 @@ export const WishlistProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       const data = await wishlistAPI.getWishlist();
+      console.log('Raw wishlist API response:', data);
+      console.log('Wishlist data structure:', data?.data ?? data);
       setWishlist(data?.data ?? data);
     } catch (err) {
       setError(err.message);
@@ -133,7 +135,12 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const getWishlistItem = (ticketTypeId) => {
-    return wishlist?.items?.find(item => item.ticketTypeId === ticketTypeId);
+    console.log('Looking for ticketTypeId:', ticketTypeId);
+    console.log('Current wishlist:', wishlist);
+    console.log('Wishlist items:', wishlist?.items);
+    const item = wishlist?.items?.find(item => item.ticketTypeId === ticketTypeId);
+    console.log('Found item:', item);
+    return item;
   };
 
   const value = {
