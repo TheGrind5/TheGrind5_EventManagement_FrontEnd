@@ -183,8 +183,10 @@ const HomePage = () => {
     const currentStatus = getEventStatus(event.startTime, event.endTime);
     
     // Lấy ảnh sự kiện từ EventDetails hoặc sử dụng ảnh mặc định
-    const eventImage = event.EventDetails?.EventImage || event.EventImage || '/default-event.svg';
-    const imageUrl = eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`;
+    const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
+    const imageUrl = eventImage ? 
+      (eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`) : 
+      null;
     
     return (
     <Grid 
@@ -233,21 +235,50 @@ const HomePage = () => {
         <Box sx={{ 
           height: 200,
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          backgroundColor: 'grey.100',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
-          <img
-            src={imageUrl}
-            alt={event.title}
-            style={{
-              width: '100%',
+          {/* Placeholder khi không có ảnh */}
+          {!eventImage && (
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
               height: '100%',
-              objectFit: 'cover',
-              transition: 'transform 0.3s ease'
-            }}
-            onError={(e) => {
-              e.target.src = '/default-event.svg';
-            }}
-          />
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white'
+            }}>
+              <Event sx={{ fontSize: 48, mb: 1, opacity: 0.8 }} />
+              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>Sự Kiện</Typography>
+            </Box>
+          )}
+          
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt={event.title}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transition: 'transform 0.3s ease',
+                position: 'absolute',
+                top: 0,
+                left: 0
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+              onLoad={(e) => {
+                // Nếu ảnh load thành công, ẩn placeholder
+                e.target.style.display = 'block';
+              }}
+            />
+          )}
           {/* Overlay with chips */}
           <Box sx={{ 
             position: 'absolute',
