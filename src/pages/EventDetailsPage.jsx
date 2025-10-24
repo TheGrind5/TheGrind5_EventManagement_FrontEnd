@@ -260,9 +260,84 @@ const EventDetailsPage = () => {
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                   Mô tả
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  {event.description}
-                </Typography>
+                {(() => {
+                  const description = event.description || '';
+                  
+                  // Check if description contains JSON-like content
+                  if (description.includes('{') && description.includes('}')) {
+                    try {
+                      // Extract JSON part from the description
+                      const jsonMatch = description.match(/\{.*\}/);
+                      if (jsonMatch) {
+                        const parsedDesc = JSON.parse(jsonMatch[0]);
+                        return (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {/* Show the text part before JSON */}
+                            {description.split('{')[0].trim() && (
+                              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                                {description.split('{')[0].trim()}
+                              </Typography>
+                            )}
+                            
+                            {/* Show parsed JSON fields */}
+                            {parsedDesc.eventStatus && (
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                  Trạng thái sự kiện
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {parsedDesc.eventStatus}
+                                </Typography>
+                              </Box>
+                            )}
+                            
+                            {parsedDesc.maxAttendees && (
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                  Số lượng tham gia tối đa
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {parsedDesc.maxAttendees} người
+                                </Typography>
+                              </Box>
+                            )}
+                            
+                            {parsedDesc.contactEmail && (
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                  Email liên hệ
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {parsedDesc.contactEmail}
+                                </Typography>
+                              </Box>
+                            )}
+                            
+                            {parsedDesc.paymentMethod && (
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                  Phương thức thanh toán
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {parsedDesc.paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' : parsedDesc.paymentMethod}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        );
+                      }
+                    } catch (error) {
+                      console.log('JSON parse error:', error);
+                    }
+                  }
+                  
+                  // Fallback: display as normal text
+                  return (
+                    <Typography variant="body1" color="text.secondary">
+                      {event.description}
+                    </Typography>
+                  );
+                })()}
               </Box>
 
               {/* Event Details */}
