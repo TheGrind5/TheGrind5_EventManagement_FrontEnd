@@ -16,15 +16,21 @@
     "react-scripts": "5.0.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "concurrently": "^8.2.2"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:coverage": "react-scripts test --coverage --watchAll=false",
+    "test:watch": "react-scripts test --watch",
+    "test:once": "react-scripts test --watchAll=false",
     "eject": "react-scripts eject",
     "dev": "concurrently \"npm run start\" \"npm run backend\"",
-    "backend": "cd ../TheGrind5_EventManagement_BackEnd && dotnet run"
+    "backend": "cd ../TheGrind5_EventManagement_BackEnd/src && dotnet run"
   },
   "eslintConfig": {
     "extends": [
