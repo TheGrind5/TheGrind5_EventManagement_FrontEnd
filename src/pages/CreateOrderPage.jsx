@@ -5,6 +5,7 @@ import React, {useState, useEffect} from 'react';
 import {useParams, useSearchParams, useLocation, useNavigate} from 'react-router-dom'; 
 import Header from '../components/layout/Header';
 import VoucherSelector from '../components/common/VoucherSelector';
+import StageViewer from '../components/stage/StageViewer';
 import { useAuth } from '../contexts/AuthContext';
 
     //event api để lấy thông tin event từ backend
@@ -32,6 +33,8 @@ const CreateOrderPage = () => {
     const[creatingOrder, setCreatingOrder] = useState(false);
     const[orderSuccess, setOrderSuccess] = useState(false);
     const[appliedVoucher, setAppliedVoucher] = useState(null);
+    const[venueLayout, setVenueLayout] = useState(null);
+    const[selectedArea, setSelectedArea] = useState(null);
 
     // Check if coming from wishlist
     const isFromWishlist = location.state?.fromWishlist || false;
@@ -87,6 +90,18 @@ const CreateOrderPage = () => {
                     console.error('🔍 DEBUG: Error fetching ticket types:', ticketTypesError);
                     setError('Không thể tải danh sách loại vé. Vui lòng thử lại sau.');
                     return;
+                }
+                
+                // Fetch venue layout if available
+                try {
+                    const layoutResponse = await eventsAPI.getVenueLayout(id);
+                    console.log('Venue layout response:', layoutResponse);
+                    if (layoutResponse?.data && layoutResponse.data.hasVirtualStage) {
+                        setVenueLayout(layoutResponse.data);
+                    }
+                } catch (layoutError) {
+                    console.log('No venue layout available or error:', layoutError);
+                    // Venue layout is optional, so we don't set error
                 }
                 
                 // Auto-select ticket type from URL params if provided
@@ -348,6 +363,18 @@ const CreateOrderPage = () => {
         console.log('Voucher removed');
     };
 
+    // Handle area selection from virtual stage
+    const handleAreaSelection = (selection) => {
+        console.log('Area selected:', selection);
+        setSelectedArea(selection.area);
+        if (selection.area.ticketTypeId) {
+            setSelectedTicketType(selection.area.ticketTypeId.toString());
+        }
+        if (selection.quantity > 0) {
+            setQuantity(selection.quantity);
+        }
+    };
+
     // Calculate pricing with voucher - memoized để tránh re-render
     const pricing = React.useMemo(() => {
         if (!selectedTicketType || !ticketTypes.length) return null;
@@ -436,6 +463,23 @@ const CreateOrderPage = () => {
                                 <p><strong>Địa điểm:</strong> {event?.location || event?.Location}</p>
                                 <p><strong>Mô tả:</strong> {event?.description || 'Không có mô tả'}</p>
                             </div>
+
+                            {/* Virtual Stage Viewer */}
+                            {venueLayout && venueLayout.hasVirtualStage && (
+                                <div className="venue-layout-container" style={{ marginBottom: '20px' }}>
+                                    <h3>🗺️ Chọn Khu Vực</h3>
+                                    <StageViewer 
+                                        layout={venueLayout}
+                                        ticketTypes={ticketTypes}
+                                        onAreaClick={handleAreaSelection}
+                                    />
+                                    {selectedArea && (
+                                        <div className="alert alert-success" style={{ marginTop: '10px' }}>
+                                            <p><strong>Khu vực đã chọn:</strong> {selectedArea.name}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <form className="order-form">
                                 {/* Hiển thị thông tin vé đã chọn nếu có ticketType từ URL */}

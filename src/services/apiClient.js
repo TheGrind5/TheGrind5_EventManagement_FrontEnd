@@ -180,6 +180,10 @@ export const eventsAPI = {
   getByHost: async (hostId) => {
     return api.get(`/Event/host/${hostId}`);
   },
+
+  getMyEvents: async () => {
+    return api.get('/Event/my-events');
+  },
   
   uploadImage: async (file) => {
     const formData = new FormData();
@@ -202,6 +206,19 @@ export const eventsAPI = {
   
   updateStep4: async (eventId, eventData) => {
     return api.put(`/Event/${eventId}/create/step4`, eventData);
+  },
+  
+  // Venue Layout API for Virtual Stage 2D
+  getVenueLayout: async (eventId) => {
+    return api.get(`/Event/${eventId}/venue-layout`);
+  },
+  
+  saveVenueLayout: async (eventId, layoutData) => {
+    return api.post(`/Event/${eventId}/venue-layout`, layoutData);
+  },
+  
+  deleteVenueLayout: async (eventId) => {
+    return api.delete(`/Event/${eventId}/venue-layout`);
   }
 };
 

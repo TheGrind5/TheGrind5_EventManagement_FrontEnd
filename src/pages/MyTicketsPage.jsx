@@ -21,7 +21,11 @@ import {
   InputAdornment,
   IconButton,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { 
   Search, 
@@ -31,17 +35,28 @@ import {
   AccessTime, 
   LocationOn,
   Person,
-  FilterList
+  FilterList,
+  Edit,
+  Delete,
+  Warning
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
-import { ticketsAPI } from '../services/apiClient';
+import { ticketsAPI, eventsAPI } from '../services/apiClient';
 
 const MyTicketsPage = () => {
   const [tickets, setTickets] = useState([]);
+  const [myEvents, setMyEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // all, available, used, refunded
   const [showNewTicketsAlert, setShowNewTicketsAlert] = useState(false);
+  const [activeTab, setActiveTab] = useState('tickets'); // 'tickets' or 'events'
+  
+  // Edit dialog states
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [editFormData, setEditFormData] = useState({ title: '', description: '' });
   
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,6 +68,7 @@ const MyTicketsPage = () => {
 
   useEffect(() => {
     fetchTickets();
+    fetchMyEvents();
   }, []);
 
   const fetchTickets = async () => {
@@ -90,6 +106,21 @@ const MyTicketsPage = () => {
     }
   };
 
+  const fetchMyEvents = async () => {
+    try {
+      setEventsLoading(true);
+      const response = await eventsAPI.getMyEvents();
+      const events = response.data || [];
+      setMyEvents(events);
+    } catch (err) {
+      console.error('Error fetching my events:', err);
+      // Don't show error if user has no events
+      setMyEvents([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
   const handleCheckIn = async (ticketId) => {
     try {
       await ticketsAPI.checkInTicket(ticketId);
@@ -113,6 +144,33 @@ const MyTicketsPage = () => {
       alert('Hoàn tiền thành công!');
     } catch (err) {
       alert(`Lỗi hoàn tiền: ${err.message}`);
+    }
+  };
+
+  const handleEditEvent = (event) => {
+    setEditingEvent(event);
+    setEditFormData({
+      title: event.title,
+      description: event.description || ''
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEvent = async () => {
+    if (!editingEvent) return;
+
+    try {
+      await eventsAPI.update(editingEvent.eventId, {
+        ...editingEvent,
+        title: editFormData.title,
+        description: editFormData.description
+      });
+      
+      setEditDialogOpen(false);
+      await fetchMyEvents();
+      alert('Cập nhật sự kiện thành công!');
+    } catch (err) {
+      alert(`Lỗi cập nhật: ${err.message}`);
     }
   };
 
@@ -268,14 +326,36 @@ const MyTicketsPage = () => {
           {/* Header */}
           <Box>
             <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-              Vé của tôi
+              {activeTab === 'tickets' ? 'Vé của tôi' : 'Sự kiện của tôi'}
             </Typography>
             <Typography variant="h6" color="text.secondary">
-              Quản lý và theo dõi vé sự kiện của bạn
+              {activeTab === 'tickets' 
+                ? 'Quản lý và theo dõi vé sự kiện của bạn'
+                : 'Quản lý và chỉnh sửa sự kiện của bạn'}
             </Typography>
           </Box>
 
-          {/* Search and Filter Section */}
+          {/* Tabs */}
+          {myEvents.length > 0 && (
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+              <Button
+                variant={activeTab === 'tickets' ? 'contained' : 'outlined'}
+                onClick={() => setActiveTab('tickets')}
+                sx={{ mr: 2 }}
+              >
+                Vé của tôi ({tickets.length})
+              </Button>
+              <Button
+                variant={activeTab === 'events' ? 'contained' : 'outlined'}
+                onClick={() => setActiveTab('events')}
+              >
+                Sự kiện của tôi ({myEvents.length})
+              </Button>
+            </Box>
+          )}
+
+          {/* Search and Filter Section - Only for Tickets */}
+          {activeTab === 'tickets' && (
           <Paper sx={{ p: 3 }}>
             <Stack spacing={3}>
               {/* Search Bar */}
@@ -364,8 +444,10 @@ const MyTicketsPage = () => {
               </Box>
             </Stack>
           </Paper>
+          )}
 
-          {/* Filter Tabs */}
+          {/* Filter Tabs - Only for Tickets */}
+          {activeTab === 'tickets' && (
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button 
               variant={filter === 'all' ? 'contained' : 'outlined'}
@@ -392,9 +474,10 @@ const MyTicketsPage = () => {
               Đã hoàn ({tickets.filter(t => t.status === 'Refunded').length})
             </Button>
           </Box>
+          )}
 
           {/* Tickets List */}
-          {filteredTickets.length === 0 ? (
+          {activeTab === 'tickets' && filteredTickets.length === 0 ? (
             tickets.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <ConfirmationNumber sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
@@ -430,6 +513,7 @@ const MyTicketsPage = () => {
               </Box>
             )
           ) : (
+            activeTab === 'tickets' && (
             <Grid container spacing={3}>
               {filteredTickets.map((ticket) => (
                 <Grid item xs={12} md={6} key={ticket.ticketId}>
@@ -534,9 +618,198 @@ const MyTicketsPage = () => {
                 </Grid>
               ))}
             </Grid>
+            )
+          )}
+
+          {/* My Events Section */}
+          {activeTab === 'events' && (
+            <>
+              {eventsLoading ? (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  minHeight: '50vh' 
+                }}>
+                  <Stack alignItems="center" spacing={2}>
+                    <CircularProgress />
+                    <Typography>Đang tải sự kiện của bạn...</Typography>
+                  </Stack>
+                </Box>
+              ) : myEvents.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                  <Event sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h5" gutterBottom>
+                    Chưa có sự kiện nào
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                    Bạn chưa tạo sự kiện nào. Hãy tạo sự kiện đầu tiên của bạn!
+                  </Typography>
+                  <Button component={Link} to="/create-event" variant="contained">
+                    Tạo sự kiện
+                  </Button>
+                </Box>
+              ) : (
+                <Grid container spacing={3}>
+                  {myEvents.map((event) => {
+                    const daysUntilStart = Math.floor((new Date(event.startTime) - new Date()) / (1000 * 60 * 60 * 24));
+                    const canEditLocationCategory = daysUntilStart > 7;
+                    const canEditAnyField = daysUntilStart > 1;
+
+                    return (
+                      <Grid item xs={12} md={6} key={event.eventId}>
+                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                          <CardContent sx={{ flexGrow: 1 }}>
+                            <Stack spacing={2}>
+                              {/* Header */}
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <Box>
+                                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {event.title}
+                                  </Typography>
+                                  <Chip 
+                                    label={event.category || 'Không có danh mục'} 
+                                    size="small" 
+                                    sx={{ mt: 1 }}
+                                  />
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                    Trạng thái: <strong>{event.status}</strong>
+                                  </Typography>
+                                </Box>
+                                <Chip 
+                                  label={event.status === 'Open' ? 'Đang mở' : 
+                                         event.status === 'Closed' ? 'Đã đóng' : 
+                                         event.status === 'Draft' ? 'Bản nháp' : 'Đã hủy'} 
+                                  color={event.status === 'Open' ? 'success' : 
+                                         event.status === 'Closed' ? 'default' : 
+                                         event.status === 'Draft' ? 'warning' : 'error'}
+                                  size="small"
+                                />
+                              </Box>
+
+                              {/* Details */}
+                              <Stack spacing={1}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <AccessTime fontSize="small" color="action" />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {formatDate(event.startTime)}
+                                  </Typography>
+                                </Box>
+                                
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <LocationOn fontSize="small" color="action" />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {event.location || 'Chưa có địa điểm'}
+                                  </Typography>
+                                </Box>
+                              </Stack>
+
+                              {/* Edit Restrictions Warning */}
+                              {!canEditAnyField && (
+                                <Alert severity="warning" icon={<Warning />}>
+                                  Không thể chỉnh sửa trong vòng 24 giờ trước khi sự kiện bắt đầu
+                                </Alert>
+                              )}
+                              {canEditAnyField && !canEditLocationCategory && (
+                                <Alert severity="info">
+                                  Không thể thay đổi địa điểm và danh mục trong vòng 7 ngày trước khi sự kiện bắt đầu
+                                </Alert>
+                              )}
+                            </Stack>
+                          </CardContent>
+
+                          {/* Actions */}
+                          <Box sx={{ p: 2, pt: 0 }}>
+                            <Stack direction="row" spacing={1} flexWrap="wrap">
+                              <Button 
+                                component={Link} 
+                                to={`/event/${event.eventId}`}
+                                variant="outlined"
+                                size="small"
+                              >
+                                Xem sự kiện
+                              </Button>
+                              {canEditAnyField && (
+                                <Button 
+                                  variant="outlined"
+                                  color="primary"
+                                  size="small"
+                                  startIcon={<Edit />}
+                                  onClick={() => handleEditEvent(event)}
+                                >
+                                  Chỉnh sửa
+                                </Button>
+                              )}
+                            </Stack>
+                          </Box>
+                        </Card>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              )}
+            </>
           )}
         </Stack>
       </Container>
+
+      {/* Edit Event Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Chỉnh sửa sự kiện
+          {editingEvent && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              {(() => {
+                const daysUntilStart = Math.floor((new Date(editingEvent.startTime) - new Date()) / (1000 * 60 * 60 * 24));
+                if (daysUntilStart <= 7 && daysUntilStart > 1) {
+                  return 'Chỉ có thể chỉnh sửa tiêu đề và mô tả. Không thể thay đổi địa điểm và danh mục trong vòng 7 ngày trước khi sự kiện bắt đầu.';
+                }
+                return 'Có thể chỉnh sửa tất cả các trường.';
+              })()}
+            </Alert>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <TextField
+              fullWidth
+              label="Tiêu đề"
+              value={editFormData.title}
+              onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Mô tả"
+              value={editFormData.description}
+              onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+              multiline
+              rows={4}
+            />
+            {editingEvent && (
+              <>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Danh mục:</strong> {editingEvent.category || 'Chưa có'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Địa điểm:</strong> {editingEvent.location || 'Chưa có'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Thời gian:</strong> {formatDate(editingEvent.startTime)}
+                </Typography>
+              </>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>
+            Hủy
+          </Button>
+          <Button onClick={handleSaveEvent} variant="contained">
+            Lưu thay đổi
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

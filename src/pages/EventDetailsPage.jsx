@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
+import StageViewer from '../components/stage/StageViewer';
 import { eventsAPI, ticketsAPI } from '../services/apiClient';
 
 const EventDetailsPage = () => {
@@ -53,6 +54,8 @@ const EventDetailsPage = () => {
         console.log('Fetching event with ID:', id);
         const response = await eventsAPI.getById(id);
         console.log('Event response:', response);
+        console.log('Event venueLayout:', response.data?.venueLayout);
+        console.log('Has virtual stage:', response.data?.venueLayout?.hasVirtualStage);
         setEvent(response.data);
         
         // Fetch real ticket types from API
@@ -274,7 +277,11 @@ const EventDetailsPage = () => {
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             {/* Show the text part before JSON */}
                             {description.split('{')[0].trim() && (
-                              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                              <Typography 
+                                variant="body1" 
+                                color="text.secondary" 
+                                sx={{ mb: 2, whiteSpace: 'pre-line' }}
+                              >
                                 {description.split('{')[0].trim()}
                               </Typography>
                             )}
@@ -331,9 +338,9 @@ const EventDetailsPage = () => {
                     }
                   }
                   
-                  // Fallback: display as normal text
+                  // Fallback: display as normal text with line breaks preserved
                   return (
-                    <Typography variant="body1" color="text.secondary">
+                    <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>
                       {event.description}
                     </Typography>
                   );
@@ -373,7 +380,25 @@ const EventDetailsPage = () => {
                       <Box>
                         <Typography variant="body2" color="text.secondary">Địa điểm</Typography>
                         <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                          {event.location}
+                          {(() => {
+                            // Try to get location from eventDetails first
+                            const eventDetails = event.eventDetails;
+                            if (eventDetails) {
+                              const addressParts = [];
+                              if (eventDetails.venueName) addressParts.push(eventDetails.venueName);
+                              if (eventDetails.streetAddress) addressParts.push(eventDetails.streetAddress);
+                              if (eventDetails.ward) addressParts.push(eventDetails.ward);
+                              if (eventDetails.district) addressParts.push(eventDetails.district);
+                              if (eventDetails.province) addressParts.push(eventDetails.province);
+                              
+                              if (addressParts.length > 0) {
+                                return addressParts.join(', ');
+                              }
+                            }
+                            
+                            // Fallback to direct location field
+                            return event.location || 'Chưa có thông tin địa điểm';
+                          })()}
                         </Typography>
                       </Box>
                     </Box>
@@ -400,6 +425,38 @@ const EventDetailsPage = () => {
                   </Stack>
                 </Paper>
               )}
+
+              {/* Virtual Stage 2D */}
+              {(() => {
+                console.log('Checking venue layout:', event.venueLayout);
+                console.log('Has virtual stage:', event.venueLayout?.hasVirtualStage);
+                console.log('Areas:', event.venueLayout?.areas);
+                
+                if (event.venueLayout && event.venueLayout.hasVirtualStage) {
+                  return (
+                    <Box>
+                      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                        Sơ đồ sân khấu
+                      </Typography>
+                      <StageViewer 
+                        layout={event.venueLayout}
+                        ticketTypes={ticketTypes.map(t => ({
+                          id: t.ticketTypeId,
+                          ...t
+                        }))}
+                      />
+                    </Box>
+                  );
+                } else {
+                  return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Debug: venueLayout = {JSON.stringify(event.venueLayout)}
+                      </Typography>
+                    </Box>
+                  );
+                }
+              })()}
 
               <Divider />
 

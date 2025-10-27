@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 const ThemeContext = createContext();
@@ -139,20 +139,20 @@ export const CustomThemeProvider = ({ children }) => {
   }, [themeMode]);
 
   // Lắng nghe thay đổi system preference
+  const handleSystemThemeChange = useCallback((e) => {
+    // Chỉ tự động thay đổi nếu user chưa set theme manually
+    const savedTheme = localStorage.getItem('theme');
+    if (!savedTheme) {
+      setThemeMode(e.matches ? 'dark' : 'light');
+    }
+  }, [setThemeMode]);
+
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
-    const handleChange = (e) => {
-      // Chỉ tự động thay đổi nếu user chưa set theme manually
-      const savedTheme = localStorage.getItem('theme');
-      if (!savedTheme) {
-        setThemeMode(e.matches ? 'dark' : 'light');
-      }
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+  }, [handleSystemThemeChange]);
 
   const toggleTheme = () => {
     setThemeMode(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -18,6 +18,7 @@ import { ArrowBack, Save } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import EventInfoStep from '../components/event-creation/EventInfoStep';
 import DateTimeTicketStep from '../components/event-creation/DateTimeTicketStep';
+import VirtualStageStep from '../components/stage/VirtualStageStep';
 import SettingsStep from '../components/event-creation/SettingsStep';
 import PaymentStep from '../components/event-creation/PaymentStep';
 import { eventsAPI } from '../services/apiClient';
@@ -66,6 +67,14 @@ const CreateEventPage = () => {
   const [step3Data, setStep3Data] = useState(() => {
     const saved = localStorage.getItem('createEvent_step3');
     return saved ? JSON.parse(saved) : {
+      hasVirtualStage: false,
+      layout: null
+    };
+  });
+
+  const [step4Data, setStep4Data] = useState(() => {
+    const saved = localStorage.getItem('createEvent_step4');
+    return saved ? JSON.parse(saved) : {
       eventStatus: 'Draft',
       priority: 'Normal',
       maxAttendees: 0,
@@ -76,8 +85,8 @@ const CreateEventPage = () => {
     };
   });
 
-  const [step4Data, setStep4Data] = useState(() => {
-    const saved = localStorage.getItem('createEvent_step4');
+  const [step5Data, setStep5Data] = useState(() => {
+    const saved = localStorage.getItem('createEvent_step5');
     return saved ? JSON.parse(saved) : {
       selectedPaymentMethods: ['bank_transfer'],
       bankAccounts: [
@@ -97,6 +106,7 @@ const CreateEventPage = () => {
   const steps = [
     'Thông tin cơ bản',
     'Thời gian & Loại vé',
+    'Sân khấu ảo',
     'Cài đặt',
     'Thanh toán'
   ];
@@ -129,6 +139,13 @@ const CreateEventPage = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [step4Data]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('createEvent_step5', JSON.stringify(step5Data));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [step5Data]);
 
   const handleNext = async () => {
     if (activeStep === 0) {
@@ -368,8 +385,7 @@ const CreateEventPage = () => {
               MinOrder: minOrder,
               MaxOrder: maxOrder,
               SaleStart: saleStart.toISOString(),
-              SaleEnd: saleEnd.toISOString(),
-              Status: 'Active' // Đúng format theo model
+              SaleEnd: saleEnd.toISOString()
             };
             
             console.log(`Processed ticket ${index}:`, processedTicket);
@@ -416,7 +432,11 @@ const CreateEventPage = () => {
           });
         });
         
-        await eventsAPI.updateStep2(eventId, step2Request);
+        const response = await eventsAPI.updateStep2(eventId, step2Request);
+         
+         if (response.data && response.data.ticketTypes) {
+           setStep2Data(prev => ({ ...prev, ticketTypes: response.data.ticketTypes }));
+         }
         
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
       } catch (err) {
@@ -425,45 +445,68 @@ const CreateEventPage = () => {
         setLoading(false);
       }
     } else if (activeStep === 2) {
-      // Bước 3: Cập nhật cài đặt
+      // Bước 3: Virtual Stage - Lưu venue layout nếu có
       try {
         setLoading(true);
         setError(null);
         
-        // Debug: Log step3Data trước khi gửi
-        console.log('Step 3 Data Before Send:', step3Data);
-        console.log('Step 3 Data Keys:', Object.keys(step3Data));
-        console.log('Step 3 Data Values:', Object.values(step3Data));
+        console.log('Step 3 Data (Venue Layout):', step3Data);
         
-        // Chuyển đổi dữ liệu sang format mà backend mong đợi
-        const step3Request = {
-          EventSettings: JSON.stringify({
-            eventStatus: step3Data.eventStatus || 'Draft',
-            priority: step3Data.priority || 'Normal',
-            maxAttendees: step3Data.maxAttendees || 0,
-            registrationDeadline: step3Data.registrationDeadline || 0,
-            contactEmail: step3Data.contactEmail || '',
-            contactPhone: step3Data.contactPhone || '',
-            internalNotes: step3Data.internalNotes || ''
-          }),
-          AllowRefund: true, // Mặc định cho phép hoàn tiền
-          RefundDaysBefore: 7, // Mặc định 7 ngày trước sự kiện
-          RequireApproval: false // Mặc định không cần phê duyệt
-        };
-        
-        console.log('Step 3 Request Data:', step3Request);
-        console.log('Step 3 Request Data JSON:', JSON.stringify(step3Request, null, 2));
-        
-        await eventsAPI.updateStep3(eventId, step3Request);
+        // Nếu có venue layout, lưu vào database
+        if (step3Data && step3Data.hasVirtualStage && step3Data.layout) {
+          console.log('Saving venue layout to database...');
+          
+          // Prepare venue layout data with proper format
+          // Map temporary ticketTypeIds to ticket names for identification
+          const areasToSave = (step3Data.layout.areas || []).map(area => ({
+            ...area,
+            ticketTypeId: area.ticketTypeId || null
+          }));
+          
+          // OLD CODE REMOVED - using areasToSave now
+          const areasWithTicketNamesOLD = step3Data.layout.areas?.map(area => {
+            let ticketTypeName = null;
+            if (area.ticketTypeId && step2Data.ticketTypes) {
+              const ticketIndex = area.ticketTypeId - 1; // Convert from 1-indexed to 0-indexed
+              if (ticketIndex >= 0 && ticketIndex < step2Data.ticketTypes.length) {
+                ticketTypeName = step2Data.ticketTypes[ticketIndex]?.typeName;
+              }
+            }
+            return {
+              ...area,
+              ticketTypeName: ticketTypeName // Add ticket name for backend mapping
+            };
+          }) || [];
+          
+          const venueLayoutData = {
+            hasVirtualStage: step3Data.layout.hasVirtualStage,
+            canvasWidth: step3Data.layout.canvasWidth || 1000,
+            canvasHeight: step3Data.layout.canvasHeight || 800,
+            areas: areasToSave
+          };
+          
+          const step3Request = {
+            venueLayout: venueLayoutData
+          };
+          
+          console.log('Step 3 Request (Venue Layout):', step3Request);
+          await eventsAPI.updateStep3(eventId, step3Request);
+          console.log('Venue layout saved successfully');
+        } else {
+          console.log('No venue layout to save - skipping');
+          // Send empty venue layout
+          await eventsAPI.updateStep3(eventId, { venueLayout: null });
+        }
         
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
       } catch (err) {
-        setError(err.message || 'Có lỗi xảy ra khi cập nhật cài đặt');
+        console.error('Error saving venue layout:', err);
+        setError(err.message || 'Có lỗi xảy ra khi lưu sơ đồ sân khấu');
       } finally {
         setLoading(false);
       }
     } else if (activeStep === 3) {
-      // Bước 4: Hoàn thành
+      // Bước 4: Cập nhật cài đặt
       try {
         setLoading(true);
         setError(null);
@@ -475,28 +518,67 @@ const CreateEventPage = () => {
         
         // Chuyển đổi dữ liệu sang format mà backend mong đợi
         const step4Request = {
-          PaymentMethod: step4Data.selectedPaymentMethods?.join(', ') || 'Bank Transfer',
-          BankAccount: JSON.stringify(step4Data.bankAccounts || []),
-          TaxInfo: step4Data.taxInfo || '',
-          AutoConfirm: step4Data.autoConfirm || false,
-          RequirePaymentProof: step4Data.requirePaymentProof || false,
-          PaymentSettings: JSON.stringify({
-            selectedPaymentMethods: step4Data.selectedPaymentMethods,
-            autoConfirm: step4Data.autoConfirm,
-            requirePaymentProof: step4Data.requirePaymentProof
-          })
+          EventSettings: JSON.stringify({
+            eventStatus: step4Data.eventStatus || 'Draft',
+            priority: step4Data.priority || 'Normal',
+            maxAttendees: step4Data.maxAttendees || 0,
+            registrationDeadline: step4Data.registrationDeadline || 0,
+            contactEmail: step4Data.contactEmail || '',
+            contactPhone: step4Data.contactPhone || '',
+            internalNotes: step4Data.internalNotes || ''
+          }),
+          AllowRefund: true, // Mặc định cho phép hoàn tiền
+          RefundDaysBefore: 7, // Mặc định 7 ngày trước sự kiện
+          RequireApproval: false // Mặc định không cần phê duyệt
         };
         
         console.log('Step 4 Request Data:', step4Request);
         console.log('Step 4 Request Data JSON:', JSON.stringify(step4Request, null, 2));
         
-        await eventsAPI.updateStep4(eventId, step4Request);
+        await eventsAPI.updateStep3(eventId, step4Request);
+        
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      } catch (err) {
+        setError(err.message || 'Có lỗi xảy ra khi cập nhật cài đặt');
+      } finally {
+        setLoading(false);
+      }
+    } else if (activeStep === 4) {
+      // Bước 5: Hoàn thành
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Debug: Log step5Data trước khi gửi
+        console.log('Step 5 Data Before Send:', step5Data);
+        console.log('Step 5 Data Keys:', Object.keys(step5Data));
+        console.log('Step 5 Data Values:', Object.values(step5Data));
+        
+        // Chuyển đổi dữ liệu sang format mà backend mong đợi
+        const step5Request = {
+          PaymentMethod: step5Data.selectedPaymentMethods?.join(', ') || 'Bank Transfer',
+          BankAccount: JSON.stringify(step5Data.bankAccounts || []),
+          TaxInfo: step5Data.taxInfo || '',
+          AutoConfirm: step5Data.autoConfirm || false,
+          RequirePaymentProof: step5Data.requirePaymentProof || false,
+          PaymentSettings: JSON.stringify({
+            selectedPaymentMethods: step5Data.selectedPaymentMethods,
+            autoConfirm: step5Data.autoConfirm,
+            requirePaymentProof: step5Data.requirePaymentProof
+          })
+        };
+        
+        console.log('Step 5 Request Data:', step5Request);
+        console.log('Step 5 Request Data JSON:', JSON.stringify(step5Request, null, 2));
+        
+        await eventsAPI.updateStep4(eventId, step5Request);
         
         // Xóa dữ liệu tạm trong localStorage
         localStorage.removeItem('createEvent_step1');
         localStorage.removeItem('createEvent_step2');
         localStorage.removeItem('createEvent_step3');
         localStorage.removeItem('createEvent_step4');
+        localStorage.removeItem('createEvent_step5');
         
         // Chuyển đến trang chi tiết event
         navigate(`/events/${eventId}`);
@@ -655,18 +737,20 @@ const CreateEventPage = () => {
         
         return isValidStep2;
       case 2:
-        return true; // Settings are optional
+        return true; // Virtual Stage is optional
       case 3:
+        return true; // Settings are optional
+      case 4:
         // Check if at least one payment method is selected
-        const hasPaymentMethods = step4Data.selectedPaymentMethods && 
-                                 step4Data.selectedPaymentMethods.length > 0;
+        const hasPaymentMethods = step5Data.selectedPaymentMethods && 
+                                 step5Data.selectedPaymentMethods.length > 0;
         
         // Check if bank accounts are valid (if bank transfer is selected)
         let hasValidBankAccounts = true;
-        if (step4Data.selectedPaymentMethods?.includes('bank_transfer')) {
-          hasValidBankAccounts = step4Data.bankAccounts && 
-                                step4Data.bankAccounts.length > 0 &&
-                                step4Data.bankAccounts.every(account => 
+        if (step5Data.selectedPaymentMethods?.includes('bank_transfer')) {
+          hasValidBankAccounts = step5Data.bankAccounts && 
+                                step5Data.bankAccounts.length > 0 &&
+                                step5Data.bankAccounts.every(account => 
                                   account.bankName && 
                                   account.bankName.trim() !== '' &&
                                   account.accountNumber && 
@@ -676,19 +760,19 @@ const CreateEventPage = () => {
                                 );
         }
         
-        const isValidStep4 = hasPaymentMethods && hasValidBankAccounts;
+        const isValidStep5 = hasPaymentMethods && hasValidBankAccounts;
         
-        // Debug: Log Step 4 validation
-        console.log('Step 4 Validation Debug:', {
-          selectedPaymentMethods: step4Data.selectedPaymentMethods,
+        // Debug: Log Step 5 validation
+        console.log('Step 5 Validation Debug:', {
+          selectedPaymentMethods: step5Data.selectedPaymentMethods,
           hasPaymentMethods: hasPaymentMethods,
-          bankAccounts: step4Data.bankAccounts,
+          bankAccounts: step5Data.bankAccounts,
           hasValidBankAccounts: hasValidBankAccounts,
-          isValid: isValidStep4,
-          allFields: step4Data
+          isValid: isValidStep5,
+          allFields: step5Data
         });
         
-        return isValidStep4;
+        return isValidStep5;
       default:
         return false;
     }
@@ -712,16 +796,24 @@ const CreateEventPage = () => {
         );
       case 2:
         return (
-          <SettingsStep
+          <VirtualStageStep
             data={step3Data}
             onChange={setStep3Data}
+            ticketTypes={step2Data.ticketTypes}
           />
         );
       case 3:
         return (
-          <PaymentStep
+          <SettingsStep
             data={step4Data}
             onChange={setStep4Data}
+          />
+        );
+      case 4:
+        return (
+          <PaymentStep
+            data={step5Data}
+            onChange={setStep5Data}
           />
         );
       default:
