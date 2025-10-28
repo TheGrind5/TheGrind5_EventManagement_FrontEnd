@@ -184,6 +184,10 @@ export const eventsAPI = {
   getMyEvents: async () => {
     return api.get('/Event/my-events');
   },
+
+  getEditStatus: async (eventId) => {
+    return api.get(`/Event/${eventId}/edit-status`);
+  },
   
   uploadImage: async (file) => {
     const formData = new FormData();

@@ -30,12 +30,13 @@ import {
   ConfirmationNumber as Ticket,
   Search,
   Clear,
-  Favorite
+  Favorite,
+  Event as EventIcon
 } from '@mui/icons-material';
 
 // Contexts & Services
 import { useAuth } from '../../contexts/AuthContext';
-import { walletAPI } from '../../services/apiClient';
+import { walletAPI, eventsAPI } from '../../services/apiClient';
 
 // Components
 import WishlistIcon from '../common/WishlistIcon';
@@ -47,6 +48,9 @@ const Header = ({ searchTerm, onSearchChange }) => {
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
+  const [ticketsMenuAnchor, setTicketsMenuAnchor] = useState(null);
+  const [hasEvents, setHasEvents] = useState(false);
+  const [checkingEvents, setCheckingEvents] = useState(true);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -54,6 +58,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
   useEffect(() => {
     if (user) {
       fetchWalletBalance();
+      checkHasEvents();
     }
   }, [user]);
 
@@ -70,6 +75,28 @@ const Header = ({ searchTerm, onSearchChange }) => {
     }
   };
 
+  const checkHasEvents = async () => {
+    try {
+      setCheckingEvents(true);
+      console.log('Checking for events...');
+      const response = await eventsAPI.getMyEvents();
+      console.log('Events API response:', response);
+      console.log('Response data:', response.data);
+      
+      // Handle different response formats
+      const eventsData = Array.isArray(response.data) ? response.data : [];
+      console.log('Number of events:', eventsData.length);
+      const hasEventsData = eventsData.length > 0;
+      console.log('Has events result:', hasEventsData);
+      setHasEvents(hasEventsData);
+    } catch (error) {
+      console.error('Error checking events:', error);
+      setHasEvents(false);
+    } finally {
+      setCheckingEvents(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       minimumFractionDigits: 0,
@@ -83,6 +110,14 @@ const Header = ({ searchTerm, onSearchChange }) => {
 
   const handleUserMenuClose = () => {
     setUserMenuAnchor(null);
+  };
+
+  const handleTicketsMenuOpen = (event) => {
+    setTicketsMenuAnchor(event.currentTarget);
+  };
+
+  const handleTicketsMenuClose = () => {
+    setTicketsMenuAnchor(null);
   };
 
   return (
@@ -144,18 +179,55 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 >
                   Dashboard
                 </Button>
-                <Button 
-                  component={Link} 
-                  to="/my-tickets" 
-                  color="inherit"
-                  sx={{ 
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    px: 2
-                  }}
-                >
-                  My Tickets
-                </Button>
+                <Box>
+                  <Button 
+                    onClick={handleTicketsMenuOpen}
+                    color="inherit"
+                    sx={{ 
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      px: 2
+                    }}
+                    endIcon={<Ticket />}
+                  >
+                    My Tickets
+                  </Button>
+                  <Menu
+                    anchorEl={ticketsMenuAnchor}
+                    open={Boolean(ticketsMenuAnchor)}
+                    onClose={handleTicketsMenuClose}
+                    MenuListProps={{
+                      'aria-labelledby': 'tickets-button',
+                      onMouseLeave: handleTicketsMenuClose
+                    }}
+                    PaperProps={{
+                      sx: {
+                        mt: 1,
+                        minWidth: 200,
+                        borderRadius: 2
+                      }
+                    }}
+                  >
+                    <MenuItem 
+                      onClick={() => { handleTicketsMenuClose(); }} 
+                      component={Link} 
+                      to="/my-tickets"
+                    >
+                      <Ticket sx={{ mr: 1 }} />
+                      My Tickets
+                    </MenuItem>
+                    {!checkingEvents && hasEvents && (
+                      <MenuItem 
+                        onClick={() => { handleTicketsMenuClose(); }} 
+                        component={Link} 
+                        to="/my-events"
+                      >
+                        <EventIcon sx={{ mr: 1 }} />
+                        My Events
+                      </MenuItem>
+                    )}
+                  </Menu>
+                </Box>
                 <Button 
                   component={Link} 
                   to="/wishlist" 

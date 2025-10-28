@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
@@ -44,6 +44,7 @@ import Header from '../components/layout/Header';
 import { ticketsAPI, eventsAPI } from '../services/apiClient';
 
 const MyTicketsPage = () => {
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -335,24 +336,6 @@ const MyTicketsPage = () => {
             </Typography>
           </Box>
 
-          {/* Tabs */}
-          {myEvents.length > 0 && (
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Button
-                variant={activeTab === 'tickets' ? 'contained' : 'outlined'}
-                onClick={() => setActiveTab('tickets')}
-                sx={{ mr: 2 }}
-              >
-                Vé của tôi ({tickets.length})
-              </Button>
-              <Button
-                variant={activeTab === 'events' ? 'contained' : 'outlined'}
-                onClick={() => setActiveTab('events')}
-              >
-                Sự kiện của tôi ({myEvents.length})
-              </Button>
-            </Box>
-          )}
 
           {/* Search and Filter Section - Only for Tickets */}
           {activeTab === 'tickets' && (

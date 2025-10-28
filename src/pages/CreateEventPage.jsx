@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -25,13 +25,20 @@ import { eventsAPI } from '../services/apiClient';
 
 const CreateEventPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Check if in edit mode
+  const searchParams = new URLSearchParams(location.search);
+  const editEventId = searchParams.get('edit');
+  const isEditMode = !!editEventId;
   
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [eventId, setEventId] = useState(null);
+  const [eventId, setEventId] = useState(editEventId ? parseInt(editEventId) : null);
+  const [editModeLoading, setEditModeLoading] = useState(isEditMode);
 
   // State cho từng bước với localStorage
   const [step1Data, setStep1Data] = useState(() => {
@@ -147,6 +154,62 @@ const CreateEventPage = () => {
     return () => clearTimeout(timer);
   }, [step5Data]);
 
+  // Load event data when in edit mode
+  useEffect(() => {
+    if (isEditMode && editEventId) {
+      loadEventData();
+    }
+  }, [isEditMode, editEventId]);
+
+  const loadEventData = async () => {
+    try {
+      setEditModeLoading(true);
+      const response = await eventsAPI.getById(parseInt(editEventId));
+      const eventData = response.data;
+      
+      console.log('Loading event data for edit:', eventData);
+      
+      // Load step 1 data
+      const eventDetails = eventData.eventDetails || {};
+      setStep1Data({
+        title: eventData.title || '',
+        eventIntroduction: eventData.description || '',
+        category: eventData.category || '',
+        eventMode: eventData.eventMode || 'Offline',
+        venueName: eventDetails.venueName || '',
+        province: eventDetails.province || '',
+        district: eventDetails.district || '',
+        ward: eventDetails.ward || '',
+        streetAddress: eventDetails.streetAddress || '',
+        location: eventData.location || '',
+        organizerName: eventDetails.organizerName || '',
+        organizerInfo: eventDetails.organizerInfo || '',
+        eventImage: eventData.eventImage || '',
+        backgroundImage: eventData.backgroundImage || '',
+        organizerLogo: eventDetails.organizerLogo || ''
+      });
+      
+      // Load step 2 data
+      setStep2Data({
+        startTime: eventData.startTime || '',
+        endTime: eventData.endTime || '',
+        ticketTypes: eventData.ticketTypes || []
+      });
+      
+      // Load step 3 data - venue layout
+      setStep3Data({
+        hasVirtualStage: eventData.venueLayout ? true : false,
+        layout: eventData.venueLayout || null
+      });
+      
+      setEditModeLoading(false);
+    } catch (err) {
+      console.error('Error loading event data:', err);
+      setError('Không thể tải dữ liệu sự kiện');
+      setEditModeLoading(false);
+    }
+  };
+
   const handleNext = async () => {
     if (activeStep === 0) {
       // Bước 1: Tạo event cơ bản
@@ -248,9 +311,16 @@ const CreateEventPage = () => {
         console.log('- District:', eventData.district);
         console.log('- Ward:', eventData.ward);
         
-        const response = await eventsAPI.createStep1(eventData);
+        if (isEditMode && eventId) {
+          // Update existing event
+          const response = await eventsAPI.update(eventId, eventData);
+          console.log('Update response:', response);
+        } else {
+          // Create new event
+          const response = await eventsAPI.createStep1(eventData);
+          setEventId(response.data.eventId);
+        }
         
-        setEventId(response.data.eventId);
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
       } catch (err) {
         setError(err.message || 'Có lỗi xảy ra khi tạo sự kiện');
@@ -835,12 +905,21 @@ const CreateEventPage = () => {
           </Button>
           
           <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-            Tạo Sự Kiện Mới
+            {isEditMode ? 'Chỉnh Sửa Sự Kiện' : 'Tạo Sự Kiện Mới'}
           </Typography>
           
           <Typography variant="body1" color="text.secondary">
-            Tạo sự kiện của bạn theo 4 bước đơn giản
+            {isEditMode ? 'Chỉnh sửa sự kiện của bạn' : 'Tạo sự kiện của bạn theo 4 bước đơn giản'}
           </Typography>
+          
+          {editModeLoading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+              <CircularProgress size={24} />
+              <Typography variant="body2" color="text.secondary">
+                Đang tải dữ liệu sự kiện...
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         <Paper sx={{ p: 3 }}>
