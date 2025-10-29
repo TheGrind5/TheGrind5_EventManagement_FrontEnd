@@ -261,7 +261,8 @@ const CreateOrderPage = () => {
                 EventId: parseInt(id),
                 TicketTypeId: parseInt(selectedTicketType),
                 Quantity: quantity,
-                SeatNo: null // Có thể thêm seat selection sau
+                SeatNo: null, // Có thể thêm seat selection sau
+                VoucherCode: appliedVoucher?.voucherCode || null // Thêm voucher code
             };
             
             // Gọi API tạo order
