@@ -31,6 +31,7 @@ const VoucherSelector = ({
 
   const handleApplyVoucher = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Ngăn submit form cha
     
     if (!voucherCode.trim()) {
       setError('Vui lòng nhập mã voucher');
