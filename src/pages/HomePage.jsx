@@ -154,14 +154,17 @@ const HomePage = () => {
     </Grid>
   );
 
-  // Hàm constants để render filter UI (không còn search bar)
+  // Render filter UI with TicketBox styling
   const renderFilterControls = () => (
     <Paper 
       sx={{ 
-        p: 3, 
+        p: { xs: 2, md: 3 }, 
         mb: 3,
-        borderRadius: 2,
-        boxShadow: 1
+        borderRadius: 3,
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: theme.palette.mode === 'dark'
+          ? '0 2px 8px rgba(0, 0, 0, 0.3)'
+          : '0 2px 8px rgba(0, 0, 0, 0.04)',
       }}
     >
       <Stack spacing={3}>
@@ -247,25 +250,54 @@ const HomePage = () => {
     </Paper>
   );
 
-  // Hàm constants để render events grid
+  // Render events grid with TicketBox styling
   const renderEventsGrid = () => {
     if (filteredEvents.length === 0) {
       return (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Event sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
+        <Box 
+          sx={{ 
+            textAlign: 'center', 
+            py: { xs: 6, md: 10 },
+            px: 2
+          }}
+        >
+          <Event 
+            sx={{ 
+              fontSize: { xs: 56, md: 72 }, 
+              color: 'text.secondary', 
+              mb: 2,
+              opacity: 0.5
+            }} 
+          />
+          <Typography 
+            variant="h5" 
+            gutterBottom
+            sx={{
+              fontWeight: 600,
+              fontSize: { xs: '1.25rem', md: '1.5rem' },
+              mb: 1
+            }}
+          >
             Không tìm thấy sự kiện
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc
+          <Typography 
+            variant="body1" 
+            color="text.secondary" 
+            sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}
+          >
+            Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc để xem thêm sự kiện
           </Typography>
           <Button
-            variant="outlined"
+            variant="contained"
             onClick={() => {
               setSearchTerm('');
               setCategoryFilter('all');
               setStatusFilter('all');
               setDateFilter('all');
+            }}
+            sx={{
+              fontWeight: 600,
+              px: 4,
             }}
           >
             Đặt lại bộ lọc
@@ -463,8 +495,20 @@ const HomePage = () => {
       />
 
       {/* Events Section */}
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h4" component="h2" textAlign="center" gutterBottom sx={{ mb: 4 }}>
+      <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
+        <Typography 
+          variant="h4" 
+          component="h2" 
+          textAlign="center" 
+          gutterBottom 
+          sx={{ 
+            mb: 4,
+            fontWeight: 700,
+            fontSize: { xs: '1.75rem', md: '2.125rem' },
+            color: 'text.primary',
+            letterSpacing: '-0.02em'
+          }}
+        >
           Sự Kiện Sắp Diễn Ra
         </Typography>
         
