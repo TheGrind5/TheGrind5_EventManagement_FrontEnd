@@ -460,8 +460,8 @@ const HomePage = () => {
           container 
           spacing={{ xs: 2, md: 3 }}
           sx={{
-            mx: 0,
-            width: '100%',
+            justifyContent: 'center',
+            alignItems: 'stretch',
           }}
         >
           {featuredEvents.map((event) => (
@@ -473,10 +473,11 @@ const HomePage = () => {
               key={event.eventId}
               sx={{
                 display: 'flex',
-                px: { xs: 0, md: 0 },
+                justifyContent: 'center',
+                maxWidth: { md: '33.333%' }, // Đảm bảo đúng 3 cột
               }}
             >
-              <Box sx={{ width: '100%' }}>
+              <Box sx={{ width: '100%', maxWidth: 380 }}>
                 <EventCard event={event} />
               </Box>
             </Grid>
