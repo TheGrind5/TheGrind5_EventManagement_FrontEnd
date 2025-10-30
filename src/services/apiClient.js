@@ -89,8 +89,8 @@ apiClient.interceptors.response.use(
         }
       }
     } else if (error.request) {
-      // Network error
-      errorMessage = 'Network error - please check your connection';
+      // Network error - không thể kết nối đến server
+      errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra backend có đang chạy tại http://localhost:5000 không.';
       errorCode = 0;
     } else {
       // Other error
@@ -220,6 +220,11 @@ export const eventsAPI = {
   
   updateStep4: async (eventId, eventData) => {
     return api.put(`/Event/${eventId}/create/step4`, eventData);
+  },
+
+  // Tạo event hoàn chỉnh với tất cả 5 bước cùng lúc
+  createCompleteEvent: async (eventData) => {
+    return api.post('/Event/create/complete', eventData);
   },
   
   // Venue Layout API for Virtual Stage 2D

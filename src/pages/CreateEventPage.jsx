@@ -39,11 +39,47 @@ const CreateEventPage = () => {
   const [error, setError] = useState(null);
   const [eventId, setEventId] = useState(editEventId ? parseInt(editEventId) : null);
   const [editModeLoading, setEditModeLoading] = useState(isEditMode);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isEventBeingCreated, setIsEventBeingCreated] = useState(false);
+  const [shouldBlockNavigation, setShouldBlockNavigation] = useState(false);
 
-  // State cho từng bước với localStorage
+  // Helper function để check xem có đang trong quá trình tạo event không
+  const isInCreationProcess = () => {
+    // Kiểm tra xem có data trong localStorage của bất kỳ bước nào không
+    const hasStep1 = localStorage.getItem('createEvent_step1');
+    const hasStep2 = localStorage.getItem('createEvent_step2');
+    const hasStep3 = localStorage.getItem('createEvent_step3');
+    const hasStep4 = localStorage.getItem('createEvent_step4');
+    const hasStep5 = localStorage.getItem('createEvent_step5');
+    
+    // Nếu có data ở bất kỳ bước nào và không phải edit mode, thì đang trong quá trình tạo
+    if (!isEditMode && (hasStep1 || hasStep2 || hasStep3 || hasStep4 || hasStep5)) {
+      // Parse và check xem có data thực sự không (không phải empty object)
+      try {
+        if (hasStep1) {
+          const step1 = JSON.parse(hasStep1);
+          if (step1.title && step1.title.trim() !== '') return true;
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+    }
+    return false;
+  };
+
+  // State cho từng bước với localStorage (chỉ load khi edit mode)
   const [step1Data, setStep1Data] = useState(() => {
-    const saved = localStorage.getItem('createEvent_step1');
-    return saved ? JSON.parse(saved) : {
+    // Chỉ load localStorage nếu đang ở edit mode
+    if (isEditMode) {
+      const saved = localStorage.getItem('createEvent_step1');
+      return saved ? JSON.parse(saved) : getInitialStep1Data();
+    }
+    return getInitialStep1Data();
+  });
+  
+  // Helper function để get initial data
+  function getInitialStep1Data() {
+    return {
       title: '',
       eventIntroduction: '',
       category: '',
@@ -60,28 +96,49 @@ const CreateEventPage = () => {
       backgroundImage: '',
       organizerLogo: ''
     };
-  });
+  }
 
   const [step2Data, setStep2Data] = useState(() => {
-    const saved = localStorage.getItem('createEvent_step2');
-    return saved ? JSON.parse(saved) : {
+    if (isEditMode) {
+      const saved = localStorage.getItem('createEvent_step2');
+      return saved ? JSON.parse(saved) : getInitialStep2Data();
+    }
+    return getInitialStep2Data();
+  });
+  
+  function getInitialStep2Data() {
+    return {
       startTime: '',
       endTime: '',
       ticketTypes: []
     };
-  });
+  }
 
   const [step3Data, setStep3Data] = useState(() => {
-    const saved = localStorage.getItem('createEvent_step3');
-    return saved ? JSON.parse(saved) : {
+    if (isEditMode) {
+      const saved = localStorage.getItem('createEvent_step3');
+      return saved ? JSON.parse(saved) : getInitialStep3Data();
+    }
+    return getInitialStep3Data();
+  });
+  
+  function getInitialStep3Data() {
+    return {
       hasVirtualStage: false,
       layout: null
     };
-  });
+  }
 
   const [step4Data, setStep4Data] = useState(() => {
-    const saved = localStorage.getItem('createEvent_step4');
-    return saved ? JSON.parse(saved) : {
+    if (isEditMode) {
+      const saved = localStorage.getItem('createEvent_step4');
+      return saved ? JSON.parse(saved) : getInitialStep4Data();
+    }
+    return getInitialStep4Data();
+  });
+  
+  function getInitialStep4Data() {
+    return {
       eventStatus: 'Draft',
       priority: 'Normal',
       maxAttendees: 0,
@@ -90,11 +147,18 @@ const CreateEventPage = () => {
       contactPhone: '',
       internalNotes: ''
     };
-  });
+  }
 
   const [step5Data, setStep5Data] = useState(() => {
-    const saved = localStorage.getItem('createEvent_step5');
-    return saved ? JSON.parse(saved) : {
+    if (isEditMode) {
+      const saved = localStorage.getItem('createEvent_step5');
+      return saved ? JSON.parse(saved) : getInitialStep5Data();
+    }
+    return getInitialStep5Data();
+  });
+  
+  function getInitialStep5Data() {
+    return {
       selectedPaymentMethods: ['bank_transfer'],
       bankAccounts: [
         {
@@ -108,7 +172,7 @@ const CreateEventPage = () => {
       requirePaymentProof: false,
       taxInfo: ''
     };
-  });
+  }
 
   const steps = [
     'Thông tin cơ bản',
@@ -154,6 +218,119 @@ const CreateEventPage = () => {
     return () => clearTimeout(timer);
   }, [step5Data]);
 
+  // Clear localStorage when creating new event (not edit mode)
+  useEffect(() => {
+    if (!isEditMode) {
+      // Clear all localStorage data for create mode
+      localStorage.removeItem('createEvent_step1');
+      localStorage.removeItem('createEvent_step2');
+      localStorage.removeItem('createEvent_step3');
+      localStorage.removeItem('createEvent_step4');
+      localStorage.removeItem('createEvent_step5');
+      console.log('Create mode: localStorage cleared');
+    }
+  }, []); // Run once on mount
+
+  // Cảnh báo khi đóng tab/refresh khi đang tạo event
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // Nếu đang trong quá trình tạo event (có data trong localStorage hoặc đang processing)
+      if (isInCreationProcess() || isProcessing || shouldBlockNavigation) {
+        e.preventDefault();
+        e.returnValue = 'Bạn đang tạo sự kiện. Bạn có chắc chắn muốn rời khỏi trang này? Dữ liệu chưa hoàn thành sẽ bị mất.';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isProcessing, shouldBlockNavigation]);
+
+  // Update shouldBlockNavigation dựa trên việc có data trong quá trình tạo
+  useEffect(() => {
+    if (!isEditMode) {
+      const inProcess = isInCreationProcess() || isProcessing;
+      setShouldBlockNavigation(inProcess);
+    }
+  }, [step1Data, step2Data, step3Data, step4Data, step5Data, isProcessing, activeStep]);
+  
+  // Intercept navigation (click vào Link, navigate programmatically) khi đang tạo event
+  useEffect(() => {
+    if (!shouldBlockNavigation && !isInCreationProcess() && !isProcessing) {
+      return; // Không cần intercept nếu không đang tạo event
+    }
+
+    const handleLinkClick = (e) => {
+      const target = e.target.closest('a');
+      if (target && target.getAttribute('href') && !target.getAttribute('href').startsWith('#')) {
+        const href = target.getAttribute('href');
+        // Bỏ qua các link ngoài app (external links, mailto, tel, etc.)
+        if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+          return;
+        }
+        
+        const confirmed = window.confirm(
+          '⚠️ Bạn đang tạo sự kiện\n\n' +
+          'Bạn có chắc chắn muốn rời khỏi trang này?\n\n' +
+          'Nếu bạn rời khỏi, dữ liệu chưa hoàn thành sẽ bị mất và sự kiện sẽ không được tạo.'
+        );
+        
+        if (!confirmed) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return false;
+        }
+        
+        // User confirmed - clear localStorage and allow navigation
+        localStorage.removeItem('createEvent_step1');
+        localStorage.removeItem('createEvent_step2');
+        localStorage.removeItem('createEvent_step3');
+        localStorage.removeItem('createEvent_step4');
+        localStorage.removeItem('createEvent_step5');
+        setShouldBlockNavigation(false);
+      }
+    };
+
+    // Use capture phase to intercept early
+    document.addEventListener('click', handleLinkClick, true);
+    
+    // Intercept browser back/forward buttons
+    const handlePopState = (e) => {
+      if (shouldBlockNavigation || isInCreationProcess() || isProcessing) {
+        const confirmed = window.confirm(
+          '⚠️ Bạn đang tạo sự kiện\n\n' +
+          'Bạn có chắc chắn muốn rời khỏi trang này?\n\n' +
+          'Nếu bạn rời khỏi, dữ liệu chưa hoàn thành sẽ bị mất và sự kiện sẽ không được tạo.'
+        );
+        
+        if (!confirmed) {
+          // Push current state back to prevent navigation
+          window.history.pushState(null, '', window.location.href);
+        } else {
+          // User confirmed - clear localStorage
+          localStorage.removeItem('createEvent_step1');
+          localStorage.removeItem('createEvent_step2');
+          localStorage.removeItem('createEvent_step3');
+          localStorage.removeItem('createEvent_step4');
+          localStorage.removeItem('createEvent_step5');
+          setShouldBlockNavigation(false);
+        }
+      }
+    };
+    
+    // Push current state to enable popstate detection
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      document.removeEventListener('click', handleLinkClick, true);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [shouldBlockNavigation, isProcessing]);
+
   // Load event data when in edit mode
   useEffect(() => {
     if (isEditMode && editEventId) {
@@ -171,6 +348,26 @@ const CreateEventPage = () => {
       
       // Load step 1 data
       const eventDetails = eventData.eventDetails || {};
+      
+      // QUAN TRỌNG: Lấy organizerInfo từ trường riêng biệt organizerInfo, không phải từ eventDetails
+      const organizerInfo = eventData.organizerInfo || {};
+      
+      // Lấy eventImage và backgroundImage từ nhiều nguồn (ưu tiên eventImage trực tiếp, sau đó eventDetails)
+      const eventImage = eventData.eventImage || eventDetails.eventImage || '';
+      const backgroundImage = eventData.backgroundImage || eventDetails.backgroundImage || '';
+      
+      console.log('Loading event data for edit:', { 
+        eventData,
+        eventDetails,
+        organizerInfo,
+        eventDataImage: eventData.eventImage, 
+        eventDetailsImage: eventDetails.eventImage,
+        finalEventImage: eventImage,
+        eventDataBg: eventData.backgroundImage,
+        eventDetailsBg: eventDetails.backgroundImage,
+        finalBackgroundImage: backgroundImage
+      });
+      
       setStep1Data({
         title: eventData.title || '',
         eventIntroduction: eventData.description || '',
@@ -182,11 +379,12 @@ const CreateEventPage = () => {
         ward: eventDetails.ward || '',
         streetAddress: eventDetails.streetAddress || '',
         location: eventData.location || '',
-        organizerName: eventDetails.organizerName || '',
-        organizerInfo: eventDetails.organizerInfo || '',
-        eventImage: eventData.eventImage || '',
-        backgroundImage: eventData.backgroundImage || '',
-        organizerLogo: eventDetails.organizerLogo || ''
+        // QUAN TRỌNG: Lấy từ organizerInfo riêng biệt, không phải từ eventDetails
+        organizerName: organizerInfo.organizerName || '',
+        organizerInfo: organizerInfo.organizerInfo || '',
+        eventImage: eventImage,
+        backgroundImage: backgroundImage,
+        organizerLogo: organizerInfo.organizerLogo || ''
       });
       
       // Load step 2 data
@@ -210,10 +408,38 @@ const CreateEventPage = () => {
     }
   };
 
+
+  // Lưu ý: useBlocker không có trong phiên bản React Router này
+  // Tuy nhiên, đã có các bảo vệ khác như isProcessing flag và validation
+  // để ngăn không cho tạo event tự động
+
   const handleNext = async () => {
+    // QUAN TRỌNG: Ngăn xử lý nếu đang có action khác đang chạy
+    if (isProcessing) {
+      console.log('Already processing, ignoring duplicate call');
+      return;
+    }
+    
+    // QUAN TRỌNG: Chỉ cho phép handleNext khi người dùng chủ động ấn nút
+    // Không cho phép gọi tự động từ bất kỳ đâu
+    console.log('handleNext called - step:', activeStep, 'eventId:', eventId, 'isProcessing:', isProcessing);
+    
+    // Set processing flag để ngăn duplicate calls
+    setIsProcessing(true);
+    
+    try {
     if (activeStep === 0) {
+        // QUAN TRỌNG: Chỉ tạo event khi người dùng chủ động ấn nút "Tiếp tục"
+        // Không cho phép tạo event tự động
+        if (isEventBeingCreated) {
+          console.log('Event creation already in progress, ignoring duplicate call');
+          setIsProcessing(false);
+          return;
+        }
+
       // Bước 1: Tạo event cơ bản
-      try {
+        setIsEventBeingCreated(true);
+        setShouldBlockNavigation(true); // Block navigation khi đang tạo event
         setLoading(true);
         setError(null);
         
@@ -234,6 +460,7 @@ const CreateEventPage = () => {
         console.log('Missing basic fields:', missingFields);
         
         if (missingFields.length > 0) {
+          setIsEventBeingCreated(false);
           throw new Error(`Vui lòng điền đầy đủ thông tin: ${missingFields.join(', ')}`);
         }
         
@@ -315,21 +542,77 @@ const CreateEventPage = () => {
           // Update existing event
           const response = await eventsAPI.update(eventId, eventData);
           console.log('Update response:', response);
+          
+          // Sử dụng data từ response nếu có, nếu không thì reload từ API
+          let updatedData = null;
+          let updatedEventDetails = {};
+          
+          if (response.data?.eventData) {
+            // Backend trả về event data trong response
+            updatedData = response.data.eventData;
+            updatedEventDetails = updatedData.eventDetails || {};
+            console.log('Using event data from update response');
+          } else {
+            // Reload event data from backend to ensure we have the latest data
+            try {
+              const updatedEvent = await eventsAPI.getById(eventId);
+              updatedData = updatedEvent.data;
+              updatedEventDetails = updatedData.eventDetails || {};
+              console.log('Reloaded event data from API');
+            } catch (reloadError) {
+              console.error('Error reloading event data after update:', reloadError);
+              // Continue anyway - the update was successful
+            }
+          }
+          
+          if (updatedData) {
+            // Update step1Data with the latest data from backend
+            // QUAN TRỌNG: Ưu tiên lấy từ eventImage/backgroundImage trực tiếp, sau đó mới đến eventDetails
+            const updatedEventImage = updatedData.eventImage || updatedEventDetails.eventImage || '';
+            const updatedBackgroundImage = updatedData.backgroundImage || updatedEventDetails.backgroundImage || '';
+            const updatedOrganizerLogo = (updatedEventDetails.organizerLogo || '').replace('/uploads/', '/assets/images/');
+            
+            console.log('Updating step1Data with backend data:', {
+              eventImage: updatedEventImage,
+              backgroundImage: updatedBackgroundImage,
+              organizerLogo: updatedOrganizerLogo,
+              updatedAt: updatedData.updatedAt
+            });
+            
+            setStep1Data(prev => ({
+              ...prev,
+              eventImage: updatedEventImage,
+              backgroundImage: updatedBackgroundImage,
+              // Also update other fields to ensure sync
+              title: updatedData.title || prev.title,
+              eventIntroduction: updatedData.description || prev.eventIntroduction,
+              category: updatedData.category || prev.category,
+              eventMode: updatedData.eventMode || prev.eventMode,
+              location: updatedData.location || prev.location,
+              venueName: updatedEventDetails.venueName || prev.venueName,
+              province: updatedEventDetails.province || prev.province,
+              district: updatedEventDetails.district || prev.district,
+              ward: updatedEventDetails.ward || prev.ward,
+              streetAddress: updatedEventDetails.streetAddress || prev.streetAddress,
+              organizerName: updatedEventDetails.organizerName || prev.organizerName,
+              organizerInfo: updatedEventDetails.organizerInfo || prev.organizerInfo,
+              organizerLogo: updatedOrganizerLogo || prev.organizerLogo
+            }));
+          }
         } else {
-          // Create new event
-          const response = await eventsAPI.createStep1(eventData);
-          setEventId(response.data.eventId);
+          // QUAN TRỌNG: KHÔNG tạo event ở bước 1 - chỉ lưu vào localStorage
+          // Event sẽ chỉ được tạo khi hoàn thành bước 5
+          console.log('Step 1 completed - Data saved to localStorage only. Event will be created at step 5.');
+          // Không set eventId - vì chưa tạo event
         }
         
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      } catch (err) {
-        setError(err.message || 'Có lỗi xảy ra khi tạo sự kiện');
-      } finally {
-        setLoading(false);
-      }
+        
     } else if (activeStep === 1) {
-      // Bước 2: Cập nhật thời gian và ticket types
-      try {
+        // Bước 2: Lưu thời gian và ticket types vào localStorage
+        // QUAN TRỌNG: Không tạo/update event ở bước này - chỉ lưu vào localStorage
+        // Event sẽ chỉ được tạo khi hoàn thành bước 5
+        
         setLoading(true);
         setError(null);
         
@@ -502,161 +785,307 @@ const CreateEventPage = () => {
           });
         });
         
-        const response = await eventsAPI.updateStep2(eventId, step2Request);
-         
-         if (response.data && response.data.ticketTypes) {
-           setStep2Data(prev => ({ ...prev, ticketTypes: response.data.ticketTypes }));
-         }
+        // QUAN TRỌNG: Chỉ lưu vào localStorage, không gọi API
+        // Event sẽ chỉ được tạo khi hoàn thành bước 5
+        console.log('Step 2 completed - Data saved to localStorage only. Event will be created at step 5.');
         
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      } catch (err) {
-        setError(err.message || 'Có lỗi xảy ra khi cập nhật thời gian và vé');
-      } finally {
-        setLoading(false);
-      }
+        
     } else if (activeStep === 2) {
-      // Bước 3: Virtual Stage - Lưu venue layout nếu có
-      try {
+        // Bước 3: Virtual Stage - Lưu venue layout vào localStorage
+        // QUAN TRỌNG: Không tạo/update event ở bước này - chỉ lưu vào localStorage
+        // Event sẽ chỉ được tạo khi hoàn thành bước 5
+        
         setLoading(true);
         setError(null);
         
         console.log('Step 3 Data (Venue Layout):', step3Data);
+        console.log('Step 3 completed - Data saved to localStorage only. Event will be created at step 5.');
         
-        // Nếu có venue layout, lưu vào database
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        
+      } else if (activeStep === 3) {
+        // Bước 4: Cập nhật cài đặt - Lưu vào localStorage
+        // QUAN TRỌNG: Không tạo/update event ở bước này - chỉ lưu vào localStorage
+        // Event sẽ chỉ được tạo khi hoàn thành bước 5
+        
+        setLoading(true);
+        setError(null);
+        
+        console.log('Step 4 Data:', step4Data);
+        console.log('Step 4 completed - Data saved to localStorage only. Event will be created at step 5.');
+        
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        
+      } else if (activeStep === 4) {
+        // Bước 5: Hoàn thành
+        // Nếu đang edit mode: Cập nhật event với tất cả các bước
+        // Nếu tạo mới: Tạo event hoàn chỉnh với tất cả 5 bước cùng lúc
+
+        setLoading(true);
+        setError(null);
+        
+        if (isEditMode && eventId) {
+          console.log('=== Updating Complete Event ===');
+          console.log('EventId:', eventId);
+        } else {
+          console.log('=== Creating Complete Event ===');
+        }
+        console.log('Step 1 Data:', step1Data);
+        console.log('Step 2 Data:', step2Data);
+        console.log('Step 3 Data:', step3Data);
+        console.log('Step 4 Data:', step4Data);
+        console.log('Step 5 Data:', step5Data);
+        
+        // Chuẩn bị location string từ step1Data
+        let locationString = '';
+        if (step1Data.eventMode === 'Online') {
+          locationString = step1Data.location || '';
+        } else {
+          const addressParts = [];
+          if (step1Data.streetAddress) addressParts.push(step1Data.streetAddress);
+          if (step1Data.ward) addressParts.push(step1Data.ward);
+          if (step1Data.district) addressParts.push(step1Data.district);
+          if (step1Data.province) addressParts.push(step1Data.province);
+          locationString = addressParts.join(', ');
+        }
+
+        // Chuẩn bị ticket types từ step2Data
+        const ticketTypes = (step2Data.ticketTypes || []).map(ticket => ({
+          typeName: ticket.typeName || '',
+          price: ticket.price || 0,
+          quantity: ticket.quantity || 0,
+          minOrder: ticket.minOrder || 1,
+          maxOrder: ticket.maxOrder || 10,
+          saleStart: ticket.saleStart ? new Date(ticket.saleStart).toISOString() : new Date().toISOString(),
+          saleEnd: ticket.saleEnd ? new Date(ticket.saleEnd).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: ticket.status || 'Active'
+        }));
+
+        // Chuẩn bị venue layout từ step3Data
+        let venueLayout = null;
         if (step3Data && step3Data.hasVirtualStage && step3Data.layout) {
-          console.log('Saving venue layout to database...');
-          
-          // Prepare venue layout data with proper format
-          // Map temporary ticketTypeIds to ticket names for identification
-          const areasToSave = (step3Data.layout.areas || []).map(area => ({
-            ...area,
-            ticketTypeId: area.ticketTypeId || null
-          }));
-          
-          // OLD CODE REMOVED - using areasToSave now
-          const areasWithTicketNamesOLD = step3Data.layout.areas?.map(area => {
-            let ticketTypeName = null;
-            if (area.ticketTypeId && step2Data.ticketTypes) {
-              const ticketIndex = area.ticketTypeId - 1; // Convert from 1-indexed to 0-indexed
-              if (ticketIndex >= 0 && ticketIndex < step2Data.ticketTypes.length) {
-                ticketTypeName = step2Data.ticketTypes[ticketIndex]?.typeName;
-              }
-            }
-            return {
-              ...area,
-              ticketTypeName: ticketTypeName // Add ticket name for backend mapping
-            };
-          }) || [];
-          
-          const venueLayoutData = {
-            hasVirtualStage: step3Data.layout.hasVirtualStage,
+          venueLayout = {
+            hasVirtualStage: step3Data.layout.hasVirtualStage || false,
             canvasWidth: step3Data.layout.canvasWidth || 1000,
             canvasHeight: step3Data.layout.canvasHeight || 800,
-            areas: areasToSave
+            areas: (step3Data.layout.areas || []).map(area => ({
+              ...area,
+              ticketTypeId: area.ticketTypeId || null
+            }))
           };
+        }
+
+        // Tạo complete event request
+        const completeEventRequest = {
+          // Step 1
+          title: step1Data.title || '',
+          description: step1Data.eventIntroduction || '',
+          eventMode: step1Data.eventMode || 'Offline',
+          location: locationString,
+          venueName: step1Data.venueName || '',
+          province: step1Data.province || '',
+          district: step1Data.district || '',
+          ward: step1Data.ward || '',
+          streetAddress: step1Data.streetAddress || '',
+          eventType: step1Data.eventType || 'Public',
+          category: step1Data.category || '',
+          eventImage: step1Data.eventImage || '',
+          backgroundImage: step1Data.backgroundImage || '',
+          eventIntroduction: step1Data.eventIntroduction || '',
+          eventDetails: step1Data.eventDetails || step1Data.eventIntroduction || '',
+          specialGuests: step1Data.specialGuests || '',
+          specialExperience: step1Data.specialExperience || '',
+          termsAndConditions: step1Data.termsAndConditions || '',
+          childrenTerms: step1Data.childrenTerms || '',
+          vatTerms: step1Data.vatTerms || '',
+          organizerLogo: step1Data.organizerLogo || '',
+          organizerName: step1Data.organizerName || '',
+          organizerInfo: step1Data.organizerInfo || '',
+          // Step 2
+          startTime: step2Data.startTime ? new Date(step2Data.startTime).toISOString() : new Date().toISOString(),
+          endTime: step2Data.endTime ? new Date(step2Data.endTime).toISOString() : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          ticketTypes: ticketTypes,
+          // Step 3
+          venueLayout: venueLayout,
+          // Step 4 - Settings (optional)
+          eventSettings: step4Data ? JSON.stringify(step4Data) : null,
+          // Step 5
+          paymentMethod: step5Data.selectedPaymentMethods?.join(', ') || 'Bank Transfer',
+          bankAccount: step5Data.bankAccounts ? JSON.stringify(step5Data.bankAccounts) : '',
+          taxInfo: step5Data.taxInfo || ''
+        };
+        
+        console.log('Complete Event Request:', completeEventRequest);
+        console.log('Complete Event Request JSON:', JSON.stringify(completeEventRequest, null, 2));
+        
+        if (isEditMode && eventId) {
+          // CẬP NHẬT EVENT: Gọi tuần tự các API update cho từng bước
+          console.log('Updating existing event with all steps...');
           
-          const step3Request = {
-            venueLayout: venueLayoutData
-          };
+          try {
+            // Step 1: Update event info
+            const updateStep1Data = {
+              title: step1Data.title || '',
+              description: step1Data.eventIntroduction || '',
+              eventMode: step1Data.eventMode || 'Offline',
+              venueName: step1Data.venueName || '',
+              province: step1Data.province || '',
+              district: step1Data.district || '',
+              ward: step1Data.ward || '',
+              streetAddress: step1Data.streetAddress || '',
+              eventType: 'Public',
+              category: step1Data.category || '',
+              location: locationString,
+              eventImage: step1Data.eventImage || '',
+              backgroundImage: step1Data.backgroundImage || '',
+              eventIntroduction: step1Data.eventIntroduction || '',
+              organizerLogo: step1Data.organizerLogo || '',
+              organizerName: step1Data.organizerName || '',
+              organizerInfo: step1Data.organizerInfo || ''
+            };
+            await eventsAPI.update(eventId, updateStep1Data);
+            console.log('Step 1 updated successfully');
+            
+            // Step 2: Update time and tickets
+            const updateStep2Data = {
+              startTime: step2Data.startTime ? new Date(step2Data.startTime).toISOString() : new Date().toISOString(),
+              endTime: step2Data.endTime ? new Date(step2Data.endTime).toISOString() : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+              ticketTypes: ticketTypes.map(t => ({
+                typeName: t.typeName,
+                price: t.price,
+                quantity: t.quantity,
+                minOrder: t.minOrder,
+                maxOrder: t.maxOrder,
+                saleStart: t.saleStart,
+                saleEnd: t.saleEnd,
+                status: t.status || 'Active'
+              }))
+            };
+            await eventsAPI.updateStep2(eventId, updateStep2Data);
+            console.log('Step 2 updated successfully');
+            
+            // Step 3: Update venue layout
+            if (venueLayout) {
+              await eventsAPI.updateStep3(eventId, { venueLayout: venueLayout });
+              console.log('Step 3 updated successfully');
+            }
+            
+            console.log('Event updated successfully with ID:', eventId);
+            
+            // Xóa dữ liệu tạm trong localStorage
+            localStorage.removeItem('createEvent_step1');
+            localStorage.removeItem('createEvent_step2');
+            localStorage.removeItem('createEvent_step3');
+            localStorage.removeItem('createEvent_step4');
+            localStorage.removeItem('createEvent_step5');
+            
+            // QUAN TRỌNG: Đánh dấu event đã được update để HomePage reload
+            sessionStorage.setItem('eventUpdated', Date.now().toString());
+            
+            // Chuyển đến trang chi tiết event
+            navigate(`/events/${eventId}`);
+            
+          } catch (updateError) {
+            console.error('Error updating event:', updateError);
+            throw updateError;
+          }
           
-          console.log('Step 3 Request (Venue Layout):', step3Request);
-          await eventsAPI.updateStep3(eventId, step3Request);
-          console.log('Venue layout saved successfully');
         } else {
-          console.log('No venue layout to save - skipping');
-          // Send empty venue layout
-          await eventsAPI.updateStep3(eventId, { venueLayout: null });
+          // TẠO MỚI EVENT: Gọi API tạo event hoàn chỉnh
+          const response = await eventsAPI.createCompleteEvent(completeEventRequest);
+          
+          // Kiểm tra nếu có lỗi validation từ backend
+          if (response.data && response.data.completed === false && response.data.errors) {
+            const errorMessages = response.data.errors;
+            const errorText = 'Không thể tạo sự kiện:\n' + errorMessages.join('\n');
+            setError(errorText);
+            
+            // Tự động chuyển đến bước có lỗi đầu tiên
+            const firstError = errorMessages[0];
+            if (firstError.includes('Bước 1')) {
+              setActiveStep(0);
+            } else if (firstError.includes('Bước 2')) {
+              setActiveStep(1);
+            } else if (firstError.includes('Bước 3')) {
+              setActiveStep(2);
+            } else if (firstError.includes('Bước 4')) {
+              setActiveStep(3);
+            } else if (firstError.includes('Bước 5')) {
+              setActiveStep(4);
+            }
+            
+            return; // Không tiếp tục nếu có lỗi
+          }
+          
+          // Lấy eventId từ response
+          const newEventId = response.data.eventId;
+          console.log('Event created successfully with ID:', newEventId);
+          
+          // Xóa dữ liệu tạm trong localStorage
+          localStorage.removeItem('createEvent_step1');
+          localStorage.removeItem('createEvent_step2');
+          localStorage.removeItem('createEvent_step3');
+          localStorage.removeItem('createEvent_step4');
+          localStorage.removeItem('createEvent_step5');
+          
+          // Chuyển đến trang chi tiết event
+          navigate(`/events/${newEventId}`);
         }
         
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      } catch (err) {
-        console.error('Error saving venue layout:', err);
-        setError(err.message || 'Có lỗi xảy ra khi lưu sơ đồ sân khấu');
-      } finally {
-        setLoading(false);
       }
-    } else if (activeStep === 3) {
-      // Bước 4: Cập nhật cài đặt
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Debug: Log step4Data trước khi gửi
-        console.log('Step 4 Data Before Send:', step4Data);
-        console.log('Step 4 Data Keys:', Object.keys(step4Data));
-        console.log('Step 4 Data Values:', Object.values(step4Data));
-        
-        // Chuyển đổi dữ liệu sang format mà backend mong đợi
-        const step4Request = {
-          EventSettings: JSON.stringify({
-            eventStatus: step4Data.eventStatus || 'Draft',
-            priority: step4Data.priority || 'Normal',
-            maxAttendees: step4Data.maxAttendees || 0,
-            registrationDeadline: step4Data.registrationDeadline || 0,
-            contactEmail: step4Data.contactEmail || '',
-            contactPhone: step4Data.contactPhone || '',
-            internalNotes: step4Data.internalNotes || ''
-          }),
-          AllowRefund: true, // Mặc định cho phép hoàn tiền
-          RefundDaysBefore: 7, // Mặc định 7 ngày trước sự kiện
-          RequireApproval: false // Mặc định không cần phê duyệt
-        };
-        
-        console.log('Step 4 Request Data:', step4Request);
-        console.log('Step 4 Request Data JSON:', JSON.stringify(step4Request, null, 2));
-        
-        await eventsAPI.updateStep3(eventId, step4Request);
-        
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      
+      // Catch và finally chung cho tất cả các bước
       } catch (err) {
-        setError(err.message || 'Có lỗi xảy ra khi cập nhật cài đặt');
-      } finally {
-        setLoading(false);
-      }
-    } else if (activeStep === 4) {
-      // Bước 5: Hoàn thành
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Debug: Log step5Data trước khi gửi
-        console.log('Step 5 Data Before Send:', step5Data);
-        console.log('Step 5 Data Keys:', Object.keys(step5Data));
-        console.log('Step 5 Data Values:', Object.values(step5Data));
-        
-        // Chuyển đổi dữ liệu sang format mà backend mong đợi
-        const step5Request = {
-          PaymentMethod: step5Data.selectedPaymentMethods?.join(', ') || 'Bank Transfer',
-          BankAccount: JSON.stringify(step5Data.bankAccounts || []),
-          TaxInfo: step5Data.taxInfo || '',
-          AutoConfirm: step5Data.autoConfirm || false,
-          RequirePaymentProof: step5Data.requirePaymentProof || false,
-          PaymentSettings: JSON.stringify({
-            selectedPaymentMethods: step5Data.selectedPaymentMethods,
-            autoConfirm: step5Data.autoConfirm,
-            requirePaymentProof: step5Data.requirePaymentProof
-          })
-        };
-        
-        console.log('Step 5 Request Data:', step5Request);
-        console.log('Step 5 Request Data JSON:', JSON.stringify(step5Request, null, 2));
-        
-        await eventsAPI.updateStep4(eventId, step5Request);
-        
-        // Xóa dữ liệu tạm trong localStorage
-        localStorage.removeItem('createEvent_step1');
-        localStorage.removeItem('createEvent_step2');
-        localStorage.removeItem('createEvent_step3');
-        localStorage.removeItem('createEvent_step4');
-        localStorage.removeItem('createEvent_step5');
-        
-        // Chuyển đến trang chi tiết event
-        navigate(`/events/${eventId}`);
-      } catch (err) {
+      console.error('Error in handleNext:', err);
+      
+      // Xử lý lỗi cho từng bước
+      if (activeStep === 0) {
+        setError(err.message || 'Có lỗi xảy ra khi tạo sự kiện');
+        setIsEventBeingCreated(false);
+        setShouldBlockNavigation(false);
+      } else if (activeStep === 4) {
+        // Xử lý lỗi đặc biệt cho bước 5 (validation errors từ backend)
+        if (err.response && err.response.data) {
+          const errorData = err.response.data;
+          
+          // Nếu có danh sách lỗi validation
+          if (errorData.errors && Array.isArray(errorData.errors)) {
+            const errorMessage = 'Không thể tạo sự kiện:\n' + errorData.errors.join('\n');
+            setError(errorMessage);
+            
+            // Tự động chuyển đến bước có lỗi đầu tiên
+            const firstError = errorData.errors[0];
+            if (firstError.includes('Bước 1')) {
+              setActiveStep(0);
+            } else if (firstError.includes('Bước 2')) {
+              setActiveStep(1);
+            } else if (firstError.includes('Bước 3')) {
+              setActiveStep(2);
+            } else if (firstError.includes('Bước 4')) {
+              setActiveStep(3);
+            } else if (firstError.includes('Bước 5')) {
+              setActiveStep(4);
+            }
+          } else if (errorData.message) {
+            setError(errorData.message);
+          } else {
         setError(err.message || 'Có lỗi xảy ra khi hoàn thành sự kiện');
+          }
+        } else {
+          setError(err.message || 'Có lỗi xảy ra khi hoàn thành sự kiện');
+        }
+      } else {
+        setError(err.message || `Có lỗi xảy ra khi xử lý bước ${activeStep + 1}`);
+      }
       } finally {
         setLoading(false);
-      }
+      setIsProcessing(false);
+      
+      // Không cần block navigation nữa vì event chỉ được tạo ở bước 5
+      // Nếu navigate away từ bước 1-4, chỉ mất data trong localStorage, không có event nào được tạo
+      setShouldBlockNavigation(false);
+      setIsEventBeingCreated(false);
     }
   };
 
@@ -922,7 +1351,16 @@ const CreateEventPage = () => {
           )}
         </Box>
 
-        <Paper sx={{ p: 3 }}>
+        <Paper 
+          sx={{ p: 3 }}
+          component="div"
+          onKeyDown={(e) => {
+            // Ngăn form submit khi nhấn Enter trừ khi đang ở input field
+            if (e.key === 'Enter' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+              e.preventDefault();
+            }
+          }}
+        >
           <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
             {steps.map((label) => (
               <Step key={label}>
@@ -933,7 +1371,11 @@ const CreateEventPage = () => {
 
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
+              {error.split('\n').map((line, index) => (
+                <div key={index} style={{ marginTop: index > 0 ? '8px' : '0' }}>
+                  {line}
+                </div>
+              ))}
             </Alert>
           )}
 
@@ -964,9 +1406,16 @@ const CreateEventPage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {loading && <CircularProgress size={20} />}
               <Button
+                type="button"
                 variant="contained"
-                onClick={handleNext}
-                disabled={!isStepValid() || loading}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isProcessing && !loading) {
+                    handleNext();
+                  }
+                }}
+                disabled={!isStepValid() || loading || isEventBeingCreated || isProcessing}
                 startIcon={activeStep === steps.length - 1 ? <Save /> : null}
                 sx={{ 
                   opacity: !isStepValid() ? 0.6 : 1,
