@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import { useAuth } from '../contexts/AuthContext';
 import { eventsAPI } from '../services/apiClient';
+import { decodeText } from '../utils/textDecoder';
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -82,11 +83,11 @@ const DashboardPage = () => {
                 {events.map((event) => (
                   <div key={event.eventId} className="card">
                     <div className="card-body">
-                      <h3 className="card-title">{event.title}</h3>
-                      <p className="card-text">{event.description}</p>
+                      <h3 className="card-title">{decodeText(event.title)}</h3>
+                      <p className="card-text">{decodeText(event.description)}</p>
                       <p><strong>Date:</strong> {formatDate(event.startTime)}</p>
-                      <p><strong>Location:</strong> {event.location}</p>
-                      <p><strong>Category:</strong> {event.category}</p>
+                      <p><strong>Location:</strong> {decodeText(event.location)}</p>
+                      <p><strong>Category:</strong> {decodeText(event.category)}</p>
                       <Link
                         to={`/event/${event.eventId}`}
                         className="btn btn-primary"

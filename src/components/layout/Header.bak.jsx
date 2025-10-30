@@ -122,14 +122,12 @@ const Header = ({ searchTerm, onSearchChange }) => {
 
   return (
     <AppBar position="sticky" elevation={0} sx={{ 
-      background: theme.palette.mode === 'dark' 
-        ? '#000000' 
-        : '#FFFFFF',
-      borderBottom: `1px solid ${theme.palette.divider}`,
-      color: 'text.primary',
-      boxShadow: 'none',
+      background: 'rgba(255, 255, 255, 0.05)',
+      backdropFilter: 'blur(20px)',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      color: 'text.primary'
     }}>
-      <Toolbar sx={{ minHeight: { xs: 60, md: 64 } }}>
+      <Toolbar>
         {/* Logo */}
         <Typography 
           variant="h6" 
@@ -139,14 +137,8 @@ const Header = ({ searchTerm, onSearchChange }) => {
             flexGrow: 0,
             fontWeight: 700,
             textDecoration: 'none',
-            color: 'primary.main',
-            mr: { xs: 2, md: 4 },
-            fontSize: { xs: '1.1rem', md: '1.3rem' },
-            letterSpacing: '-0.02em',
-            transition: 'color 0.2s ease',
-            '&:hover': {
-              color: 'primary.dark',
-            }
+            color: 'inherit',
+            mr: 4
           }}
         >
           TheGrind5 Events
@@ -166,16 +158,9 @@ const Header = ({ searchTerm, onSearchChange }) => {
               to="/" 
               color="inherit"
               sx={{ 
-                fontWeight: 500,
+                fontWeight: 600,
                 textTransform: 'none',
-                px: 2,
-                color: 'text.primary',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? 'rgba(61, 190, 41, 0.08)' 
-                    : 'rgba(61, 190, 41, 0.04)',
-                  color: 'primary.main',
-                }
+                px: 2
               }}
             >
               Home
@@ -187,16 +172,9 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   to="/dashboard" 
                   color="inherit"
                   sx={{ 
-                    fontWeight: 500,
+                    fontWeight: 600,
                     textTransform: 'none',
-                    px: 2,
-                    color: 'text.primary',
-                    '&:hover': {
-                      backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(61, 190, 41, 0.08)' 
-                        : 'rgba(61, 190, 41, 0.04)',
-                      color: 'primary.main',
-                    }
+                    px: 2
                   }}
                 >
                   Dashboard
@@ -206,16 +184,9 @@ const Header = ({ searchTerm, onSearchChange }) => {
                     onClick={handleTicketsMenuOpen}
                     color="inherit"
                     sx={{ 
-                      fontWeight: 500,
+                      fontWeight: 600,
                       textTransform: 'none',
-                      px: 2,
-                      color: 'text.primary',
-                      '&:hover': {
-                        backgroundColor: theme.palette.mode === 'dark' 
-                          ? 'rgba(61, 190, 41, 0.08)' 
-                          : 'rgba(61, 190, 41, 0.04)',
-                        color: 'primary.main',
-                      }
+                      px: 2
                     }}
                     endIcon={<Ticket />}
                   >
@@ -262,16 +233,9 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   to="/wishlist" 
                   color="inherit"
                   sx={{ 
-                    fontWeight: 500,
+                    fontWeight: 600,
                     textTransform: 'none',
-                    px: 2,
-                    color: 'text.primary',
-                    '&:hover': {
-                      backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(61, 190, 41, 0.08)' 
-                        : 'rgba(61, 190, 41, 0.04)',
-                      color: 'primary.main',
-                    }
+                    px: 2
                   }}
                 >
                   Wishlist
@@ -298,41 +262,31 @@ const Header = ({ searchTerm, onSearchChange }) => {
               size="small"
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 1.5,
-                  backgroundColor: theme.palette.mode === 'dark'
-                    ? '#1C1C1C'
-                    : '#F5F5F5',
-                  border: 'none',
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   '&:hover': {
-                    backgroundColor: theme.palette.mode === 'dark'
-                      ? '#262626'
-                      : '#E5E5E5',
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)'
                   },
                   '&.Mui-focused': {
-                    backgroundColor: theme.palette.mode === 'dark'
-                      ? '#262626'
-                      : '#FFFFFF',
-                    border: theme.palette.mode === 'dark'
-                      ? '1px solid #404040'
-                      : '1px solid #D4D4D4',
-                  },
-                  '& fieldset': {
-                    border: 'none',
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    border: '2px solid rgba(255, 255, 255, 0.5)'
                   }
                 },
                 '& .MuiInputBase-input': {
-                  color: 'text.primary',
-                  fontSize: '0.875rem',
+                  color: 'white',
                   '&::placeholder': {
-                    color: 'text.secondary',
-                    opacity: 0.7,
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    opacity: 1
                   }
                 }
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                    <Search sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
                   </InputAdornment>
                 ),
                 endAdornment: searchTerm && (
@@ -341,9 +295,9 @@ const Header = ({ searchTerm, onSearchChange }) => {
                       onClick={() => onSearchChange && onSearchChange('')}
                       edge="end"
                       size="small"
-                      sx={{ color: 'text.secondary' }}
+                      sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
                     >
-                      <Clear fontSize="small" />
+                      <Clear />
                     </IconButton>
                   </InputAdornment>
                 )
@@ -373,16 +327,13 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 to="/create-event"
                 variant="contained"
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 3,
                   fontWeight: 600,
-                  px: 3,
+                  px: 2,
                   py: 1,
                   textTransform: 'none',
-                  fontSize: '0.875rem',
-                  boxShadow: 'none',
                   '&:hover': {
-                    boxShadow: '0 4px 12px rgba(61, 190, 41, 0.25)',
-                    transform: 'translateY(-1px)'
+                    transform: 'scale(1.05)'
                   },
                   transition: 'all 0.2s ease'
                 }}
@@ -392,7 +343,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
               
               {/* Wallet Balance */}
               <Chip
-                icon={<Wallet sx={{ fontSize: '1.1rem' }} />}
+                icon={<Wallet />}
                 label={balanceLoading ? "Loading..." : formatCurrency(walletBalance)}
                 component={Link}
                 to="/wallet"
@@ -400,20 +351,14 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 color="primary"
                 variant="outlined"
                 sx={{ 
-                  borderRadius: 2,
+                  borderRadius: 3,
                   fontWeight: 600,
-                  fontSize: '0.875rem',
-                  px: 1.5,
-                  height: 36,
-                  borderColor: theme.palette.mode === 'dark' 
-                    ? 'rgba(61, 190, 41, 0.3)' 
-                    : 'rgba(61, 190, 41, 0.5)',
+                  px: 2,
+                  py: 1,
                   '&:hover': {
                     backgroundColor: 'primary.main',
                     color: 'white',
-                    borderColor: 'primary.main',
-                    transform: 'translateY(-1px)',
-                    boxShadow: '0 4px 8px rgba(61, 190, 41, 0.2)',
+                    transform: 'scale(1.05)'
                   },
                   transition: 'all 0.2s ease'
                 }}
@@ -484,36 +429,14 @@ const Header = ({ searchTerm, onSearchChange }) => {
             </>
           ) : (
             <>
-              <Button 
-                component={Link} 
-                to="/login" 
-                color="inherit"
-                sx={{
-                  fontWeight: 500,
-                  px: 2.5,
-                  color: 'text.primary',
-                  '&:hover': {
-                    backgroundColor: theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.08)'
-                      : 'rgba(0, 0, 0, 0.04)',
-                  }
-                }}
-              >
+              <Button component={Link} to="/login" color="inherit">
                 Login
               </Button>
               <Button 
                 component={Link} 
                 to="/register" 
                 variant="contained" 
-                sx={{ 
-                  ml: 1,
-                  fontWeight: 600,
-                  px: 3,
-                  boxShadow: 'none',
-                  '&:hover': {
-                    boxShadow: '0 4px 12px rgba(61, 190, 41, 0.25)',
-                  }
-                }}
+                sx={{ ml: 1 }}
               >
                 Register
               </Button>
