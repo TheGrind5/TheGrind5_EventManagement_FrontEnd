@@ -35,8 +35,14 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">Loading...</div>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px'
+      }}>
+        <div>Đang tải...</div>
       </div>
     );
   }
@@ -47,25 +53,29 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route 
         path="/login" 
-        element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
+        element={
+          user ? <Navigate to="/dashboard" replace /> : <LoginPage />
+        } 
       />
       <Route 
         path="/register" 
-        element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} 
+        element={
+          user ? <Navigate to="/dashboard" replace /> : <RegisterPage />
+        } 
       />
       <Route path="/event/:id" element={<EventDetailsPage />} />
       <Route path="/wishlist" element={<WishlistPage />} />
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
       
       {/* Payment Routes */}
-                <Route
-                    path="/payment/:orderId"
-                    element={
-                        <ProtectedRoute>
-                            <PaymentPage />
-                        </ProtectedRoute>
-                    }
-                />
+      <Route
+        path="/payment/:orderId"
+        element={
+          <ProtectedRoute>
+            <PaymentPage />
+          </ProtectedRoute>
+        }
+      />
       <Route 
         path="/order-confirmation/:orderId" 
         element={
