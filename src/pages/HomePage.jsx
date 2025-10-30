@@ -1,6 +1,6 @@
 // React & Router
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 // Material-UI Components
 import { 
@@ -53,24 +53,115 @@ const HomePage = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
+  const isInitialMount = useRef(true);
+  const prevPathname = useRef(location.pathname);
 
-  //useEffect hook để fetch events từ backend
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await eventsAPI.getAll();
-        console.log('HomePage - Events loaded:', response);
-        setEvents(response.data || []);
-      } catch (err) {
-        setError('Failed to load events');
-        console.error('Error fetching events:', err);
-      } finally {
+  // Hàm để fetch events từ backend
+  const fetchEvents = async (showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      console.log('HomePage - Fetching events...');
+      const response = await eventsAPI.getAll();
+      console.log('HomePage - Full response:', response);
+      console.log('HomePage - Response data:', response.data);
+      console.log('HomePage - Response data type:', Array.isArray(response.data) ? 'Array' : typeof response.data);
+      
+      // Handle both array and paginated response
+      let events = [];
+      if (Array.isArray(response.data)) {
+        events = response.data;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        events = response.data.data;
+      } else if (response.data && Array.isArray(response)) {
+        events = response;
+      }
+      
+      console.log('HomePage - Parsed events count:', events.length);
+      setEvents(events);
+      setError(null);
+    } catch (err) {
+      console.error('HomePage - Error fetching events:', err);
+      console.error('HomePage - Error details:', JSON.stringify(err, null, 2));
+      
+      // Cải thiện error message
+      let errorMessage = 'Không thể tải danh sách sự kiện';
+      if (err.message) {
+        if (err.message.includes('Network') || err.message.includes('connection')) {
+          errorMessage = 'Lỗi kết nối - Vui lòng kiểm tra backend có đang chạy không. Đảm bảo backend đang chạy tại http://localhost:5000';
+        } else {
+          errorMessage = err.message;
+        }
+      } else if (err.code === 0 || !err.response) {
+        errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra backend có đang chạy tại http://localhost:5000 không.';
+      }
+      
+      setError(errorMessage);
+      setEvents([]);
+    } finally {
+      if (showLoading) {
         setLoading(false);
+      }
+    }
+  };
+
+  //useEffect hook để fetch events từ backend khi component mount
+  useEffect(() => {
+    fetchEvents(true);
+    isInitialMount.current = false;
+  }, []);
+
+  // Refetch events khi quay lại trang HomePage (để cập nhật dữ liệu mới sau khi chỉnh sửa)
+  useEffect(() => {
+    // Kiểm tra xem có event nào vừa được update không
+    const eventUpdatedFlag = sessionStorage.getItem('eventUpdated');
+    if (eventUpdatedFlag && location.pathname === '/') {
+      console.log('HomePage - Event was updated, force reloading events...');
+      sessionStorage.removeItem('eventUpdated'); // Xóa flag sau khi dùng
+      fetchEvents(false);
+      return;
+    }
+    
+    // Chỉ refetch khi:
+    // 1. Đang ở trang home (pathname === '/')
+    // 2. Không phải lần mount đầu tiên
+    // 3. Đã có events (tránh refetch khi chưa có dữ liệu)
+    // 4. Pathname thay đổi từ trang khác về home (prevPathname !== '/')
+    if (
+      location.pathname === '/' && 
+      !isInitialMount.current && 
+      prevPathname.current !== '/'
+    ) {
+      console.log('HomePage - Returning to home page, refetching events to get updates...');
+      fetchEvents(false); // Không hiển thị loading khi refetch
+    }
+    
+    // Cập nhật prevPathname
+    prevPathname.current = location.pathname;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // Thêm listener để refetch khi trang được focus lại (khi người dùng quay lại tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && location.pathname === '/') {
+        // Chỉ refetch nếu đã mount xong (có events) để tránh refetch ngay khi mount
+        setTimeout(() => {
+          console.log('HomePage - Page became visible, checking if refetch needed...');
+          fetchEvents(false);
+        }, 100);
       }
     };
 
-    fetchEvents();
-  }, []);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   //Hàm constants để format date
   const formatDate = (dateString) => {
@@ -177,16 +268,33 @@ const HomePage = () => {
     return matchesSearch && matchesCategory && matchesStatus && matchesDate;
   });
 
+  // Chuẩn hóa đường dẫn ảnh từ API (xử lý dấu \\ của Windows, thiếu dấu / đầu)
+  const buildImageUrl = (rawPath) => {
+    if (!rawPath) return null;
+    if (rawPath.startsWith('http')) return rawPath;
+    // thay \\ -> / và đảm bảo có leading '/'
+    const normalized = rawPath.replace(/\\/g, '/');
+    const withLeading = normalized.startsWith('/') ? normalized : `/${normalized}`;
+    return `http://localhost:5000${withLeading}`;
+  };
+
   // Hàm constants để render individual event card
   const renderEventCard = (event) => {
     // Tính toán status dựa trên thời gian thực tế
     const currentStatus = getEventStatus(event.startTime, event.endTime);
     
-    // Lấy ảnh sự kiện từ EventDetails hoặc sử dụng ảnh mặc định
+    // Đơn giản hóa: Lấy ảnh trực tiếp từ database giống EventDetailsPage
+    // Ưu tiên backgroundImage, fallback về eventImage (lấy từ eventDetails hoặc root level)
+    const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage || null;
     const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
-    const imageUrl = eventImage ? 
-      (eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`) : 
-      null;
+    const imageToUse = backgroundImage || eventImage;
+    
+    
+    // Build URL đơn giản - giống EventDetailsPage (lấy trực tiếp từ database)
+    const imageUrl = buildImageUrl(imageToUse);
+    
+    // Dùng cùng imageUrl cho cả default và hover
+    const backgroundImageUrl = imageUrl;
     
     return (
     <Grid 
@@ -224,62 +332,187 @@ const HomePage = () => {
             boxShadow: theme.palette.mode === 'dark' 
               ? '0 12px 30px rgba(0, 0, 0, 0.4)' 
               : '0 12px 30px rgba(0, 0, 0, 0.2)',
-            borderColor: 'primary.main',
-            '& img': {
-              transform: 'scale(1.05)'
-            }
+            borderColor: 'primary.main'
           }
         }}
       >
-        {/* Event Image */}
-        <Box sx={{ 
-          height: 200,
-          position: 'relative',
-          overflow: 'hidden',
-          backgroundColor: 'grey.100',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          {/* Placeholder khi không có ảnh */}
-          {!eventImage && (
-            <Box sx={{
+        {/* Event Image Container with Hover Effect */}
+        <Box 
+          sx={{ 
+            height: 200,
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: 'grey.100',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            '&:hover .hover-overlay': {
+              opacity: 1
+            },
+            '&:hover .default-image': {
+              opacity: 0,
+              transform: 'scale(1.05)'
+            },
+            '&:hover .hover-image': {
+              opacity: 1,
+              transform: 'scale(1.1)'
+            }
+          }}
+        >
+          {/* Placeholder - luôn hiển thị, sẽ hiện khi không có ảnh hoặc ảnh lỗi */}
+          <Box 
+            className="event-placeholder"
+            sx={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
+              width: '100%',
+              position: 'absolute',
+              top: 0,
+              left: 0,
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white'
-            }}>
-              <Event sx={{ fontSize: 48, mb: 1, opacity: 0.8 }} />
-              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>Sự Kiện</Typography>
-            </Box>
-          )}
+              color: 'white',
+              zIndex: imageUrl ? 1 : 2  // Hiển thị trên cùng nếu không có ảnh
+            }}
+          >
+            <Event sx={{ fontSize: 48, mb: 1, opacity: 0.8 }} />
+            <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>Sự Kiện</Typography>
+          </Box>
           
+          {/* Default Image - Ảnh nền (1280x720) - mặc định ở danh sách */}
           {imageUrl && (
             <img
+              className="default-image"
               src={imageUrl}
               alt={event.title}
               style={{
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                transition: 'transform 0.3s ease',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'absolute',
                 top: 0,
-                left: 0
+                left: 0,
+                zIndex: 2,
+                display: 'block',
+                opacity: 1
               }}
               onError={(e) => {
+                console.error('Image failed to load:', imageUrl);
+                // Ẩn ảnh và hiển thị placeholder
+                e.target.style.display = 'none';
+                e.target.style.opacity = '0';
+                // Hiển thị placeholder
+                const placeholder = e.target.parentElement?.querySelector('.event-placeholder');
+                if (placeholder) {
+                  placeholder.style.zIndex = '10';
+                }
+              }}
+              onLoad={(e) => {
+                console.log('Default image loaded:', imageUrl);
+                e.target.style.display = 'block';
+                e.target.style.opacity = '1';
+                // Ẩn placeholder khi ảnh load thành công
+                const placeholder = e.target.parentElement?.querySelector('.event-placeholder');
+                if (placeholder) {
+                  placeholder.style.zIndex = '1';
+                }
+              }}
+            />
+          )}
+          
+          {/* Hover Image - Vẫn dùng backgroundImage (1280x720) với hiệu ứng zoom */}
+          {backgroundImageUrl && (
+            <img
+              className="hover-image"
+              src={backgroundImageUrl}
+              alt={event.title}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                zIndex: 3,
+                display: 'block',
+                opacity: 0,
+                transform: 'scale(1.05)'
+              }}
+              onError={(e) => {
+                console.error('Background image failed to load:', backgroundImageUrl);
                 e.target.style.display = 'none';
               }}
               onLoad={(e) => {
-                // Nếu ảnh load thành công, ẩn placeholder
+                console.log('Hover image loaded:', backgroundImageUrl);
                 e.target.style.display = 'block';
               }}
             />
           )}
-          {/* Overlay with chips */}
+          
+          {/* Hover Overlay - Hiển thị thông tin sự kiện khi hover */}
+          <Box 
+            className="hover-overlay"
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%)',
+              zIndex: 4,
+              opacity: 0,
+              transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              p: 2,
+              color: 'white'
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 700, 
+                mb: 1,
+                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                fontSize: '1.1rem'
+              }}
+            >
+              {event.title}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                mb: 1.5,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                fontSize: '0.85rem',
+                lineHeight: 1.4
+              }}
+            >
+              {event.description}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              <AccessTime sx={{ fontSize: '0.9rem' }} />
+              <Typography variant="caption" sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                {formatDate(event.startTime)}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <LocationOn sx={{ fontSize: '0.9rem' }} />
+              <Typography variant="caption" sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                {event.location || 'Địa điểm chưa cập nhật'}
+              </Typography>
+            </Box>
+          </Box>
+          {/* Overlay with chips - Always visible on top */}
           <Box sx={{ 
             position: 'absolute',
             top: 12,
@@ -287,7 +520,8 @@ const HomePage = () => {
             right: 12,
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'flex-start'
+            alignItems: 'flex-start',
+            zIndex: 5 // Above hover overlay
           }}>
             <Chip 
               label={event.category} 
@@ -658,6 +892,144 @@ const HomePage = () => {
         </Container>
       </Box>
 
+      {/* Featured Events Section - Poster Row with Slider */}
+      {(() => {
+        // Chọn các sự kiện sắp diễn ra (featured)
+        const featuredEvents = validEvents
+          .filter(event => {
+            const now = new Date();
+            const start = new Date(event.startTime);
+            return start > now;
+          })
+          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+        if (featuredEvents.length === 0) return null;
+
+        const sliderRef = React.createRef();
+        const cardGap = 16;
+        const scrollByCards = (num) => {
+          const container = sliderRef.current;
+          if (!container) return;
+          const card = container.querySelector('.featured-card');
+          if (!card) return;
+          const cardWidth = card.getBoundingClientRect().width + cardGap;
+          container.scrollBy({ left: num * cardWidth, behavior: 'smooth' });
+        };
+
+        return (
+          <Box sx={{ bgcolor: 'background.default', py: 6 }}>
+            <Container maxWidth="xl">
+              <Typography variant="h4" component="h2" textAlign="center" gutterBottom sx={{ mb: 4, fontWeight: 700 }}>
+                Sự Kiện Nổi Bật
+              </Typography>
+
+              <Box sx={{ position: 'relative' }}>
+                {/* Nút trái */}
+                <Button
+                  aria-label="prev"
+                  onClick={() => scrollByCards(-1)}
+                  sx={{
+                    minWidth: 0,
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    position: 'absolute',
+                    left: -4,
+                    top: '40%',
+                    zIndex: 2
+                  }}
+                >
+                  {'<'}
+                </Button>
+
+                {/* Dải poster một hàng, có thể cuộn */}
+                <Box
+                  ref={sliderRef}
+                  sx={{
+                    display: 'flex',
+                    gap: cardGap,
+                    overflowX: 'auto',
+                    overflowY: 'hidden',
+                    scrollBehavior: 'smooth',
+                    px: 0.5,
+                    '::-webkit-scrollbar': { display: 'none' }
+                  }}
+                >
+                  {featuredEvents.map((event) => {
+                    const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
+                    const imageUrl = buildImageUrl(eventImage);
+
+                    return (
+                      <Card
+                        className="featured-card"
+                        key={event.eventId}
+                        component={Link}
+                        to={`/event/${event.eventId}`}
+                        sx={{
+                          flex: '0 0 auto',
+                          width: { xs: 180, sm: 200, md: 220, lg: 240 },
+                          bgcolor: 'transparent',
+                          boxShadow: 'none',
+                          textDecoration: 'none',
+                          color: 'inherit'
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: '100%',
+                            aspectRatio: '720 / 958',
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            backgroundColor: 'grey.100',
+                            position: 'relative'
+                          }}
+                        >
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={event.title}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                              <Event sx={{ fontSize: 48, opacity: 0.85 }} />
+                            </Box>
+                          )}
+                        </Box>
+                        <CardContent sx={{ px: 0 }}>
+                          <Typography variant="subtitle1" component="h3" sx={{ mt: 1.5, fontWeight: 700, textAlign: 'center' }}>
+                            {event.title}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </Box>
+
+                {/* Nút phải */}
+                <Button
+                  aria-label="next"
+                  onClick={() => scrollByCards(1)}
+                  sx={{
+                    minWidth: 0,
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    position: 'absolute',
+                    right: -4,
+                    top: '40%',
+                    zIndex: 2
+                  }}
+                >
+                  {'>'}
+                </Button>
+              </Box>
+            </Container>
+          </Box>
+        );
+      })()}
+
       {/* Events Section */}
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Typography variant="h4" component="h2" textAlign="center" gutterBottom sx={{ mb: 4 }}>
@@ -666,7 +1038,18 @@ const HomePage = () => {
         
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
+            <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+              {error.split('\n')[0]}
+            </Typography>
+            {error.split('\n').length > 1 && (
+              <Box component="ul" sx={{ mt: 1, mb: 0, pl: 3 }}>
+                {error.split('\n').slice(1).map((line, index) => (
+                  <li key={index}>
+                    <Typography variant="body2">{line}</Typography>
+                  </li>
+                ))}
+              </Box>
+            )}
           </Alert>
         )}
 
