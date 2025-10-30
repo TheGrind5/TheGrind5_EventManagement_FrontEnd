@@ -38,6 +38,7 @@ import {
 // Components & Services
 import Header from '../components/layout/Header';
 import CategoryTabs from '../components/ui/CategoryTabs';
+import EventCard from '../components/ui/EventCard';
 import { eventsAPI } from '../services/apiClient';
 
 const HomePage = () => {
@@ -84,60 +85,7 @@ const HomePage = () => {
     });
   };
 
-  // Hàm để xác định trạng thái event dựa trên thời gian
-  const getEventStatus = (startTime, endTime) => {
-    const now = new Date();
-    const start = new Date(startTime);
-    const end = endTime ? new Date(endTime) : null;
-    
-    // Nếu có endTime, so sánh với endTime
-    if (end) {
-      if (now < start) {
-        return 'Upcoming';
-      } else if (now >= start && now <= end) {
-        return 'Active';
-      } else {
-        return 'Completed';
-      }
-    } else {
-      // Nếu không có endTime, chỉ so sánh với startTime
-      if (now < start) {
-        return 'Upcoming';
-      } else {
-        return 'Completed';
-      }
-    }
-  };
-
-  // Hàm để lấy text hiển thị cho status
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'Active':
-        return 'Đang diễn ra';
-      case 'Upcoming':
-        return 'Sắp diễn ra';
-      case 'Completed':
-        return 'Đã kết thúc';
-      default:
-        return 'Không xác định';
-    }
-  };
-
-  // Hàm để lấy màu cho status
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Active':
-        return 'success';
-      case 'Upcoming':
-        return 'warning';
-      case 'Completed':
-        return 'default';
-      default:
-        return 'default';
-    }
-  };
-
-  // Hàm constants để filter valid events (eventId > 0)
+  // Filter valid events (eventId > 0)
   const validEvents = events.filter(event => event.eventId && event.eventId > 0);
 
   // Get unique categories for filter dropdown
@@ -154,13 +102,22 @@ const HomePage = () => {
     // Category filter
     const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
 
-    // Status filter - sử dụng status được tính toán thực tế
-    const currentEventStatus = getEventStatus(event.startTime, event.endTime);
+    // Status filter - calculate status based on time
+    const now = new Date();
+    const start = new Date(event.startTime);
+    const end = event.endTime ? new Date(event.endTime) : null;
+    let currentEventStatus;
+    if (end) {
+      if (now < start) currentEventStatus = 'Upcoming';
+      else if (now >= start && now <= end) currentEventStatus = 'Active';
+      else currentEventStatus = 'Completed';
+    } else {
+      currentEventStatus = now < start ? 'Upcoming' : 'Completed';
+    }
     const matchesStatus = statusFilter === 'all' || currentEventStatus === statusFilter;
 
     // Date filter
     const eventDate = new Date(event.startTime);
-    const now = new Date();
     let matchesDate = true;
     
     if (dateFilter === 'upcoming') {
@@ -178,18 +135,8 @@ const HomePage = () => {
     return matchesSearch && matchesCategory && matchesStatus && matchesDate;
   });
 
-  // Hàm constants để render individual event card
-  const renderEventCard = (event) => {
-    // Tính toán status dựa trên thời gian thực tế
-    const currentStatus = getEventStatus(event.startTime, event.endTime);
-    
-    // Lấy ảnh sự kiện từ EventDetails hoặc sử dụng ảnh mặc định
-    const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
-    const imageUrl = eventImage ? 
-      (eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`) : 
-      null;
-    
-    return (
+  // Render individual event card using EventCard component
+  const renderEventCard = (event) => (
     <Grid 
       item 
       xs={12} 
@@ -202,220 +149,9 @@ const HomePage = () => {
         justifyContent: 'center'
       }}
     >
-      <Card 
-        component={Link}
-        to={`/event/${event.eventId}`}
-        sx={{ 
-          width: '100%',
-          maxWidth: 320,
-          height: 420,
-          display: 'flex', 
-          flexDirection: 'column',
-          borderRadius: 3,
-          transition: 'all 0.3s ease',
-          boxShadow: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          overflow: 'hidden',
-          textDecoration: 'none',
-          color: 'inherit',
-          cursor: 'pointer',
-          '&:hover': {
-            transform: 'translateY(-6px)',
-            boxShadow: theme.palette.mode === 'dark' 
-              ? '0 12px 30px rgba(0, 0, 0, 0.4)' 
-              : '0 12px 30px rgba(0, 0, 0, 0.2)',
-            borderColor: 'primary.main',
-            '& img': {
-              transform: 'scale(1.05)'
-            }
-          }
-        }}
-      >
-        {/* Event Image */}
-        <Box sx={{ 
-          height: 200,
-          position: 'relative',
-          overflow: 'hidden',
-          backgroundColor: 'grey.100',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          {/* Placeholder khi không có ảnh */}
-          {!eventImage && (
-            <Box sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white'
-            }}>
-              <Event sx={{ fontSize: 48, mb: 1, opacity: 0.8 }} />
-              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>Sự Kiện</Typography>
-            </Box>
-          )}
-          
-          {imageUrl && (
-            <img
-              src={imageUrl}
-              alt={event.title}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transition: 'transform 0.3s ease',
-                position: 'absolute',
-                top: 0,
-                left: 0
-              }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-              onLoad={(e) => {
-                // Nếu ảnh load thành công, ẩn placeholder
-                e.target.style.display = 'block';
-              }}
-            />
-          )}
-          {/* Overlay with chips */}
-          <Box sx={{ 
-            position: 'absolute',
-            top: 12,
-            left: 12,
-            right: 12,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start'
-          }}>
-            <Chip 
-              label={event.category} 
-              color="primary" 
-              size="small"
-              sx={{ 
-                fontWeight: 600,
-                borderRadius: 2,
-                fontSize: '0.75rem',
-                height: 26,
-                px: 1,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                color: 'primary.main',
-                '& .MuiChip-label': {
-                  color: 'primary.main'
-                }
-              }}
-            />
-            <Chip 
-              label={getStatusText(currentStatus)}
-              color={getStatusColor(currentStatus)}
-              size="small"
-              variant="outlined"
-              sx={{ 
-                borderRadius: 2,
-                fontSize: '0.75rem',
-                height: 26,
-                px: 1,
-                fontWeight: 500,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                borderColor: 'rgba(255, 255, 255, 0.8)',
-                '& .MuiChip-label': {
-                  color: currentStatus === 'Active' ? 'success.main' : 
-                         currentStatus === 'Upcoming' ? 'warning.main' : 'text.secondary'
-                }
-              }}
-            />
-          </Box>
-        </Box>
-
-        <CardContent sx={{ 
-          p: 3,
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1
-        }}>
-          
-          {/* Title - Fixed height */}
-          <Typography 
-            variant="h6" 
-            component="h3" 
-            sx={{ 
-              fontWeight: 700,
-              lineHeight: 1.3,
-              mb: 2,
-              minHeight: 44,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              fontSize: '1.1rem',
-              color: 'text.primary'
-            }}
-          >
-            {event.title}
-          </Typography>
-          
-          {/* Description - Fixed height */}
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 2.5, 
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              lineHeight: 1.5,
-              minHeight: 44,
-              fontSize: '0.9rem'
-            }}
-          >
-            {event.description}
-          </Typography>
-          
-          {/* Event Details - Fixed height */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            <Stack spacing={1.5}>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <AccessTime fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ 
-                  lineHeight: 1.4,
-                  fontSize: '0.85rem',
-                  flex: 1
-                }}>
-                  {formatDate(event.startTime)}
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <LocationOn fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ 
-                  lineHeight: 1.4,
-                  fontSize: '0.85rem',
-                  flex: 1
-                }}>
-                  {event.location}
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <Person fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ 
-                  lineHeight: 1.4,
-                  fontSize: '0.85rem',
-                  flex: 1
-                }}>
-                  Host: {event.hostName || 'N/A'}
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-        </CardContent>
-      </Card>
+      <EventCard event={event} />
     </Grid>
-    );
-  };
+  );
 
   // Hàm constants để render filter UI (không còn search bar)
   const renderFilterControls = () => (
