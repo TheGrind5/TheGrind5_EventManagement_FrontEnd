@@ -65,6 +65,13 @@ const EventInfoStep = ({ data, onChange }) => {
       case 'province':
         if (!value || value.trim().length === 0) {
           newErrors.province = 'Vui lòng chọn tỉnh/thành';
+        } else if (data.campus && data.campus !== 'all') {
+          const expectedProvince = campusToProvince[data.campus];
+          if (value !== expectedProvince) {
+            newErrors.province = 'Tỉnh thành phải khớp với campus đã chọn';
+          } else {
+            delete newErrors.province;
+          }
         } else {
           delete newErrors.province;
         }
@@ -160,6 +167,28 @@ const EventInfoStep = ({ data, onChange }) => {
     'Fashion'
   ];
 
+  const fptCampuses = [
+    'Hà Nội',
+    'TP. Hồ Chí Minh',
+    'Đà Nẵng',
+    'Quy Nhơn',
+    'Cần Thơ'
+  ];
+
+  // Mapping campus -> province
+  const campusToProvince = {
+    'Hà Nội': 'Hà Nội',
+    'TP. Hồ Chí Minh': 'TP. Hồ Chí Minh',
+    'Đà Nẵng': 'Đà Nẵng',
+    'Quy Nhơn': 'Quy Nhơn',
+    'Cần Thơ': 'Cần Thơ'
+  };
+
+  // Campuses không có quận/huyện (thành phố trực thuộc tỉnh)
+  const campusesWithoutDistricts = ['Quy Nhơn'];
+
+  const fptProvinces = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Quy Nhơn', 'Cần Thơ'];
+  
   const provinces = [
     'Hà Nội',
     'TP. Hồ Chí Minh',
@@ -238,14 +267,21 @@ const EventInfoStep = ({ data, onChange }) => {
         'Huyện Thanh Oai', 'Huyện Thường Tín', 'Huyện Phú Xuyên', 'Huyện Ứng Hòa', 'Huyện Mỹ Đức'
       ],
       'TP. Hồ Chí Minh': [
-        'Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8',
-        'Quận 9', 'Quận 10', 'Quận 11', 'Quận 12', 'Quận Thủ Đức', 'Quận Gò Vấp', 'Quận Bình Thạnh',
-        'Quận Tân Bình', 'Quận Tân Phú', 'Quận Phú Nhuận', 'Quận Huyện Bình Tân', 'Huyện Củ Chi',
-        'Huyện Hóc Môn', 'Huyện Bình Chánh', 'Huyện Nhà Bè', 'Huyện Cần Giờ'
+        'Quận 1', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 8', 'Quận 10', 'Quận 11',
+        'Quận Bình Tân', 'Quận Bình Thạnh', 'Quận Gò Vấp', 'Quận Phú Nhuận', 'Quận Tân Bình',
+        'Quận Tân Phú', 'Quận Thủ Đức', 'Huyện Bình Chánh', 'Huyện Cần Giờ', 'Huyện Củ Chi',
+        'Huyện Hóc Môn', 'Huyện Nhà Bè'
       ],
       'Đà Nẵng': [
         'Quận Hải Châu', 'Quận Thanh Khê', 'Quận Sơn Trà', 'Quận Ngũ Hành Sơn', 'Quận Liên Chiểu',
-        'Quận Cẩm Lệ', 'Huyện Hòa Vang', 'Huyện Hoàng Sa'
+        'Quận Cẩm Lệ', 'Huyện Hòa Vang'
+      ],
+      'Quy Nhơn': [
+        'Phường Bùi Thị Xuân', 'Phường Đống Đa', 'Phường Ghềnh Ráng', 'Phường Hải Cảng',
+        'Phường Lê Hồng Phong', 'Phường Lê Lợi', 'Phường Lý Thường Kiệt', 'Phường Ngô Mây',
+        'Phường Nguyễn Văn Cừ', 'Phường Nhơn Bình', 'Phường Nhơn Phú', 'Phường Quang Trung',
+        'Phường Thị Nại', 'Phường Trần Hưng Đạo', 'Phường Trần Phú', 'Phường Trần Quang Diệu',
+        'Xã Nhơn Châu', 'Xã Nhơn Hải', 'Xã Nhơn Hội', 'Xã Nhơn Lý', 'Phường Nhơn Hưng'
       ],
       'Hải Phòng': [
         'Quận Hồng Bàng', 'Quận Ngô Quyền', 'Quận Lê Chân', 'Quận Hải An', 'Quận Kiến An',
@@ -269,13 +305,53 @@ const EventInfoStep = ({ data, onChange }) => {
     const wardsData = {
       // Hà Nội
       'Quận Ba Đình': ['Phường Phúc Xá', 'Phường Trúc Bạch', 'Phường Vĩnh Phú', 'Phường Cống Vị', 'Phường Liễu Giai', 'Phường Nguyễn Trung Trực', 'Phường Quán Thánh', 'Phường Ngọc Hà', 'Phường Điện Biên', 'Phường Đội Cấn', 'Phường Ngọc Khánh', 'Phường Kim Mã', 'Phường Giảng Võ', 'Phường Thành Công'],
-      'Quận Hoàn Kiếm': ['Phường Phúc Tân', 'Phường Đồng Xuân', 'Phường Hàng Mã', 'Phường Hàng Buồm', 'Phường Hàng Đào', 'Phường Hàng Bồ', 'Phường Cửa Đông', 'Phường Lý Thái Tổ', 'Phường Hàng Bạc', 'Phường Hàng Gai', 'Phường Chương Dương Độ', 'Phường Hàng Trống', 'Phường Cửa Nam', 'Phường Hàng Bông', 'Phường Lý Thái Tổ', 'Phường Hàng Tre', 'Phường Tràng Tiền'],
+      'Quận Hoàn Kiếm': ['Phường Phúc Tân', 'Phường Đồng Xuân', 'Phường Hàng Mã', 'Phường Hàng Buồm', 'Phường Hàng Đào', 'Phường Hàng Bồ', 'Phường Cửa Đông', 'Phường Lý Thái Tổ', 'Phường Hàng Bạc', 'Phường Hàng Gai', 'Phường Chương Dương Độ', 'Phường Hàng Trống', 'Phường Cửa Nam', 'Phường Hàng Bông', 'Phường Hàng Tre', 'Phường Tràng Tiền'],
+      'Quận Tây Hồ': ['Phường Xuân La', 'Phường Yên Phụ', 'Phường Bưởi', 'Phường Thụy Khuê', 'Phường Phú Thượng', 'Phường Nhật Tân', 'Phường Tứ Liên', 'Phường Quảng An'],
+      'Quận Long Biên': ['Phường Thạch Bàn', 'Phường Phúc Lợi', 'Phường Cự Khối', 'Phường Đức Giang', 'Phường Việt Hưng', 'Phường Gia Thụy', 'Phường Ngọc Lâm', 'Phường Lâm Du', 'Phường Đại Kim', 'Phường Giang Biên', 'Phường Đông Dư', 'Phường Bồ Đề', 'Phường Gia Thụy', 'Phường Ngọc Thụy'],
+      'Quận Cầu Giấy': ['Phường Nghĩa Đô', 'Phường Nghĩa Tân', 'Phường Mai Dịch', 'Phường Dịch Vọng', 'Phường Dịch Vọng Hậu', 'Phường Quan Hoa', 'Phường Yên Hòa', 'Phường Trung Hòa'],
+      'Quận Đống Đa': ['Phường Cát Linh', 'Phường Văn Miếu', 'Phường Quốc Tử Giám', 'Phường Láng Thượng', 'Phường Ô Chợ Dừa', 'Phường Văn Chương', 'Phường Hàng Bột', 'Phường Láng Hạ', 'Phường Khâm Thiên', 'Phường Thổ Quan', 'Phường Nam Đồng', 'Phường Trung Phụng', 'Phường Quang Trung', 'Phường Trung Liệt', 'Phường Phương Liên', 'Phường Thịnh Quang', 'Phường Trung Tự', 'Phường Kim Liên', 'Phường Phương Mai', 'Phường Ngã Tư Sở', 'Phường Khương Thượng'],
+      'Quận Hai Bà Trưng': ['Phường Nguyễn Du', 'Phường Bạch Đằng', 'Phường Phạm Đình Hổ', 'Phường Lê Đại Hành', 'Phường Đồng Nhân', 'Phường Phố Huế', 'Phường Đống Mác', 'Phường Thanh Lương', 'Phường Thanh Nhàn', 'Phường Cầu Dền', 'Phường Bách Khoa', 'Phường Đồng Tâm', 'Phường Vĩnh Tuy', 'Phường Bạch Mai', 'Phường Quỳnh Mai', 'Phường Quỳnh Lôi', 'Phường Minh Khai', 'Phường Trương Định'],
+      'Quận Hoàng Mai': ['Phường Thanh Trì', 'Phường Vĩnh Hưng', 'Phường Định Công', 'Phường Mai Động', 'Phường Tương Mai', 'Phường Đại Kim', 'Phường Tân Mai', 'Phường Hoàng Văn Thụ', 'Phường Giáp Bát', 'Phường Lĩnh Nam', 'Phường Thịnh Liệt', 'Phường Trần Phú', 'Phường Hoàng Liệt', 'Phường Yên Sở'],
+      'Quận Thanh Xuân': ['Phường Nguyễn Trãi', 'Phường Khương Đình', 'Phường Khương Mai', 'Phường Khương Trung', 'Phường Phương Liệt', 'Phường Thanh Xuân Bắc', 'Phường Thanh Xuân Trung', 'Phường Thanh Xuân Nam', 'Phường Kim Giang'],
+      'Quận Nam Từ Liêm': ['Phường Cầu Diễn', 'Phường Xuân Phương', 'Phường Phương Canh', 'Phường Mỹ Đình 1', 'Phường Mỹ Đình 2', 'Phường Tây Mỗ', 'Phường Mễ Trì', 'Phường Phú Đô', 'Phường Đại Mỗ', 'Phường Trung Văn'],
+      'Quận Bắc Từ Liêm': ['Phường Thượng Cát', 'Phường Liên Mạc', 'Phường Đông Ngạc', 'Phường Đức Thắng', 'Phường Thụy Phương', 'Phường Tây Tựu', 'Phường Xuân Đỉnh', 'Phường Xuân Tảo', 'Phường Minh Khai', 'Phường Cổ Nhuế 1', 'Phường Cổ Nhuế 2', 'Phường Phú Diễn', 'Phường Phúc Diễn'],
+      'Quận Hà Đông': ['Phường Yết Kiêu', 'Phường Quang Trung', 'Phường La Khê', 'Phường Phú La', 'Phường Phúc La', 'Phường Hà Cầu', 'Phường Yên Nghĩa', 'Phường Kiến Hưng', 'Phường Phú Lãm', 'Phường Phú Lương', 'Phường Biên Giang', 'Phường Đồng Mai', 'Phường Nguyễn Trãi', 'Phường Mộ Lao', 'Phường Văn Quán', 'Phường Vạn Phúc', 'Phường Yên Nghĩa', 'Phường Dương Nội'],
+      'Thị xã Sơn Tây': ['Phường Trung Hưng', 'Phường Trung Sơn Trầm', 'Phường Kim Sơn', 'Phường Sơn Lộc', 'Phường Xuân Khanh', 'Phường Đường Lâm', 'Xã Viên Sơn', 'Xã Xuân Sơn', 'Xã Thanh Mỹ', 'Xã Trung Hưng', 'Xã Thanh Thùy', 'Xã Kim Sơn', 'Xã Thanh Mai'],
+      'Huyện Thạch Thất': ['Thị trấn Liên Quan', 'Xã Cẩm Yên', 'Xã Cần Kiệm', 'Xã Hương Ngải', 'Xã Đại Đồng', 'Xã Kim Quan', 'Xã Thạch Hòa', 'Xã Tiến Xuân', 'Xã Yên Trung', 'Xã Yên Bình', 'Xã Tân Xã', 'Xã Đồng Trúc'],
       
       // TP. Hồ Chí Minh
       'Quận 1': ['Phường Tân Định', 'Phường Đa Kao', 'Phường Bến Nghé', 'Phường Bến Thành', 'Phường Nguyễn Thái Bình', 'Phường Phạm Ngũ Lão', 'Phường Cầu Ông Lãnh', 'Phường Cô Giang', 'Phường Nguyễn Cư Trinh', 'Phường Cầu Kho'],
+      'Quận Thủ Đức': ['Phường Linh Trung', 'Phường Bình Chiểu', 'Phường Linh Xuân', 'Phường Tam Bình', 'Phường Tam Phú', 'Phường Hiệp Bình Chánh', 'Phường Hiệp Bình Phước', 'Phường Trường Thọ', 'Phường Long Bình', 'Phường Long Thạnh Mỹ', 'Phường Tân Phú', 'Phường Hiệp Phú', 'Phường Tăng Nhơn Phú A', 'Phường Tăng Nhơn Phú B', 'Phường Phước Long B', 'Phường Phước Long A', 'Phường Trường Thạnh', 'Phường Long Phước', 'Phường Long Trường', 'Phường Phước Bình', 'Phường Phú Hữu', 'Phường Bình Thọ', 'Phường An Phú', 'Phường An Khánh', 'Phường Bình Trưng Tây', 'Phường Bình Trưng Đông', 'Phường Cát Lái', 'Phường Thảo Điền', 'Phường An Lợi Đông', 'Phường Thủ Thiêm', 'Phường Linh Chiểu', 'Phường Linh Đông', 'Phường Linh Tây'],
       
       // Đà Nẵng
       'Quận Hải Châu': ['Phường Thạch Thang', 'Phường Hải Châu I', 'Phường Hải Châu II', 'Phường Phước Ninh', 'Phường Hòa Thuận Tây', 'Phường Hòa Thuận Đông', 'Phường Nam Dương', 'Phường Bình Hiên', 'Phường Bình Thuận', 'Phường Hòa Cường Bắc', 'Phường Hòa Cường Nam'],
+      'Quận Ngũ Hành Sơn': ['Phường Khuê Mỹ', 'Phường Hòa Hải', 'Phường Hòa Quý', 'Phường Mỹ An', 'Phường Khuê Đông'],
+      'Quận Thanh Khê': ['Phường Thanh Khê Tây', 'Phường Thanh Khê Đông', 'Phường Xuân Hà', 'Phường Tân Chính', 'Phường Chính Gián', 'Phường Vĩnh Trung', 'Phường Thạc Gián', 'Phường An Khê', 'Phường Hòa Khê', 'Phường Tam Thuận'],
+      'Quận Sơn Trà': ['Phường Thọ Quang', 'Phường Nại Hiên Đông', 'Phường Mân Thái', 'Phường An Hải Bắc', 'Phường Phước Mỹ', 'Phường An Hải Tây', 'Phường An Hải Đông', 'Phường Nại Hiên Đông'],
+      'Quận Liên Chiểu': ['Phường Hòa Hiệp Bắc', 'Phường Hòa Hiệp Nam', 'Phường Hòa Khánh Bắc', 'Phường Hòa Khánh Nam', 'Phường Hòa Minh'],
+      'Quận Cẩm Lệ': ['Phường Khuê Trung', 'Phường Hòa Phát', 'Phường Hòa An', 'Phường Hòa Thọ Tây', 'Phường Hòa Thọ Đông', 'Phường Hòa Xuân'],
+      
+      // Bình Định - Quy Nhơn
+      'Thành phố Quy Nhơn': [
+        'Phường Bùi Thị Xuân', 'Phường Đống Đa', 'Phường Ghềnh Ráng', 'Phường Hải Cảng',
+        'Phường Lê Hồng Phong', 'Phường Lê Lợi', 'Phường Lý Thường Kiệt', 'Phường Ngô Mây',
+        'Phường Nguyễn Văn Cừ', 'Phường Nhơn Bình', 'Phường Nhơn Phú', 'Phường Quang Trung',
+        'Phường Thị Nại', 'Phường Trần Hưng Đạo', 'Phường Trần Phú', 'Phường Trần Quang Diệu',
+        'Xã Nhơn Châu', 'Xã Nhơn Hải', 'Xã Nhơn Hội', 'Xã Nhơn Lý', 'Phường Nhơn Hưng'
+      ],
+      
+      // Cần Thơ
+      'Quận Ninh Kiều': ['Phường An Bình', 'Phường Cái Khế', 'Phường An Hòa', 'Phường An Hội', 'Phường An Nghiệp', 'Phường An Phú', 'Phường Cái Khế', 'Phường Hưng Lợi', 'Phường Tân An', 'Phường An Khánh', 'Phường An Thới', 'Phường Bùi Hữu Nghĩa', 'Phường Long Hòa', 'Phường Long Tuyền', 'Phường Thới Bình', 'Phường Trà Nóc', 'Phường Thới Long'],
+      'Quận Ô Môn': ['Phường Châu Văn Liêm', 'Phường Phước Thới', 'Phường Thới Hòa', 'Phường Thới Long', 'Phường Thới Thuận', 'Phường Thuận An', 'Phường Thới An', 'Phường Tân Lộc', 'Phường Trường Lạc'],
+      'Quận Bình Thuỷ': ['Phường Bình Thủy', 'Phường An Thới', 'Phường Bùi Hữu Nghĩa', 'Phường Long Hòa', 'Phường Long Tuyền', 'Phường Trà An', 'Phường Trà Nóc', 'Phường Thới An Đông'],
+      'Quận Cái Răng': ['Phường Ba Láng', 'Phường Hưng Phú', 'Phường Hưng Thạnh', 'Phường Lê Bình', 'Phường Phú Thứ', 'Phường Tân Phú', 'Phường Thường Thạnh', 'Phường Trường Thạnh'],
+      'Quận Thốt Nốt': ['Phường Thốt Nốt', 'Phường Thới Thuận', 'Phường Thuận An', 'Phường Thuận Hưng', 'Phường Trung Nhứt', 'Phường Trung Kiên', 'Phường Trung Thạnh'],
+      
+      // Cần Thơ - Huyện
+      'Huyện Vĩnh Thạnh': ['Thị trấn Thanh An', 'Thị trấn Vĩnh Thạnh', 'Xã Thạnh Mỹ', 'Xã Vĩnh Trinh', 'Xã Thạnh An', 'Xã Thạnh Tiến', 'Xã Thạnh Thắng', 'Xã Thạnh Lợi', 'Xã Thạnh Quới', 'Xã Thạnh Lộc'],
+      'Huyện Cờ Đỏ': ['Thị trấn Cờ Đỏ', 'Xã Thới Hưng', 'Xã Thới Đông', 'Xã Thới Xuân', 'Xã Đông Hiệp', 'Xã Đông Thắng', 'Xã Tân Thạnh', 'Xã Đông Bình', 'Xã Đông Thuận', 'Xã Tân Thới', 'Xã Tân Hưng', 'Xã Đông Thành'],
+      'Huyện Phong Điền': ['Thị trấn Phong Điền', 'Xã Giai Xuân', 'Xã Tân Thới', 'Xã Trường Long', 'Xã Mỹ Khánh', 'Xã Nhơn Ái', 'Xã Nhơn Nghĩa', 'Xã Tân Thạnh', 'Xã Thạnh Phú', 'Xã Mỹ Khánh'],
+      'Huyện Thới Lai': ['Thị trấn Thới Lai', 'Xã Định Môn', 'Xã Trường Xuân', 'Xã Tân Thạnh', 'Xã Xuân Thắng', 'Xã Đông Bình', 'Xã Đông Thuận', 'Xã Định Môn', 'Xã Xuân Thắng', 'Xã Trường Xuân A', 'Xã Trường Xuân B'],
       
       // Bắc Giang
       'Thành phố Bắc Giang': ['Phường Trần Nguyên Hãn', 'Phường Ngô Quyền', 'Phường Hoàng Văn Thụ', 'Phường Trần Phú', 'Phường Lê Lợi', 'Phường Đa Mai', 'Phường Dĩnh Kế', 'Phường Xương Giang', 'Phường Thọ Xương', 'Phường Song Mai', 'Xã Đồng Sơn', 'Xã Song Khê', 'Xã Tân Mỹ'],
@@ -630,6 +706,49 @@ const EventInfoStep = ({ data, onChange }) => {
                 />
               </Box>
 
+              {/* Your Campus */}
+              <Box>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
+                  Your Campus <span style={{ color: 'red' }}>*</span>
+                </Typography>
+                <FormControl fullWidth required>
+                  <InputLabel id="campus-label">Chọn campus của bạn</InputLabel>
+                  <Select
+                    labelId="campus-label"
+                    value={data.campus || ''}
+                    label="Chọn campus của bạn"
+                    onChange={(e) => {
+                      const selectedCampus = e.target.value;
+                      // Nếu không phải "all", auto set province theo mapping
+                      if (selectedCampus !== 'all') {
+                        handleInputChange('campus', selectedCampus);
+                        // Auto set province theo campus mapping
+                        const mappedProvince = campusToProvince[selectedCampus] || selectedCampus;
+                        const newData = {
+                          ...data,
+                          campus: selectedCampus,
+                          province: mappedProvince,
+                          district: '',
+                          ward: ''
+                        };
+                        onChange(newData);
+                      } else {
+                        handleInputChange('campus', selectedCampus);
+                      }
+                    }}
+                  >
+                    <MenuItem value="all">
+                      Tất cả campus
+                    </MenuItem>
+                    {fptCampuses.map((campus) => (
+                      <MenuItem key={campus} value={campus}>
+                        {campus}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
               {/* Địa chỉ chi tiết */}
               <Box>
                 <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
@@ -640,7 +759,7 @@ const EventInfoStep = ({ data, onChange }) => {
                 <Grid container spacing={2}>
                   {/* Tỉnh/Thành */}
                   <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth required error={!!errors.province}>
+                    <FormControl fullWidth required error={!!errors.province} disabled={data.campus && data.campus !== 'all'}>
                       <InputLabel id="province-label">Tỉnh/Thành *</InputLabel>
                       <Select
                         key={`province-${data.province || 'empty'}`}
@@ -649,6 +768,14 @@ const EventInfoStep = ({ data, onChange }) => {
                         label="Tỉnh/Thành *"
                         onChange={(e) => {
                           const selectedProvince = e.target.value;
+                          // Kiểm tra nếu đã chọn campus cụ thể, province phải khớp với campus
+                          if (data.campus && data.campus !== 'all') {
+                            const expectedProvince = campusToProvince[data.campus];
+                            if (selectedProvince !== expectedProvince) {
+                              // Không cho phép chọn province khác với campus
+                              return;
+                            }
+                          }
                           const newData = {
                             ...data,
                             province: selectedProvince,
@@ -659,7 +786,7 @@ const EventInfoStep = ({ data, onChange }) => {
                           validateField('province', selectedProvince);
                         }}
                       >
-                        {provinces.map((province) => (
+                        {fptProvinces.map((province) => (
                           <MenuItem key={province} value={province}>
                             {province}
                           </MenuItem>
@@ -670,40 +797,47 @@ const EventInfoStep = ({ data, onChange }) => {
                           {errors.province}
                         </Typography>
                       )}
+                      {data.campus && data.campus !== 'all' && (
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                          * Tỉnh thành đã được tự động chọn theo campus
+                        </Typography>
+                      )}
                     </FormControl>
                   </Grid>
                   
-                  {/* Quận/Huyện */}
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-                      <InputLabel id="district-label">Quận/Huyện</InputLabel>
-                      <Select
-                        key={`district-${data.district || 'empty'}`}
-                        labelId="district-label"
-                        value={data.district || ''}
-                        label="Quận/Huyện"
-                        onChange={(e) => {
-                          const selectedDistrict = e.target.value;
-                          const newData = {
-                            ...data,
-                            district: selectedDistrict,
-                            ward: ''
-                          };
-                          onChange(newData);
-                        }}
-                        disabled={!data.province}
-                      >
-                        <MenuItem value="">
-                          <em>Chọn quận/huyện</em>
-                        </MenuItem>
-                        {getDistrictsByProvince(data.province).map((district) => (
-                          <MenuItem key={district} value={district}>
-                            {district}
+                  {/* Quận/Huyện - Ẩn nếu chọn Quy Nhơn */}
+                  {!campusesWithoutDistricts.includes(data.campus) && (
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth>
+                        <InputLabel id="district-label">Quận/Huyện</InputLabel>
+                        <Select
+                          key={`district-${data.district || 'empty'}`}
+                          labelId="district-label"
+                          value={data.district || ''}
+                          label="Quận/Huyện"
+                          onChange={(e) => {
+                            const selectedDistrict = e.target.value;
+                            const newData = {
+                              ...data,
+                              district: selectedDistrict,
+                              ward: ''
+                            };
+                            onChange(newData);
+                          }}
+                          disabled={!data.province}
+                        >
+                          <MenuItem value="">
+                            <em>Chọn quận/huyện</em>
                           </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                          {getDistrictsByProvince(data.province).map((district) => (
+                            <MenuItem key={district} value={district}>
+                              {district}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  )}
                   
                   {/* Phường/Xã */}
                   <Grid item xs={12} sm={6}>
@@ -722,16 +856,25 @@ const EventInfoStep = ({ data, onChange }) => {
                           };
                           onChange(newData);
                         }}
-                        disabled={!data.district}
+                        disabled={!campusesWithoutDistricts.includes(data.campus) && !data.district}
                       >
                         <MenuItem value="">
                           <em>Chọn phường/xã</em>
                         </MenuItem>
-                        {getWardsByDistrict(data.district).map((ward) => (
-                          <MenuItem key={ward} value={ward}>
-                            {ward}
-                          </MenuItem>
-                        ))}
+                        {campusesWithoutDistricts.includes(data.campus) ? (
+                          // Nếu là Quy Nhơn, hiển thị phường/xã trực thuộc từ districtsData
+                          getDistrictsByProvince(data.province).map((ward) => (
+                            <MenuItem key={ward} value={ward}>
+                              {ward}
+                            </MenuItem>
+                          ))
+                        ) : (
+                          getWardsByDistrict(data.district).map((ward) => (
+                            <MenuItem key={ward} value={ward}>
+                              {ward}
+                            </MenuItem>
+                          ))
+                        )}
                       </Select>
                     </FormControl>
                   </Grid>

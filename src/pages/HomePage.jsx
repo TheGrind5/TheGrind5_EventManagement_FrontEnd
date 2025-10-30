@@ -50,6 +50,8 @@ const HomePage = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [campusFilter, setCampusFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState('all');
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -232,40 +234,85 @@ const HomePage = () => {
 
   // Get unique categories for filter dropdown
   const categories = [...new Set(validEvents.map(event => event.category).filter(Boolean))];
+  
+  // FPT Campuses list
+  const campuses = [
+    { value: 'all', label: 'Tất cả campus' },
+    { value: 'Hà Nội', label: 'Hà Nội' },
+    { value: 'TP. Hồ Chí Minh', label: 'TP. Hồ Chí Minh' },
+    { value: 'Đà Nẵng', label: 'Đà Nẵng' },
+    { value: 'Quy Nhơn', label: 'Quy Nhơn' },
+    { value: 'Cần Thơ', label: 'Cần Thơ' }
+  ];
+
+  // Tạo lại categoryOptions chỉ chứa danh mục
+  const categoryOptions = [
+    { value: 'all', label: 'Tất cả' },
+    ...categories.map(c => ({ value: c, label: c }))
+  ];
+  // Tạo lại priceOptions riêng cho dropdown Giá Tiền
+  const priceOptions = [
+    { value: 'all', label: 'Tất cả' },
+    { value: 'free', label: 'Miễn phí' },
+    { value: 'below50', label: 'Dưới 50.000đ' },
+    { value: '50to100', label: '50.000đ - 100.000đ' },
+    { value: 'above100', label: 'Trên 100.000đ' }
+  ];
 
   // Filter events based on search and filter criteria
   const filteredEvents = validEvents.filter(event => {
     // Search filter
     const matchesSearch = !searchTerm || 
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchTerm.toLowerCase());
+      event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.category?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Category filter
-    const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
-
-    // Status filter - sử dụng status được tính toán thực tế
-    const currentEventStatus = getEventStatus(event.startTime, event.endTime);
-    const matchesStatus = statusFilter === 'all' || currentEventStatus === statusFilter;
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || getEventStatus(event.startTime, event.endTime) === statusFilter;
 
     // Date filter
-    const eventDate = new Date(event.startTime);
     const now = new Date();
+    const eventStart = new Date(event.startTime);
     let matchesDate = true;
-    
-    if (dateFilter === 'upcoming') {
-      matchesDate = eventDate > now;
+    if (dateFilter === 'today') {
+      matchesDate = eventStart.toDateString() === now.toDateString();
+    } else if (dateFilter === 'upcoming') {
+      matchesDate = eventStart > now;
     } else if (dateFilter === 'past') {
-      matchesDate = eventDate < now;
-    } else if (dateFilter === 'today') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      matchesDate = eventDate >= today && eventDate < tomorrow;
+      matchesDate = eventStart < now;
     }
 
-    return matchesSearch && matchesCategory && matchesStatus && matchesDate;
+    // Campus filter
+    const matchesCampus = campusFilter === 'all' || 
+      event.location?.includes(campusFilter) || 
+      event.campus?.includes(campusFilter);
+
+    // Category/Price filter
+    if (categoryFilter === 'free') {
+      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price === 0 || t.isFree)) return false;
+    } else if (categoryFilter === 'below50') {
+      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price > 0 && t.price < 50000)) return false;
+    } else if (categoryFilter === '50to100') {
+      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price >= 50000 && t.price <= 100000)) return false;
+    } else if (categoryFilter === 'above100') {
+      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price > 100000)) return false;
+    } else if (categoryFilter !== 'all') {
+      // các danh mục khác
+      if (event.category !== categoryFilter) return false;
+    }
+
+    // Price filter
+    if (priceFilter === 'free') {
+      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price === 0 || t.isFree)) return false;
+    } else if (priceFilter === 'below50') {
+      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price > 0 && t.price < 50000)) return false;
+    } else if (priceFilter === '50to100') {
+      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price >= 50000 && t.price <= 100000)) return false;
+    } else if (priceFilter === 'above100') {
+      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price > 100000)) return false;
+    }
+
+    return matchesSearch && matchesStatus && matchesDate && matchesCampus;
   });
 
   // Chuẩn hóa đường dẫn ảnh từ API (xử lý dấu \\ của Windows, thiếu dấu / đầu)
@@ -661,24 +708,30 @@ const HomePage = () => {
       }}
     >
       <Stack spacing={3}>
-        {/* Filter Controls */}
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Danh mục</InputLabel>
-              <Select
-                value={categoryFilter}
-                label="Danh mục"
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                sx={{ borderRadius: 2 }}
-              >
-                <MenuItem value="all">Tất cả</MenuItem>
-                {categories.map(category => (
-                  <MenuItem key={category} value={category}>{category}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+        {/* Filter bar (dòng dưới Search) */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 2 }}>
+          {/* Dropdown Danh mục riêng biệt */}
+          <FormControl sx={{ minWidth: 150 }} size="small">
+            <InputLabel>Danh mục</InputLabel>
+            <Select
+              value={categoryFilter}
+              label="Danh mục"
+              onChange={e => setCategoryFilter(e.target.value)}
+            >
+              {categoryOptions.map(o => <MenuItem value={o.value} key={o.value}>{o.label}</MenuItem>)}
+            </Select>
+          </FormControl>
+          {/* Dropdown Giá tiền riêng biệt */}
+          <FormControl sx={{ minWidth: 150 }} size="small">
+            <InputLabel>Giá tiền</InputLabel>
+            <Select
+              value={priceFilter}
+              label="Giá tiền"
+              onChange={e => setPriceFilter(e.target.value)}
+            >
+              {priceOptions.map(o => <MenuItem value={o.value} key={o.value}>{o.label}</MenuItem>)}
+            </Select>
+          </FormControl>
 
           <Grid item xs={12} sm={6} md={3}>
             <FormControl fullWidth>
@@ -697,7 +750,7 @@ const HomePage = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Thời gian</InputLabel>
               <Select
@@ -714,6 +767,23 @@ const HomePage = () => {
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Campus</InputLabel>
+              <Select
+                value={campusFilter}
+                label="Campus"
+                onChange={(e) => setCampusFilter(e.target.value)}
+              >
+                {campuses.map((campus) => (
+                  <MenuItem key={campus.value} value={campus.value}>
+                    {campus.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={2}>
             <Button
               variant="outlined"
               fullWidth
@@ -722,20 +792,22 @@ const HomePage = () => {
                 setCategoryFilter('all');
                 setStatusFilter('all');
                 setDateFilter('all');
+                setCampusFilter('all');
+                setPriceFilter('all');
               }}
               sx={{ height: '56px' }}
             >
               Đặt lại
             </Button>
           </Grid>
-        </Grid>
+        </Box>
 
         {/* Results Summary */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="body2" color="text.secondary">
             Hiển thị {filteredEvents.length} / {validEvents.length} sự kiện
           </Typography>
-          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all') && (
+          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all') && (
             <Chip label="Đang lọc" color="primary" size="small" />
           )}
         </Box>
@@ -762,6 +834,8 @@ const HomePage = () => {
               setCategoryFilter('all');
               setStatusFilter('all');
               setDateFilter('all');
+              setCampusFilter('all');
+              setPriceFilter('all');
             }}
           >
             Đặt lại bộ lọc
@@ -971,7 +1045,14 @@ const HomePage = () => {
                           bgcolor: 'transparent',
                           boxShadow: 'none',
                           textDecoration: 'none',
-                          color: 'inherit'
+                          color: 'inherit',
+                          transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                          '&:hover': {
+                            transform: 'translateY(-6px)',
+                            boxShadow: theme.palette.mode === 'dark' 
+                              ? '0 12px 24px rgba(0,0,0,0.45)' 
+                              : '0 12px 24px rgba(0,0,0,0.2)'
+                          }
                         }}
                       >
                         <Box
@@ -981,7 +1062,24 @@ const HomePage = () => {
                             borderRadius: 2,
                             overflow: 'hidden',
                             backgroundColor: 'grey.100',
-                            position: 'relative'
+                            position: 'relative',
+                            '& img': {
+                              transition: 'transform 0.35s ease, opacity 0.35s ease'
+                            },
+                            '&:after': {
+                              content: '""',
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'linear-gradient(to top, rgba(0,0,0,0.25), rgba(0,0,0,0))',
+                              opacity: 0,
+                              transition: 'opacity 0.35s ease'
+                            },
+                            '&:hover img': {
+                              transform: 'scale(1.06)'
+                            },
+                            '&:hover:after': {
+                              opacity: 1
+                            }
                           }}
                         >
                           {imageUrl ? (

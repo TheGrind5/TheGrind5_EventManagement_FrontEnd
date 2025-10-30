@@ -108,6 +108,15 @@ const PaymentPage = () => {
                 } else if (orderData.status === 'Cancelled') {
                     setError('Đơn hàng này đã bị hủy và không thể thanh toán');
                 }
+
+                // Auto-bypass payment for free orders
+                const amount = orderData.data?.amount ?? orderData.amount ?? 0;
+                if (amount === 0) {
+                    setTimeout(() => {
+                        navigate(`/order-confirmation/${orderId}`, { state: { order: orderData.data || orderData } });
+                    }, 300);
+                    return;
+                }
                 
             } catch (err) {
                 console.error('Error fetching order:', err);

@@ -84,6 +84,7 @@ const CreateEventPage = () => {
       eventIntroduction: '',
       category: '',
       eventMode: 'Offline',
+      campus: '',
       venueName: '',
       province: '',
       district: '',
@@ -373,6 +374,7 @@ const CreateEventPage = () => {
         eventIntroduction: eventData.description || '',
         category: eventData.category || '',
         eventMode: eventData.eventMode || 'Offline',
+        campus: eventData.campus || eventDetails.province || '',
         venueName: eventDetails.venueName || '',
         province: eventDetails.province || '',
         district: eventDetails.district || '',
@@ -697,12 +699,15 @@ const CreateEventPage = () => {
               throw new Error(`Tên loại vé ${index + 1} chứa nội dung không phù hợp. Vui lòng sử dụng tên phù hợp.`);
             }
             
-            if (!ticket.price || parseFloat(ticket.price) < 0) {
+            // Cho phép giá vé = 0 hợp lệ; chỉ reject nếu null/empty/NaN hoặc < 0
+            const priceNum = parseFloat(ticket.price);
+            if (ticket.price === '' || ticket.price === null || isNaN(priceNum) || priceNum < 0) {
               throw new Error(`Giá vé ${index + 1} không hợp lệ`);
             }
             
-            if (!ticket.quantity || parseInt(ticket.quantity) < 0) {
-              throw new Error(`Số lượng vé ${index + 1} không hợp lệ`);
+            // Số lượng phải >= 1
+            if (!ticket.quantity || parseInt(ticket.quantity) < 1) {
+              throw new Error(`Số lượng vé ${index + 1} phải lớn hơn 0`);
             }
             
             const minOrder = parseInt(ticket.minOrder) || 1;
@@ -733,7 +738,7 @@ const CreateEventPage = () => {
             // Đảm bảo tất cả các trường đều có giá trị hợp lệ
             const processedTicket = {
               TypeName: ticket.typeName.trim(),
-              Price: parseFloat(ticket.price),
+              Price: Math.max(0, isNaN(parseFloat(ticket.price)) ? 0 : parseFloat(ticket.price)),
               Quantity: parseInt(ticket.quantity),
               MinOrder: minOrder,
               MaxOrder: maxOrder,
@@ -865,14 +870,41 @@ const CreateEventPage = () => {
         // Chuẩn bị venue layout từ step3Data
         let venueLayout = null;
         if (step3Data && step3Data.hasVirtualStage && step3Data.layout) {
+          // PATCH: TỰ ĐỘNG BỔ SUNG LINKEDTICKET nếu cần
+          const ticketTypesMap = new Map((step2Data.ticketTypes || []).map(ticket => [ticket.ticketTypeId || ticket.id || ticket.idAuto, ticket]));
           venueLayout = {
             hasVirtualStage: step3Data.layout.hasVirtualStage || false,
             canvasWidth: step3Data.layout.canvasWidth || 1000,
             canvasHeight: step3Data.layout.canvasHeight || 800,
-            areas: (step3Data.layout.areas || []).map(area => ({
-              ...area,
-              ticketTypeId: area.ticketTypeId || null
-            }))
+            areas: (step3Data.layout.areas || []).map(area => {
+              let linkedAuto = area.linkedTicket;
+              // Nếu chỉ có ticketTypeId mà không có snapshot thì tự động gắn snapshot
+              if (area.ticketTypeId !== undefined && area.ticketTypeId !== null) {
+                // Ưu tiên linkedTicket nếu đã có đúng snapshot (dạng object), nếu chưa có thì bổ sung từ ticketTypes
+                if (!linkedAuto || typeof linkedAuto !== 'object' || !linkedAuto.typeName) {
+                  // Tìm vé đúng typeId
+                  const matched = (step2Data.ticketTypes || []).find(ticket => Number(ticket.ticketTypeId) === Number(area.ticketTypeId));
+                  if (matched) {
+                    linkedAuto = {
+                      ticketTypeId: matched.ticketTypeId,
+                      typeName: matched.typeName,
+                      price: matched.price,
+                      quantity: matched.quantity,
+                      minOrder: matched.minOrder,
+                      maxOrder: matched.maxOrder,
+                      saleStart: matched.saleStart,
+                      saleEnd: matched.saleEnd,
+                      status: matched.status
+                    };
+                  }
+                }
+              }
+              return {
+                ...area,
+                ticketTypeId: area.ticketTypeId || null,
+                linkedTicket: area.ticketTypeId ? linkedAuto : null
+              }
+            })
           };
         }
 
@@ -1105,6 +1137,7 @@ const CreateEventPage = () => {
       eventIntroduction: '',
       category: '',
       eventMode: 'Offline',
+      campus: '',
       venueName: '',
       province: '',
       district: '',
@@ -1214,19 +1247,28 @@ const CreateEventPage = () => {
       case 1:
         // Check if all ticket types have required fields
         const validTicketTypes = step2Data.ticketTypes && step2Data.ticketTypes.length > 0 && 
-          step2Data.ticketTypes.every(ticket => 
-            ticket.typeName && 
-            ticket.price && 
-            ticket.quantity && 
-            ticket.minOrder
-          );
+          step2Data.ticketTypes.every(ticket => {
+            const hasName = !!(ticket.typeName && ticket.typeName.trim() !== '');
+            const priceNum = Number(ticket.price);
+            const hasValidPrice = ticket.price === 0 || (!isNaN(priceNum) && priceNum >= 0);
+            const qtyNum = Number(ticket.quantity);
+            const hasValidQty = !isNaN(qtyNum) && qtyNum >= 1;
+            const minOrderNum = Number(ticket.minOrder);
+            const hasMinOrder = !isNaN(minOrderNum) && minOrderNum >= 1;
+            return hasName && hasValidPrice && hasValidQty && hasMinOrder;
+          });
         
-        const isValidStep2 = step2Data.startTime && step2Data.endTime && validTicketTypes;
+        // Start < End (không cho bằng hoặc đảo ngược)
+        const hasValidTimeRange = !!step2Data.startTime && !!step2Data.endTime &&
+          new Date(step2Data.startTime) < new Date(step2Data.endTime);
+        
+        const isValidStep2 = hasValidTimeRange && validTicketTypes;
         
         // Debug: Log Step 2 validation
         console.log('Step 2 Validation Debug:', {
           startTime: step2Data.startTime,
           endTime: step2Data.endTime,
+          timeRangeValid: hasValidTimeRange,
           ticketTypesLength: step2Data.ticketTypes?.length || 0,
           ticketTypes: step2Data.ticketTypes,
           validTicketTypes: validTicketTypes,
