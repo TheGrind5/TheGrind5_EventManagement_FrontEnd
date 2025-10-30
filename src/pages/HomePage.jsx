@@ -164,6 +164,14 @@ const HomePage = () => {
     </Grid>
   );
 
+  // Get featured events (top 6 events for grid display)
+  const featuredEvents = filteredEvents
+    .filter(event => {
+      const start = new Date(event.startTime);
+      return start > new Date();
+    })
+    .slice(0, 6);
+
   // Get trending events (upcoming events with most recent start time)
   const trendingEvents = filteredEvents
     .filter(event => {
@@ -405,6 +413,79 @@ const HomePage = () => {
     );
   };
 
+  // Render featured events section with grid layout (3 columns)
+  const renderFeaturedEventsGrid = () => {
+    if (featuredEvents.length === 0) return null;
+
+    return (
+      <Box sx={{ mb: 6 }}>
+        {/* Section Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #3DBE29 0%, #2FA320 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Event sx={{ fontSize: 18, color: '#FFFFFF' }} />
+          </Box>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 700,
+              color: 'text.primary',
+              fontSize: { xs: '1.25rem', md: '1.5rem' }
+            }}
+          >
+            🔥 Sự kiện nổi bật
+          </Typography>
+          <Chip 
+            label={`${featuredEvents.length}`} 
+            size="small" 
+            sx={{ 
+              fontWeight: 600,
+              backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+              color: 'text.secondary'
+            }} 
+          />
+        </Box>
+
+        {/* Grid Layout - 3 columns */}
+        <Grid 
+          container 
+          spacing={{ xs: 2, md: 3 }}
+          sx={{
+            justifyContent: 'flex-start',
+            alignItems: 'stretch'
+          }}
+        >
+          {featuredEvents.map((event) => (
+            <Grid 
+              item 
+              xs={12}   // 1 column on mobile
+              sm={6}    // 2 columns on tablet
+              md={4}    // 3 columns on desktop
+              key={event.eventId}
+              sx={{
+                display: 'flex',
+                justifyContent: 'center'
+              }}
+            >
+              <Box sx={{ width: '100%', maxWidth: 400 }}>
+                <EventCard event={event} />
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    );
+  };
+
   // Render events grid with TicketBox styling
   const renderEventsGrid = () => {
     if (filteredEvents.length === 0) {
@@ -496,15 +577,18 @@ const HomePage = () => {
     // Otherwise show sections
     return (
       <Box>
-        {/* Trending Events */}
+        {/* Featured Events Grid - 3 columns */}
+        {renderFeaturedEventsGrid()}
+
+        {/* Trending Events - Horizontal Scroll */}
         {renderEventSection(
-          '🔥 Sự kiện xu hướng',
+          '⚡ Sự kiện xu hướng',
           trendingEvents,
           <TrendingUp sx={{ fontSize: 28, color: 'primary.main' }} />,
           trendingScrollRef
         )}
 
-        {/* Recommended Events */}
+        {/* Recommended Events - Horizontal Scroll */}
         {renderEventSection(
           '✨ Dành cho bạn',
           recommendedEvents,
@@ -512,7 +596,7 @@ const HomePage = () => {
           recommendedScrollRef
         )}
 
-        {/* Upcoming Events */}
+        {/* Upcoming Events - Horizontal Scroll */}
         {renderEventSection(
           '📅 Sự kiện sắp diễn ra',
           upcomingEvents,
