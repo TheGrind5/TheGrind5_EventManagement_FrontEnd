@@ -460,8 +460,8 @@ const HomePage = () => {
           container 
           spacing={{ xs: 2, md: 3 }}
           sx={{
-            justifyContent: 'flex-start',
-            alignItems: 'stretch'
+            mx: 0,
+            width: '100%',
           }}
         >
           {featuredEvents.map((event) => (
@@ -473,10 +473,10 @@ const HomePage = () => {
               key={event.eventId}
               sx={{
                 display: 'flex',
-                justifyContent: 'center'
+                px: { xs: 0, md: 0 },
               }}
             >
-              <Box sx={{ width: '100%', maxWidth: 400 }}>
+              <Box sx={{ width: '100%' }}>
                 <EventCard event={event} />
               </Box>
             </Grid>
