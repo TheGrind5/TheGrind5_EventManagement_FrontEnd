@@ -209,3 +209,29 @@
   }
 }
 
+/* Action Cell Styling */
+.action-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.action-cell .MuiButton-root {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.action-cell .MuiButton-root:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.action-cell .MuiButton-containedError {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+}
+
+.action-cell .MuiButton-containedSuccess {
+  background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+}
+
