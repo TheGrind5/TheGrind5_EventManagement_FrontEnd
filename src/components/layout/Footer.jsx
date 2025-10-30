@@ -68,8 +68,8 @@ const Footer = () => {
       component="footer"
       sx={{
         backgroundColor: theme.palette.mode === 'dark'
-          ? '#1A1A2E'
-          : '#F9FAFB',
+          ? '#0A0A0A'
+          : '#FAFAFA',
         borderTop: `1px solid ${theme.palette.divider}`,
         pt: 6,
         pb: 3,

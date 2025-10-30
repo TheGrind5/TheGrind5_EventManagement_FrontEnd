@@ -50,14 +50,14 @@ export const CustomThemeProvider = ({ children }) => {
         main: '#10B981',
       },
       background: {
-        default: themeMode === 'dark' ? '#0F0F23' : '#FFFFFF',
-        paper: themeMode === 'dark' ? '#1A1A2E' : '#FFFFFF',
+        default: themeMode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+        paper: themeMode === 'dark' ? '#1C1C1C' : '#FFFFFF',
       },
       text: {
-        primary: themeMode === 'dark' ? '#FFFFFF' : '#1C1C1C',
-        secondary: themeMode === 'dark' ? '#D1D5DB' : '#6B7280',
+        primary: themeMode === 'dark' ? '#FFFFFF' : '#000000',
+        secondary: themeMode === 'dark' ? '#A3A3A3' : '#737373',
       },
-      divider: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+      divider: themeMode === 'dark' ? '#333333' : '#E5E7EB',
     },
     typography: {
       fontFamily: [
@@ -131,9 +131,10 @@ export const CustomThemeProvider = ({ children }) => {
           root: {
             borderRadius: 8,
             border: themeMode === 'dark' 
-              ? '1px solid rgba(255, 255, 255, 0.1)' 
+              ? '1px solid #333333' 
               : '1px solid #E5E7EB',
             boxShadow: 'none',
+            backgroundColor: themeMode === 'dark' ? '#1C1C1C' : '#FFFFFF',
           },
         },
       },

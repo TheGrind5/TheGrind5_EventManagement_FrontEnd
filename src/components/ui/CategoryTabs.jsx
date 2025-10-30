@@ -64,7 +64,7 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategoryChange }) =
     <Box
       sx={{
         backgroundColor: theme.palette.mode === 'dark' 
-          ? '#1A1A2E' 
+          ? '#000000' 
           : '#FFFFFF',
         borderBottom: `1px solid ${theme.palette.divider}`,
         position: 'sticky',

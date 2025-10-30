@@ -129,11 +129,11 @@ const EventCard = ({ event }) => {
               justifyContent: 'center',
               height: '100%',
               width: '100%',
-              backgroundColor: theme.palette.mode === 'dark' ? '#333' : '#F3F4F6',
-              color: 'text.secondary'
+              backgroundColor: theme.palette.mode === 'dark' ? '#262626' : '#F5F5F5',
+              color: theme.palette.mode === 'dark' ? '#525252' : '#A3A3A3'
             }}
           >
-            <EventIcon sx={{ fontSize: 40, opacity: 0.4 }} />
+            <EventIcon sx={{ fontSize: 40, opacity: 0.5 }} />
           </Box>
         )}
 

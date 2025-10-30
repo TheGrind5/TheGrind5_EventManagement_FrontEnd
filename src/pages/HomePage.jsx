@@ -160,11 +160,10 @@ const HomePage = () => {
       sx={{ 
         p: { xs: 2, md: 3 }, 
         mb: 3,
-        borderRadius: 3,
+        borderRadius: 2,
         border: `1px solid ${theme.palette.divider}`,
-        boxShadow: theme.palette.mode === 'dark'
-          ? '0 2px 8px rgba(0, 0, 0, 0.3)'
-          : '0 2px 8px rgba(0, 0, 0, 0.04)',
+        boxShadow: 'none',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#FFFFFF',
       }}
     >
       <Stack spacing={3}>
@@ -352,8 +351,8 @@ const HomePage = () => {
       <Box
         sx={{
           background: theme.palette.mode === 'dark'
-            ? '#2A2A2A'
-            : '#FFFFFF',
+            ? '#0A0A0A'
+            : '#FAFAFA',
           py: { xs: 4, md: 6 },
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}

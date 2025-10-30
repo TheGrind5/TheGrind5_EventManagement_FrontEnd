@@ -123,7 +123,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
   return (
     <AppBar position="sticky" elevation={0} sx={{ 
       background: theme.palette.mode === 'dark' 
-        ? '#1A1A2E' 
+        ? '#000000' 
         : '#FFFFFF',
       borderBottom: `1px solid ${theme.palette.divider}`,
       color: 'text.primary',
@@ -300,17 +300,24 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
                   backgroundColor: theme.palette.mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.05)'
-                    : '#F9FAFB',
+                    ? '#1C1C1C'
+                    : '#F5F5F5',
+                  border: 'none',
                   '&:hover': {
                     backgroundColor: theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.08)'
-                      : '#F3F4F6',
+                      ? '#262626'
+                      : '#E5E5E5',
                   },
                   '&.Mui-focused': {
                     backgroundColor: theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.08)'
+                      ? '#262626'
                       : '#FFFFFF',
+                    border: theme.palette.mode === 'dark'
+                      ? '1px solid #404040'
+                      : '1px solid #D4D4D4',
+                  },
+                  '& fieldset': {
+                    border: 'none',
                   }
                 },
                 '& .MuiInputBase-input': {
