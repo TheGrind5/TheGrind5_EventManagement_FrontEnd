@@ -37,6 +37,7 @@ import {
 
 // Components & Services
 import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
 import CategoryTabs from '../components/ui/CategoryTabs';
 import EventCard from '../components/ui/EventCard';
 import { eventsAPI } from '../services/apiClient';
@@ -479,6 +480,9 @@ const HomePage = () => {
         {/* Events Grid */}
         {renderEventsGrid()}
       </Container>
+
+      {/* Footer */}
+      <Footer />
     </Box>
   );
 };
