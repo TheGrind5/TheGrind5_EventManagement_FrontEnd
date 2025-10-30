@@ -29,20 +29,15 @@ import MyTicketsPage from './pages/MyTicketsPage';
 import MyEventsPage from './pages/MyEventsPage';
 import CreateEventPage from './pages/CreateEventPage';
 import WishlistPage from './pages/WishlistPage';
+import AdminDashboard from './pages/AdminDashboard';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '18px'
-      }}>
-        <div>Đang tải...</div>
+      <div className="loading-container">
+        <div className="loading-spinner">Loading...</div>
       </div>
     );
   }
@@ -54,13 +49,17 @@ function AppRoutes() {
       <Route 
         path="/login" 
         element={
-          user ? <Navigate to="/dashboard" replace /> : <LoginPage />
+          user ? (
+            user.role === 'Admin' ? <Navigate to="/admin/users" replace /> : <Navigate to="/dashboard" replace />
+          ) : <LoginPage />
         } 
       />
       <Route 
         path="/register" 
         element={
-          user ? <Navigate to="/dashboard" replace /> : <RegisterPage />
+          user ? (
+            user.role === 'Admin' ? <Navigate to="/admin/users" replace /> : <Navigate to="/dashboard" replace />
+          ) : <RegisterPage />
         } 
       />
       <Route path="/event/:id" element={<EventDetailsPage />} />
@@ -68,14 +67,14 @@ function AppRoutes() {
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
       
       {/* Payment Routes */}
-      <Route
-        path="/payment/:orderId"
-        element={
-          <ProtectedRoute>
-            <PaymentPage />
-          </ProtectedRoute>
-        }
-      />
+                <Route
+                    path="/payment/:orderId"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentPage />
+                        </ProtectedRoute>
+                    }
+                />
       <Route 
         path="/order-confirmation/:orderId" 
         element={
@@ -131,6 +130,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CreateEventPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Admin Routes */}
+      <Route 
+        path="/admin/*" 
+        element={
+          <ProtectedRoute requiredRole="Admin">
+            <AdminDashboard />
           </ProtectedRoute>
         } 
       />
