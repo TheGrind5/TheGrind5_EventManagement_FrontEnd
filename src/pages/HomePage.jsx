@@ -348,141 +348,53 @@ const HomePage = () => {
         onSearchChange={setSearchTerm}
       />
       
-      {/* Hero Section - TicketBox Style */}
+      {/* Hero Section - Simple & Clean */}
       <Box
         sx={{
           background: theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, #2FA320 0%, #3DBE29 100%)'
-            : 'linear-gradient(135deg, #3DBE29 0%, #5FD946 100%)',
-          color: 'white',
-          py: { xs: 6, md: 10 },
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)',
-            pointerEvents: 'none',
-          }
+            ? '#2A2A2A'
+            : '#FFFFFF',
+          py: { xs: 4, md: 6 },
+          borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Stack spacing={{ xs: 3, md: 4 }} alignItems="center">
+        <Container maxWidth="lg">
+          <Stack spacing={{ xs: 2, md: 3 }} alignItems="center">
             <Typography 
               variant="h2" 
               component="h1" 
               sx={{ 
                 fontWeight: 700,
-                fontSize: { xs: '2rem', md: '3rem' },
-                letterSpacing: '-0.02em',
-                textShadow: '0 2px 12px rgba(0, 0, 0, 0.1)',
+                fontSize: { xs: '1.75rem', md: '2.5rem' },
+                color: 'text.primary',
               }}
             >
-              Khám Phá Sự Kiện Tuyệt Vời
+              Khám Phá Sự Kiện
             </Typography>
             <Typography 
-              variant="h6" 
+              variant="body1" 
               sx={{ 
-                opacity: 0.95, 
-                maxWidth: 600,
-                fontSize: { xs: '1rem', md: '1.25rem' },
-                fontWeight: 400,
+                maxWidth: 500,
+                fontSize: { xs: '0.9rem', md: '1rem' },
+                color: 'text.secondary',
+                textAlign: 'center',
               }}
             >
-              Tìm kiếm và tham gia những sự kiện thú vị nhất tại thành phố của bạn
+              Tìm kiếm và tham gia sự kiện tại Việt Nam
             </Typography>
-            <Stack 
-              direction={isMobile ? 'column' : 'row'} 
-              spacing={2} 
-              sx={{ mt: 2, width: isMobile ? '100%' : 'auto' }}
+            <Button 
+              component={Link} 
+              to="/create-event" 
+              variant="contained" 
+              size="medium"
+              sx={{ 
+                fontWeight: 600,
+                px: 3,
+                mt: 1,
+              }}
             >
-              <Button 
-                component={Link} 
-                to="/register" 
-                variant="contained" 
-                size="large"
-                sx={{ 
-                  bgcolor: 'white', 
-                  color: 'primary.main',
-                  fontWeight: 600,
-                  px: 4,
-                  py: 1.5,
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
-                  '&:hover': { 
-                    bgcolor: 'grey.50',
-                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.2)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Bắt Đầu Ngay
-              </Button>
-              <Button 
-                component={Link} 
-                to="/" 
-                variant="outlined" 
-                size="large"
-                sx={{ 
-                  borderColor: 'white', 
-                  color: 'white',
-                  fontWeight: 600,
-                  px: 4,
-                  py: 1.5,
-                  borderWidth: 2,
-                  '&:hover': { 
-                    borderColor: 'white',
-                    borderWidth: 2,
-                    bgcolor: 'rgba(255, 255, 255, 0.15)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Khám Phá Sự Kiện
-              </Button>
-            </Stack>
-            
-            <Grid container spacing={4} sx={{ mt: { xs: 2, md: 4 }, maxWidth: 700 }}>
-              <Grid item xs={4}>
-                <Stack alignItems="center" spacing={1}>
-                  <TrendingUp sx={{ fontSize: { xs: 32, md: 40 } }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', md: '2rem' } }}>
-                    100+
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-                    Sự Kiện
-                  </Typography>
-                </Stack>
-              </Grid>
-              <Grid item xs={4}>
-                <Stack alignItems="center" spacing={1}>
-                  <People sx={{ fontSize: { xs: 32, md: 40 } }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', md: '2rem' } }}>
-                    5000+
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-                    Người Tham Gia
-                  </Typography>
-                </Stack>
-              </Grid>
-              <Grid item xs={4}>
-                <Stack alignItems="center" spacing={1}>
-                  <Business sx={{ fontSize: { xs: 32, md: 40 } }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', md: '2rem' } }}>
-                    50+
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-                    Đối Tác
-                  </Typography>
-                </Stack>
-              </Grid>
-            </Grid>
+              Tạo sự kiện mới
+            </Button>
           </Stack>
         </Container>
       </Box>

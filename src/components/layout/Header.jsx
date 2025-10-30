@@ -123,16 +123,13 @@ const Header = ({ searchTerm, onSearchChange }) => {
   return (
     <AppBar position="sticky" elevation={0} sx={{ 
       background: theme.palette.mode === 'dark' 
-        ? 'rgba(26, 26, 46, 0.95)' 
-        : 'rgba(255, 255, 255, 0.98)',
-      backdropFilter: 'blur(12px)',
+        ? '#1A1A2E' 
+        : '#FFFFFF',
       borderBottom: `1px solid ${theme.palette.divider}`,
       color: 'text.primary',
-      boxShadow: theme.palette.mode === 'dark'
-        ? '0 2px 8px rgba(0, 0, 0, 0.3)'
-        : '0 2px 8px rgba(0, 0, 0, 0.04)',
+      boxShadow: 'none',
     }}>
-      <Toolbar sx={{ minHeight: { xs: 64, md: 72 } }}>
+      <Toolbar sx={{ minHeight: { xs: 60, md: 64 } }}>
         {/* Logo */}
         <Typography 
           variant="h6" 
@@ -301,28 +298,19 @@ const Header = ({ searchTerm, onSearchChange }) => {
               size="small"
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
+                  borderRadius: 1.5,
                   backgroundColor: theme.palette.mode === 'dark'
                     ? 'rgba(255, 255, 255, 0.05)'
                     : '#F9FAFB',
-                  border: `1px solid ${theme.palette.divider}`,
-                  transition: 'all 0.2s ease',
                   '&:hover': {
                     backgroundColor: theme.palette.mode === 'dark'
                       ? 'rgba(255, 255, 255, 0.08)'
                       : '#F3F4F6',
-                    borderColor: theme.palette.mode === 'dark'
-                      ? 'rgba(61, 190, 41, 0.3)'
-                      : 'rgba(61, 190, 41, 0.4)',
                   },
                   '&.Mui-focused': {
                     backgroundColor: theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.1)'
+                      ? 'rgba(255, 255, 255, 0.08)'
                       : '#FFFFFF',
-                    borderColor: 'primary.main',
-                    boxShadow: theme.palette.mode === 'dark'
-                      ? '0 0 0 3px rgba(61, 190, 41, 0.1)'
-                      : '0 0 0 3px rgba(61, 190, 41, 0.08)',
                   }
                 },
                 '& .MuiInputBase-input': {

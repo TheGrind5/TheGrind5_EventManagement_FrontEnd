@@ -91,22 +91,19 @@ const EventCard = ({ event }) => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 3,
-        transition: 'all 0.3s ease',
+        borderRadius: 2,
+        transition: 'all 0.2s ease',
         textDecoration: 'none',
         color: 'inherit',
         cursor: 'pointer',
         overflow: 'hidden',
         border: `1px solid ${theme.palette.divider}`,
+        boxShadow: 'none',
         '&:hover': {
-          transform: 'translateY(-4px)',
           boxShadow: theme.palette.mode === 'dark'
-            ? '0 12px 24px rgba(0, 0, 0, 0.4)'
-            : '0 12px 24px rgba(0, 0, 0, 0.12)',
+            ? '0 4px 12px rgba(0, 0, 0, 0.3)'
+            : '0 4px 12px rgba(0, 0, 0, 0.08)',
           borderColor: 'primary.main',
-          '& .event-image': {
-            transform: 'scale(1.05)'
-          }
         }
       }}
     >
@@ -132,14 +129,11 @@ const EventCard = ({ event }) => {
               justifyContent: 'center',
               height: '100%',
               width: '100%',
-              background: 'linear-gradient(135deg, #3DBE29 0%, #2FA320 100%)',
-              color: 'white'
+              backgroundColor: theme.palette.mode === 'dark' ? '#333' : '#F3F4F6',
+              color: 'text.secondary'
             }}
           >
-            <EventIcon sx={{ fontSize: 48, mb: 1, opacity: 0.9 }} />
-            <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
-              Sự Kiện
-            </Typography>
+            <EventIcon sx={{ fontSize: 40, opacity: 0.4 }} />
           </Box>
         )}
 
@@ -166,9 +160,9 @@ const EventCard = ({ event }) => {
         <Box
           sx={{
             position: 'absolute',
-            top: 12,
-            left: 12,
-            right: 12,
+            top: 8,
+            left: 8,
+            right: 8,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
@@ -179,30 +173,25 @@ const EventCard = ({ event }) => {
             label={event.category}
             size="small"
             sx={{
-              fontWeight: 600,
-              borderRadius: 1.5,
-              fontSize: '0.75rem',
-              height: 26,
-              px: 1,
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              color: 'primary.main',
-              backdropFilter: 'blur(8px)',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              fontWeight: 500,
+              borderRadius: 1,
+              fontSize: '0.7rem',
+              height: 24,
+              backgroundColor: 'white',
+              color: 'text.primary',
             }}
           />
           <Chip
             label={getStatusText(currentStatus)}
-            color={getStatusColor(currentStatus)}
             size="small"
             sx={{
-              borderRadius: 1.5,
-              fontSize: '0.75rem',
-              height: 26,
-              px: 1,
+              borderRadius: 1,
+              fontSize: '0.7rem',
+              height: 24,
               fontWeight: 500,
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(8px)',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              backgroundColor: currentStatus === 'Active' ? '#10B981' :
+                             currentStatus === 'Upcoming' ? '#F59E0B' : '#9CA3AF',
+              color: 'white',
             }}
           />
         </Box>

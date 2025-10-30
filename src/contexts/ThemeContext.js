@@ -114,21 +114,14 @@ export const CustomThemeProvider = ({ children }) => {
           root: {
             textTransform: 'none',
             fontWeight: 600,
-            borderRadius: 8,
-            padding: '10px 24px',
+            borderRadius: 6,
+            padding: '8px 20px',
             boxShadow: 'none',
-            '&:hover': {
-              boxShadow: themeMode === 'dark'
-                ? '0 4px 12px rgba(61, 190, 41, 0.25)'
-                : '0 4px 12px rgba(61, 190, 41, 0.2)',
-            },
           },
           contained: {
             boxShadow: 'none',
             '&:hover': {
-              boxShadow: themeMode === 'dark'
-                ? '0 4px 12px rgba(61, 190, 41, 0.25)'
-                : '0 4px 12px rgba(61, 190, 41, 0.2)',
+              boxShadow: 'none',
             },
           },
         },
@@ -136,13 +129,11 @@ export const CustomThemeProvider = ({ children }) => {
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 12,
+            borderRadius: 8,
             border: themeMode === 'dark' 
               ? '1px solid rgba(255, 255, 255, 0.1)' 
               : '1px solid #E5E7EB',
-            boxShadow: themeMode === 'dark' 
-              ? '0 2px 8px rgba(0, 0, 0, 0.3)' 
-              : '0 2px 8px rgba(0, 0, 0, 0.06)',
+            boxShadow: 'none',
           },
         },
       },

@@ -64,16 +64,12 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategoryChange }) =
     <Box
       sx={{
         backgroundColor: theme.palette.mode === 'dark' 
-          ? 'rgba(26, 26, 46, 0.5)' 
+          ? '#1A1A2E' 
           : '#FFFFFF',
         borderBottom: `1px solid ${theme.palette.divider}`,
-        boxShadow: theme.palette.mode === 'dark'
-          ? '0 2px 8px rgba(0, 0, 0, 0.2)'
-          : '0 2px 8px rgba(0, 0, 0, 0.04)',
         position: 'sticky',
-        top: { xs: 64, md: 72 }, // Stick below header
+        top: { xs: 60, md: 64 }, // Stick below header
         zIndex: 10,
-        backdropFilter: 'blur(8px)',
       }}
     >
       <Container maxWidth="xl">
@@ -84,25 +80,20 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategoryChange }) =
           scrollButtons={isMobile ? 'auto' : false}
           allowScrollButtonsMobile
           sx={{
-            minHeight: 56,
+            minHeight: 48,
             '& .MuiTabs-indicator': {
-              height: 3,
-              borderRadius: '3px 3px 0 0',
+              height: 2,
               backgroundColor: 'primary.main',
             },
             '& .MuiTab-root': {
-              minHeight: 56,
+              minHeight: 48,
               textTransform: 'none',
               fontWeight: 500,
               fontSize: '0.875rem',
               color: 'text.secondary',
-              px: isMobile ? 2 : 3,
-              transition: 'all 0.2s ease',
+              px: isMobile ? 2 : 2.5,
               '&:hover': {
                 color: 'primary.main',
-                backgroundColor: theme.palette.mode === 'dark'
-                  ? 'rgba(61, 190, 41, 0.08)'
-                  : 'rgba(61, 190, 41, 0.04)',
               },
               '&.Mui-selected': {
                 color: 'primary.main',
