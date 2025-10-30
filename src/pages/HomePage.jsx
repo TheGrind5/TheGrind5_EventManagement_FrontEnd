@@ -37,6 +37,7 @@ import {
 
 // Components & Services
 import Header from '../components/layout/Header';
+import CategoryTabs from '../components/ui/CategoryTabs';
 import { eventsAPI } from '../services/apiClient';
 
 const HomePage = () => {
@@ -657,6 +658,13 @@ const HomePage = () => {
           </Stack>
         </Container>
       </Box>
+
+      {/* Category Tabs */}
+      <CategoryTabs 
+        categories={categories}
+        selectedCategory={categoryFilter}
+        onCategoryChange={setCategoryFilter}
+      />
 
       {/* Events Section */}
       <Container maxWidth="xl" sx={{ py: 4 }}>
