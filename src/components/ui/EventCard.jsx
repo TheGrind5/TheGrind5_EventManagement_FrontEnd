@@ -179,6 +179,10 @@ const EventCard = ({ event }) => {
               height: 24,
               backgroundColor: 'white',
               color: 'text.primary',
+              '& .MuiChip-label': {
+                textRendering: 'optimizeLegibility',
+                WebkitFontSmoothing: 'antialiased',
+              }
             }}
           />
           <Chip
@@ -192,6 +196,10 @@ const EventCard = ({ event }) => {
               backgroundColor: currentStatus === 'Active' ? '#10B981' :
                              currentStatus === 'Upcoming' ? '#F59E0B' : '#9CA3AF',
               color: 'white',
+              '& .MuiChip-label': {
+                textRendering: 'optimizeLegibility',
+                WebkitFontSmoothing: 'antialiased',
+              }
             }}
           />
         </Box>
@@ -223,7 +231,11 @@ const EventCard = ({ event }) => {
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             fontSize: '1rem',
-            color: 'text.primary'
+            color: 'text.primary',
+            wordBreak: 'break-word',
+            textRendering: 'optimizeLegibility',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
           }}
         >
           {event.title}
@@ -241,7 +253,11 @@ const EventCard = ({ event }) => {
             overflow: 'hidden',
             lineHeight: 1.5,
             minHeight: 42,
-            fontSize: '0.875rem'
+            fontSize: '0.875rem',
+            wordBreak: 'break-word',
+            textRendering: 'optimizeLegibility',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
           }}
         >
           {event.description}
@@ -265,7 +281,9 @@ const EventCard = ({ event }) => {
                 sx={{
                   lineHeight: 1.4,
                   fontSize: '0.8125rem',
-                  flex: 1
+                  flex: 1,
+                  textRendering: 'optimizeLegibility',
+                  WebkitFontSmoothing: 'antialiased',
                 }}
               >
                 {formatDate(event.startTime)}
@@ -287,7 +305,9 @@ const EventCard = ({ event }) => {
                 sx={{
                   lineHeight: 1.4,
                   fontSize: '0.8125rem',
-                  flex: 1
+                  flex: 1,
+                  textRendering: 'optimizeLegibility',
+                  WebkitFontSmoothing: 'antialiased',
                 }}
               >
                 {event.location}
@@ -309,7 +329,9 @@ const EventCard = ({ event }) => {
                 sx={{
                   lineHeight: 1.4,
                   fontSize: '0.8125rem',
-                  flex: 1
+                  flex: 1,
+                  textRendering: 'optimizeLegibility',
+                  WebkitFontSmoothing: 'antialiased',
                 }}
               >
                 Host: {event.hostName || 'N/A'}
