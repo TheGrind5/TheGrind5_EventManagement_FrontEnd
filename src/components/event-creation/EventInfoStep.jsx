@@ -22,11 +22,13 @@ import { CloudUpload, Image, Folder } from '@mui/icons-material';
 // import 'react-quill/dist/quill.snow.css';
 import { eventsAPI } from '../../services/apiClient';
 import DebouncedTextField from '../common/DebouncedTextField';
+import ImageDisplayLocationsModal from './ImageDisplayLocationsModal';
 
 const EventInfoStep = ({ data, onChange }) => {
   const theme = useTheme();
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [imageModalOpen, setImageModalOpen] = useState(false);
   
 
   const handleInputChange = useCallback((field, value) => {
@@ -293,10 +295,7 @@ const EventInfoStep = ({ data, onChange }) => {
               variant="text" 
               color="primary" 
               sx={{ textDecoration: 'underline' }}
-              onClick={() => {
-                // TODO: Implement image display locations modal
-                alert('Chức năng xem vị trí hiển thị ảnh sẽ được thêm sau');
-              }}
+              onClick={() => setImageModalOpen(true)}
             >
               Xem vị trí hiển thị các ảnh
             </Button>
@@ -1035,6 +1034,17 @@ Chi tiết sự kiện:
           </Grid>
         </Card>
       </Box>
+
+      {/* Image Display Locations Modal */}
+      <ImageDisplayLocationsModal
+        open={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        images={{
+          eventImage: data.eventImage,
+          backgroundImage: data.backgroundImage,
+          organizerLogo: data.organizerLogo
+        }}
+      />
     </Box>
   );
 };
