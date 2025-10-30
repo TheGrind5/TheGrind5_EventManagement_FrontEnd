@@ -29,6 +29,34 @@ import {
 const EventCard = ({ event }) => {
   const theme = useTheme();
 
+  // Decode UTF-8 text helper - fix backend encoding issues
+  const decodeText = (text) => {
+    if (!text) return '';
+    try {
+      // Check if text is already properly encoded
+      if (!/[Ã|Â|Æ|á»|Ä]/.test(text)) {
+        return text;
+      }
+      
+      // Decode the double-encoded UTF-8 text
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = text;
+      let decoded = textarea.value;
+      
+      // Try to decode using TextDecoder if needed
+      if (/[Ã|Â|Æ|á»|Ä]/.test(decoded)) {
+        const bytes = new Uint8Array([...decoded].map(char => char.charCodeAt(0)));
+        const decoder = new TextDecoder('utf-8');
+        decoded = decoder.decode(bytes);
+      }
+      
+      return decoded;
+    } catch (error) {
+      console.warn('Text decode error:', error);
+      return text;
+    }
+  };
+
   // Format date helper
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -143,7 +171,7 @@ const EventCard = ({ event }) => {
             component="img"
             className="event-image"
             src={imageUrl}
-            alt={event.title}
+            alt={decodeText(event.title)}
             sx={{
               width: '100%',
               height: '100%',
@@ -170,7 +198,7 @@ const EventCard = ({ event }) => {
           }}
         >
           <Chip
-            label={event.category}
+            label={decodeText(event.category)}
             size="small"
             sx={{
               fontWeight: 500,
@@ -238,7 +266,7 @@ const EventCard = ({ event }) => {
             MozOsxFontSmoothing: 'grayscale',
           }}
         >
-          {event.title}
+          {decodeText(event.title)}
         </Typography>
 
         {/* Description */}
@@ -260,7 +288,7 @@ const EventCard = ({ event }) => {
             MozOsxFontSmoothing: 'grayscale',
           }}
         >
-          {event.description}
+          {decodeText(event.description)}
         </Typography>
 
         {/* Event Details */}
@@ -310,7 +338,7 @@ const EventCard = ({ event }) => {
                   WebkitFontSmoothing: 'antialiased',
                 }}
               >
-                {event.location}
+                {decodeText(event.location)}
               </Typography>
             </Box>
 
@@ -334,7 +362,7 @@ const EventCard = ({ event }) => {
                   WebkitFontSmoothing: 'antialiased',
                 }}
               >
-                Host: {event.hostName || 'N/A'}
+                Host: {decodeText(event.hostName) || 'N/A'}
               </Typography>
             </Box>
           </Stack>
