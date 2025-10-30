@@ -315,27 +315,58 @@ const HomePage = () => {
         onSearchChange={setSearchTerm}
       />
       
-      {/* Hero Section */}
+      {/* Hero Section - TicketBox Style */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, #2FA320 0%, #3DBE29 100%)'
+            : 'linear-gradient(135deg, #3DBE29 0%, #5FD946 100%)',
           color: 'white',
-          py: 8,
-          textAlign: 'center'
+          py: { xs: 6, md: 10 },
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)',
+            pointerEvents: 'none',
+          }
         }}
       >
-        <Container maxWidth="lg">
-          <Stack spacing={4} alignItems="center">
-            <Typography variant="h2" component="h1" sx={{ fontWeight: 700 }}>
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+          <Stack spacing={{ xs: 3, md: 4 }} alignItems="center">
+            <Typography 
+              variant="h2" 
+              component="h1" 
+              sx={{ 
+                fontWeight: 700,
+                fontSize: { xs: '2rem', md: '3rem' },
+                letterSpacing: '-0.02em',
+                textShadow: '0 2px 12px rgba(0, 0, 0, 0.1)',
+              }}
+            >
               Khám Phá Sự Kiện Tuyệt Vời
             </Typography>
-            <Typography variant="h5" sx={{ opacity: 0.9, maxWidth: 600 }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                opacity: 0.95, 
+                maxWidth: 600,
+                fontSize: { xs: '1rem', md: '1.25rem' },
+                fontWeight: 400,
+              }}
+            >
               Tìm kiếm và tham gia những sự kiện thú vị nhất tại thành phố của bạn
             </Typography>
             <Stack 
               direction={isMobile ? 'column' : 'row'} 
               spacing={2} 
-              sx={{ mt: 2 }}
+              sx={{ mt: 2, width: isMobile ? '100%' : 'auto' }}
             >
               <Button 
                 component={Link} 
@@ -345,7 +376,16 @@ const HomePage = () => {
                 sx={{ 
                   bgcolor: 'white', 
                   color: 'primary.main',
-                  '&:hover': { bgcolor: 'grey.100' }
+                  fontWeight: 600,
+                  px: 4,
+                  py: 1.5,
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+                  '&:hover': { 
+                    bgcolor: 'grey.50',
+                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.2)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
                 }}
               >
                 Bắt Đầu Ngay
@@ -358,36 +398,55 @@ const HomePage = () => {
                 sx={{ 
                   borderColor: 'white', 
                   color: 'white',
+                  fontWeight: 600,
+                  px: 4,
+                  py: 1.5,
+                  borderWidth: 2,
                   '&:hover': { 
-                    borderColor: 'white', 
-                    bgcolor: 'rgba(255, 255, 255, 0.1)' 
-                  }
+                    borderColor: 'white',
+                    borderWidth: 2,
+                    bgcolor: 'rgba(255, 255, 255, 0.15)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
                 }}
               >
                 Khám Phá Sự Kiện
               </Button>
             </Stack>
             
-            <Grid container spacing={4} sx={{ mt: 4, maxWidth: 600 }}>
+            <Grid container spacing={4} sx={{ mt: { xs: 2, md: 4 }, maxWidth: 700 }}>
               <Grid item xs={4}>
                 <Stack alignItems="center" spacing={1}>
-                  <TrendingUp sx={{ fontSize: 40 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>100+</Typography>
-                  <Typography variant="body2">Sự Kiện</Typography>
+                  <TrendingUp sx={{ fontSize: { xs: 32, md: 40 } }} />
+                  <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', md: '2rem' } }}>
+                    100+
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+                    Sự Kiện
+                  </Typography>
                 </Stack>
               </Grid>
               <Grid item xs={4}>
                 <Stack alignItems="center" spacing={1}>
-                  <People sx={{ fontSize: 40 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>5000+</Typography>
-                  <Typography variant="body2">Người Tham Gia</Typography>
+                  <People sx={{ fontSize: { xs: 32, md: 40 } }} />
+                  <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', md: '2rem' } }}>
+                    5000+
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+                    Người Tham Gia
+                  </Typography>
                 </Stack>
               </Grid>
               <Grid item xs={4}>
                 <Stack alignItems="center" spacing={1}>
-                  <Business sx={{ fontSize: 40 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>50+</Typography>
-                  <Typography variant="body2">Đối Tác</Typography>
+                  <Business sx={{ fontSize: { xs: 32, md: 40 } }} />
+                  <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', md: '2rem' } }}>
+                    50+
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+                    Đối Tác
+                  </Typography>
                 </Stack>
               </Grid>
             </Grid>
