@@ -32,27 +32,48 @@ const EventCard = ({ event }) => {
   // Decode UTF-8 text helper - fix backend encoding issues
   const decodeText = (text) => {
     if (!text) return '';
+    
     try {
-      // Check if text is already properly encoded
-      if (!/[Ã|Â|Æ|á»|Ä]/.test(text)) {
+      // Check if text needs decoding - look for mojibake patterns
+      const needsDecoding = /[\u00C0-\u00FF][\u0080-\u00BF]|�/.test(text);
+      
+      if (!needsDecoding) {
         return text;
       }
-      
-      // Decode the double-encoded UTF-8 text
-      const textarea = document.createElement('textarea');
-      textarea.innerHTML = text;
-      let decoded = textarea.value;
-      
-      // Try to decode using TextDecoder if needed
-      if (/[Ã|Â|Æ|á»|Ä]/.test(decoded)) {
-        const bytes = new Uint8Array([...decoded].map(char => char.charCodeAt(0)));
-        const decoder = new TextDecoder('utf-8');
-        decoded = decoder.decode(bytes);
+
+      // Method 1: Try to decode using escape/unescape (works for ISO-8859-1 to UTF-8)
+      try {
+        const decoded = decodeURIComponent(escape(text));
+        // Check if decoding improved the text (no mojibake patterns)
+        if (!/�|Ã|Â(?![a-zA-Z])|á»|Ä(?![a-zA-Z])|�Ï|�Í/.test(decoded)) {
+          return decoded;
+        }
+      } catch (e) {
+        // Continue to next method
+      }
+
+      // Method 2: Manual byte-by-byte UTF-8 decoding
+      const bytes = [];
+      for (let i = 0; i < text.length; i++) {
+        const charCode = text.charCodeAt(i);
+        // Only take the lower byte (handles Latin-1 encoding of UTF-8 bytes)
+        bytes.push(charCode & 0xFF);
       }
       
-      return decoded;
+      const uint8Array = new Uint8Array(bytes);
+      const decoder = new TextDecoder('utf-8', { fatal: false });
+      const decoded = decoder.decode(uint8Array);
+      
+      // Verify the decoded text is better
+      if (decoded && decoded !== text && !/�/.test(decoded)) {
+        return decoded;
+      }
+      
+      // If all methods fail, return original
+      return text;
+      
     } catch (error) {
-      console.warn('Text decode error:', error);
+      console.warn('Text decode error:', error, 'for text:', text);
       return text;
     }
   };
