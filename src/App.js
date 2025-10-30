@@ -29,6 +29,7 @@ import MyTicketsPage from './pages/MyTicketsPage';
 import MyEventsPage from './pages/MyEventsPage';
 import CreateEventPage from './pages/CreateEventPage';
 import WishlistPage from './pages/WishlistPage';
+import AdminDashboard from './pages/AdminDashboard';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -47,11 +48,19 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route 
         path="/login" 
-        element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
+        element={
+          user ? (
+            user.role === 'Admin' ? <Navigate to="/admin/users" replace /> : <Navigate to="/dashboard" replace />
+          ) : <LoginPage />
+        } 
       />
       <Route 
         path="/register" 
-        element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} 
+        element={
+          user ? (
+            user.role === 'Admin' ? <Navigate to="/admin/users" replace /> : <Navigate to="/dashboard" replace />
+          ) : <RegisterPage />
+        } 
       />
       <Route path="/event/:id" element={<EventDetailsPage />} />
       <Route path="/wishlist" element={<WishlistPage />} />
@@ -121,6 +130,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CreateEventPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Admin Routes */}
+      <Route 
+        path="/admin/*" 
+        element={
+          <ProtectedRoute requiredRole="Admin">
+            <AdminDashboard />
           </ProtectedRoute>
         } 
       />

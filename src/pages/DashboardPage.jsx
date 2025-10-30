@@ -15,7 +15,15 @@ const DashboardPage = () => {
     const fetchEvents = async () => {
       try {
         const response = await eventsAPI.getAll();
-        setEvents(response.data || []);
+        let eventArray = [];
+        if (Array.isArray(response.data)) {
+          eventArray = response.data;
+        } else if (Array.isArray(response.data?.data)) {
+          eventArray = response.data.data;
+        } else {
+          eventArray = [];
+        }
+        setEvents(eventArray);
       } catch (err) {
         setError('Failed to load events');
         console.error('Error fetching events:', err);
@@ -65,31 +73,33 @@ const DashboardPage = () => {
         <div className="mt-4">
           <h2>Available Events</h2>
           
-          {events.length === 0 ? (
-            <div className="text-center">
-              <p>No events available at the moment.</p>
-            </div>
-          ) : (
-            <div className="grid grid-2">
-              {events.map((event) => (
-                <div key={event.eventId} className="card">
-                  <div className="card-body">
-                    <h3 className="card-title">{decodeText(event.title)}</h3>
-                    <p className="card-text">{decodeText(event.description)}</p>
-                    <p><strong>Date:</strong> {formatDate(event.startTime)}</p>
-                    <p><strong>Location:</strong> {decodeText(event.location)}</p>
-                    <p><strong>Category:</strong> {decodeText(event.category)}</p>
-                    <Link 
-                      to={`/event/${event.eventId}`} 
-                      className="btn btn-primary"
-                    >
-                      View Details
-                    </Link>
+          {
+            Array.isArray(events) && events.length === 0 ? (
+              <div className="text-center">
+                <p>No events available at the moment.</p>
+              </div>
+            ) : Array.isArray(events) ? (
+              <div className="grid grid-2">
+                {events.map((event) => (
+                  <div key={event.eventId} className="card">
+                    <div className="card-body">
+                      <h3 className="card-title">{decodeText(event.title)}</h3>
+                      <p className="card-text">{decodeText(event.description)}</p>
+                      <p><strong>Date:</strong> {formatDate(event.startTime)}</p>
+                      <p><strong>Location:</strong> {decodeText(event.location)}</p>
+                      <p><strong>Category:</strong> {decodeText(event.category)}</p>
+                      <Link
+                        to={`/event/${event.eventId}`}
+                        className="btn btn-primary"
+                      >
+                        View Details
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            ) : null
+          }
         </div>
       </div>
     </div>

@@ -44,12 +44,16 @@ import Footer from '../components/layout/Footer';
 import CategoryTabs from '../components/ui/CategoryTabs';
 import EventCard from '../components/ui/EventCard';
 import { eventsAPI } from '../services/apiClient';
+import Pagination from '@mui/material/Pagination';
 
 const HomePage = () => {
   //State declaration để quản lý trạng thái của component
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [totalCount, setTotalCount] = useState(0);
   
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,9 +73,20 @@ const HomePage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await eventsAPI.getAll();
-        console.log('HomePage - Events loaded:', response);
-        setEvents(response.data || []);
+        setLoading(true);
+        const response = await eventsAPI.getAll(page, pageSize);
+        // response.data có thể là PagedResponse hoặc mảng
+        const payload = response.data;
+        if (payload && Array.isArray(payload.data)) {
+          setEvents(payload.data);
+          setTotalCount(payload.totalCount || payload.data.length || 0);
+        } else if (Array.isArray(payload)) {
+          setEvents(payload);
+          setTotalCount(payload.length);
+        } else {
+          setEvents([]);
+          setTotalCount(0);
+        }
       } catch (err) {
         setError('Failed to load events');
         console.error('Error fetching events:', err);
@@ -81,7 +96,7 @@ const HomePage = () => {
     };
 
     fetchEvents();
-  }, []);
+  }, [page, pageSize]);
 
   //Hàm constants để format date
   const formatDate = (dateString) => {

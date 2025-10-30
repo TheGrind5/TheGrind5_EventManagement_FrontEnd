@@ -226,11 +226,14 @@ const MyEventsPage = () => {
                     component="img"
                     height={200}
                     image={(() => {
+                      // IE: Sử dụng backgroundImage (1280x720) cho MyEventsPage
+                      const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage;
                       const eventImage = event.eventDetails?.eventImage || event.eventImage;
-                      if (eventImage) {
-                        return eventImage.startsWith('http') 
-                          ? eventImage 
-                          : `http://localhost:5000${eventImage}`;
+                      const imageToUse = backgroundImage || eventImage;
+                      if (imageToUse) {
+                        return imageToUse.startsWith('http') 
+                          ? imageToUse 
+                          : `http://localhost:5000${imageToUse.startsWith('/') ? '' : '/'}${imageToUse}`;
                       }
                       return '/default-event.svg';
                     })()}

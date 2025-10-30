@@ -1,0 +1,237 @@
+.user-management {
+  padding: 30px;
+  background: #f7fafc;
+  min-height: 100vh;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.page-header .MuiTypography-body1 {
+  color: #000000 !important;
+  font-weight: 500 !important;
+}
+
+.page-title {
+  font-weight: 700 !important;
+  color: #000000 !important;
+  margin-bottom: 8px !important;
+  font-size: 32px !important;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.stat-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon.total {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-icon.admin {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-icon.host {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-icon.customer {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.stat-details h4 {
+  margin: 0;
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 36px;
+}
+
+.stat-details .MuiTypography-body2 {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+.search-card {
+  margin-bottom: 20px;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.search-card .MuiInputBase-input {
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+.search-card .MuiInputBase-input::placeholder {
+  color: #cbd5e0 !important;
+  opacity: 1 !important;
+}
+
+.search-card .MuiSvgIcon-root {
+  color: #cbd5e0 !important;
+}
+
+.search-card .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.search-card .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.table-card {
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+}
+
+.user-cell .MuiTypography-body1 {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.user-cell .MuiTypography-caption {
+  color: #cbd5e0 !important;
+}
+
+.wallet-cell, .date-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.wallet-cell svg, .date-cell svg {
+  font-size: 16px;
+  color: #cbd5e0;
+}
+
+/* Table Styling */
+.MuiTableHead-root .MuiTableRow-root {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.MuiTableHead-root .MuiTableCell-root {
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  border-bottom: none !important;
+}
+
+.MuiTableBody-root .MuiTableRow-root {
+  transition: all 0.2s ease;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover {
+  background: #edf2f7 !important;
+  transform: scale(1.01);
+}
+
+.MuiTableBody-root .MuiTableCell-root {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-size: 14px !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+/* Đảm bảo email cũng là chữ trắng */
+.MuiTableBody-root .MuiTableCell-root:nth-child(2) {
+  color: #e2e8f0 !important;
+}
+
+/* Số dư ví format */
+.MuiTableBody-root .MuiTableCell-root:nth-child(4) {
+  font-weight: 600 !important;
+}
+
+/* Empty state message */
+.MuiTableBody-root .MuiTypography-body1 {
+  color: #cbd5e0 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .user-management {
+    padding: 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .MuiTable-root {
+    min-width: 800px;
+  }
+}
+
+/* Action Cell Styling */
+.action-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.action-cell .MuiButton-root {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.action-cell .MuiButton-root:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.action-cell .MuiButton-containedError {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+}
+
+.action-cell .MuiButton-containedSuccess {
+  background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+}
+

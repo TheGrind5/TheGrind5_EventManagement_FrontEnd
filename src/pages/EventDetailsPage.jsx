@@ -139,10 +139,13 @@ const EventDetailsPage = () => {
     );
   }
 
-  // Lấy ảnh sự kiện
+  // Lấy ảnh nền (1280x720) - dùng cho EventDetailsPage
+  const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage || null;
+  // Fallback về eventImage nếu không có backgroundImage
   const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
-  const imageUrl = eventImage ? 
-    (eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`) : 
+  const imageToUse = backgroundImage || eventImage;
+  const imageUrl = imageToUse ? 
+    (imageToUse.startsWith('http') ? imageToUse : `http://localhost:5000${imageToUse.startsWith('/') ? '' : '/'}${imageToUse}`) : 
     null;
 
   return (
@@ -162,7 +165,7 @@ const EventDetailsPage = () => {
             justifyContent: 'center'
           }}>
             {/* Placeholder khi không có ảnh */}
-            {!eventImage && (
+            {!imageToUse && (
               <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -200,7 +203,7 @@ const EventDetailsPage = () => {
               />
             )}
             {/* Overlay with title and chips - chỉ hiển thị khi có ảnh */}
-            {imageUrl && (
+            {imageToUse && (
               <Box sx={{ 
                 position: 'absolute',
                 bottom: 0,
@@ -240,7 +243,7 @@ const EventDetailsPage = () => {
           <CardContent sx={{ p: 4 }}>
             <Stack spacing={4}>
               {/* Title và Category khi không có ảnh */}
-              {!imageUrl && (
+              {!imageToUse && (
                 <Box>
                   <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
                     {decodeText(event.title)}
