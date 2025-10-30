@@ -1,5 +1,5 @@
 // React & Router
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 // Material-UI Components
@@ -20,6 +20,7 @@ import {
   Alert,
   CircularProgress,
   Stack,
+  IconButton,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -32,7 +33,9 @@ import {
   People,
   Business,
   Event,
-  TrendingUp
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight
 } from '@mui/icons-material';
 
 // Components & Services
@@ -56,6 +59,11 @@ const HomePage = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Refs for horizontal scroll containers
+  const trendingScrollRef = useRef(null);
+  const recommendedScrollRef = useRef(null);
+  const upcomingScrollRef = useRef(null);
 
   //useEffect hook để fetch events từ backend
   useEffect(() => {
@@ -273,35 +281,126 @@ const HomePage = () => {
     </Paper>
   );
 
-  // Render event section
-  const renderEventSection = (title, events, icon) => {
+  // Render event section with horizontal scroll
+  const renderEventSection = (title, events, icon, scrollRef) => {
     if (events.length === 0) return null;
 
+    const scroll = (direction) => {
+      if (scrollRef.current) {
+        const scrollAmount = 350; // Width of card + gap
+        const currentScroll = scrollRef.current.scrollLeft;
+        const targetScroll = direction === 'left' 
+          ? currentScroll - scrollAmount 
+          : currentScroll + scrollAmount;
+        
+        scrollRef.current.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+      }
+    };
+
     return (
-      <Box sx={{ mb: 6 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
-          {icon}
-          <Typography 
-            variant="h5" 
-            sx={{ 
-              fontWeight: 700,
-              color: 'text.primary',
-              fontSize: { xs: '1.25rem', md: '1.5rem' }
-            }}
-          >
-            {title}
-          </Typography>
+      <Box sx={{ mb: 6, position: 'relative' }}>
+        {/* Section Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, px: { xs: 0, md: 0 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {icon}
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 700,
+                color: 'text.primary',
+                fontSize: { xs: '1.25rem', md: '1.5rem' }
+              }}
+            >
+              {title}
+            </Typography>
+            <Chip 
+              label={`${events.length}`} 
+              size="small" 
+              sx={{ 
+                fontWeight: 600,
+                backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+                color: 'text.secondary'
+              }} 
+            />
+          </Box>
+
+          {/* Navigation Buttons */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
+            <IconButton
+              onClick={() => scroll('left')}
+              sx={{
+                backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+                border: `1px solid ${theme.palette.divider}`,
+                '&:hover': {
+                  backgroundColor: theme.palette.mode === 'dark' ? '#262626' : '#E5E5E5',
+                  borderColor: 'primary.main',
+                }
+              }}
+              size="small"
+            >
+              <ChevronLeft />
+            </IconButton>
+            <IconButton
+              onClick={() => scroll('right')}
+              sx={{
+                backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+                border: `1px solid ${theme.palette.divider}`,
+                '&:hover': {
+                  backgroundColor: theme.palette.mode === 'dark' ? '#262626' : '#E5E5E5',
+                  borderColor: 'primary.main',
+                }
+              }}
+              size="small"
+            >
+              <ChevronRight />
+            </IconButton>
+          </Box>
         </Box>
-        <Grid 
-          container 
-          spacing={3}
+
+        {/* Horizontal Scroll Container */}
+        <Box
+          ref={scrollRef}
           sx={{
-            justifyContent: 'flex-start',
-            alignItems: 'stretch'
+            display: 'flex',
+            gap: 3,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            scrollBehavior: 'smooth',
+            pb: 2,
+            px: { xs: 0, md: 0 },
+            // Hide scrollbar for cleaner look
+            '&::-webkit-scrollbar': {
+              height: 8,
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+              borderRadius: 4,
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: theme.palette.mode === 'dark' ? '#404040' : '#D4D4D4',
+              borderRadius: 4,
+              '&:hover': {
+                backgroundColor: theme.palette.mode === 'dark' ? '#525252' : '#A3A3A3',
+              }
+            }
           }}
         >
-          {events.map(renderEventCard)}
-        </Grid>
+          {events.map((event) => (
+            <Box
+              key={event.eventId}
+              sx={{
+                minWidth: { xs: 280, sm: 320 },
+                maxWidth: { xs: 280, sm: 320 },
+                flexShrink: 0,
+              }}
+            >
+              {renderEventCard(event)}
+            </Box>
+          ))}
+        </Box>
       </Box>
     );
   };
@@ -401,21 +500,24 @@ const HomePage = () => {
         {renderEventSection(
           '🔥 Sự kiện xu hướng',
           trendingEvents,
-          <TrendingUp sx={{ fontSize: 28, color: 'primary.main' }} />
+          <TrendingUp sx={{ fontSize: 28, color: 'primary.main' }} />,
+          trendingScrollRef
         )}
 
         {/* Recommended Events */}
         {renderEventSection(
           '✨ Dành cho bạn',
           recommendedEvents,
-          <Event sx={{ fontSize: 28, color: 'primary.main' }} />
+          <Event sx={{ fontSize: 28, color: 'primary.main' }} />,
+          recommendedScrollRef
         )}
 
         {/* Upcoming Events */}
         {renderEventSection(
           '📅 Sự kiện sắp diễn ra',
           upcomingEvents,
-          <AccessTime sx={{ fontSize: 28, color: 'primary.main' }} />
+          <AccessTime sx={{ fontSize: 28, color: 'primary.main' }} />,
+          upcomingScrollRef
         )}
       </Box>
     );
