@@ -137,7 +137,7 @@ const HomePage = () => {
   });
 
   // Render individual event card using EventCard component
-  const renderEventCard = (event) => (
+  const renderEventCard = (event, fixedWidth = false) => (
     <Grid 
       item 
       xs={12} 
@@ -150,9 +150,33 @@ const HomePage = () => {
         justifyContent: 'center'
       }}
     >
-      <EventCard event={event} />
+      <Box sx={{ width: fixedWidth ? 300 : '100%', maxWidth: 320 }}>
+        <EventCard event={event} />
+      </Box>
     </Grid>
   );
+
+  // Get trending events (upcoming events with most recent start time)
+  const trendingEvents = filteredEvents
+    .filter(event => {
+      const start = new Date(event.startTime);
+      return start > new Date();
+    })
+    .slice(0, 6);
+
+  // Get recommended events (random selection for now)
+  const recommendedEvents = filteredEvents
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 8);
+
+  // Get upcoming events (sorted by start time)
+  const upcomingEvents = filteredEvents
+    .filter(event => {
+      const start = new Date(event.startTime);
+      return start > new Date();
+    })
+    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    .slice(0, 8);
 
   // Render filter UI with TicketBox styling
   const renderFilterControls = () => (
@@ -249,6 +273,39 @@ const HomePage = () => {
     </Paper>
   );
 
+  // Render event section
+  const renderEventSection = (title, events, icon) => {
+    if (events.length === 0) return null;
+
+    return (
+      <Box sx={{ mb: 6 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
+          {icon}
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 700,
+              color: 'text.primary',
+              fontSize: { xs: '1.25rem', md: '1.5rem' }
+            }}
+          >
+            {title}
+          </Typography>
+        </Box>
+        <Grid 
+          container 
+          spacing={3}
+          sx={{
+            justifyContent: 'flex-start',
+            alignItems: 'stretch'
+          }}
+        >
+          {events.map(renderEventCard)}
+        </Grid>
+      </Box>
+    );
+  };
+
   // Render events grid with TicketBox styling
   const renderEventsGrid = () => {
     if (filteredEvents.length === 0) {
@@ -305,17 +362,62 @@ const HomePage = () => {
       );
     }
 
+    // Check if filters are active
+    const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all';
+
+    // If filters are active, show filtered results
+    if (hasFilters) {
+      return (
+        <Box sx={{ mb: 6 }}>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 700,
+              color: 'text.primary',
+              fontSize: { xs: '1.25rem', md: '1.5rem' },
+              mb: 3
+            }}
+          >
+            Kết quả tìm kiếm ({filteredEvents.length})
+          </Typography>
+          <Grid 
+            container 
+            spacing={3}
+            sx={{
+              justifyContent: 'flex-start',
+              alignItems: 'stretch'
+            }}
+          >
+            {filteredEvents.map(renderEventCard)}
+          </Grid>
+        </Box>
+      );
+    }
+
+    // Otherwise show sections
     return (
-      <Grid 
-        container 
-        spacing={3}
-        sx={{
-          justifyContent: 'center',
-          alignItems: 'flex-start'
-        }}
-      >
-        {filteredEvents.map(renderEventCard)}
-      </Grid>
+      <Box>
+        {/* Trending Events */}
+        {renderEventSection(
+          '🔥 Sự kiện xu hướng',
+          trendingEvents,
+          <TrendingUp sx={{ fontSize: 28, color: 'primary.main' }} />
+        )}
+
+        {/* Recommended Events */}
+        {renderEventSection(
+          '✨ Dành cho bạn',
+          recommendedEvents,
+          <Event sx={{ fontSize: 28, color: 'primary.main' }} />
+        )}
+
+        {/* Upcoming Events */}
+        {renderEventSection(
+          '📅 Sự kiện sắp diễn ra',
+          upcomingEvents,
+          <AccessTime sx={{ fontSize: 28, color: 'primary.main' }} />
+        )}
+      </Box>
     );
   };
 
@@ -413,21 +515,6 @@ const HomePage = () => {
         }}
       >
         <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
-          <Typography 
-            variant="h4" 
-            component="h2" 
-            textAlign="center" 
-            gutterBottom 
-            sx={{ 
-              mb: 4,
-              fontWeight: 700,
-              fontSize: { xs: '1.75rem', md: '2.125rem' },
-              color: 'text.primary',
-              letterSpacing: '-0.02em'
-            }}
-          >
-            Sự Kiện Sắp Diễn Ra
-          </Typography>
         
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>

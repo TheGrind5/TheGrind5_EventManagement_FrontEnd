@@ -88,7 +88,7 @@ const EventCard = ({ event }) => {
       to={`/event/${event.eventId}`}
       sx={{
         width: '100%',
-        height: '100%',
+        height: 420,
         display: 'flex',
         flexDirection: 'column',
         borderRadius: 2,
