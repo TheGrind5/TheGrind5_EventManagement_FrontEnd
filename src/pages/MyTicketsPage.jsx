@@ -42,6 +42,7 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import { ticketsAPI, eventsAPI } from '../services/apiClient';
+import { decodeText } from '../utils/textDecoder';
 
 const MyTicketsPage = () => {
   const navigate = useNavigate();
@@ -507,10 +508,10 @@ const MyTicketsPage = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <Box>
                             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                              {ticket.event.title}
+                              {decodeText(ticket.event.title)}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              {ticket.ticketType.typeName}
+                              {decodeText(ticket.ticketType.typeName)}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                               Số vé: {ticket.serialNumber}
@@ -541,7 +542,7 @@ const MyTicketsPage = () => {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <LocationOn fontSize="small" color="action" />
                             <Typography variant="body2" color="text.secondary">
-                              {ticket.event.location}
+                              {decodeText(ticket.event.location)}
                             </Typography>
                           </Box>
                           
@@ -648,10 +649,10 @@ const MyTicketsPage = () => {
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <Box>
                                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    {event.title}
+                                    {decodeText(event.title)}
                                   </Typography>
                                   <Chip 
-                                    label={event.category || 'Không có danh mục'} 
+                                    label={decodeText(event.category) || 'Không có danh mục'} 
                                     size="small" 
                                     sx={{ mt: 1 }}
                                   />
@@ -682,7 +683,7 @@ const MyTicketsPage = () => {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <LocationOn fontSize="small" color="action" />
                                   <Typography variant="body2" color="text.secondary">
-                                    {event.location || 'Chưa có địa điểm'}
+                                    {decodeText(event.location) || 'Chưa có địa điểm'}
                                   </Typography>
                                 </Box>
                               </Stack>

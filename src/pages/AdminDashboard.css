@@ -1,0 +1,19 @@
+.admin-dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.admin-main-content {
+  margin-left: 260px;
+  flex: 1;
+  overflow-x: hidden;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .admin-main-content {
+    margin-left: 0;
+  }
+}
+

@@ -30,11 +30,21 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => {
     // Standardize response format
+    const body = response.data;
+    // Preserve pagination payloads (have totalCount/page/pageSize)
+    const hasPagingKeys = body && typeof body === 'object' && (
+      Object.prototype.hasOwnProperty.call(body, 'totalCount') ||
+      Object.prototype.hasOwnProperty.call(body, 'page') ||
+      Object.prototype.hasOwnProperty.call(body, 'pageSize')
+    );
+
+    const normalizedData = hasPagingKeys ? body : (body?.data ?? body);
+
     return {
       success: true,
-      data: response.data?.data || response.data,
-      message: response.data?.message || 'Success',
-      timestamp: response.data?.timestamp || new Date().toISOString()
+      data: normalizedData,
+      message: body?.message || 'Success',
+      timestamp: body?.timestamp || new Date().toISOString()
     };
   },
   (error) => {
@@ -157,8 +167,8 @@ export const authAPI = {
 
 // Events API
 export const eventsAPI = {
-  getAll: async () => {
-    return api.get('/Event');
+  getAll: async (page = 1, pageSize = 12) => {
+    return api.get(`/Event?page=${page}&pageSize=${pageSize}`);
   },
   
   getById: async (eventId) => {

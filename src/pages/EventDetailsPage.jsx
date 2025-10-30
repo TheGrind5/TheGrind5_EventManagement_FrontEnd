@@ -31,6 +31,7 @@ import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
 import StageViewer from '../components/stage/StageViewer';
 import { eventsAPI, ticketsAPI } from '../services/apiClient';
+import { decodeText } from '../utils/textDecoder';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
@@ -200,7 +201,7 @@ const EventDetailsPage = () => {
                   EVENT
                 </Typography>
                 <Typography variant="h5" sx={{ opacity: 0.9 }}>
-                  {event.title}
+                  {decodeText(event.title)}
                 </Typography>
               </Box>
             )}
@@ -208,7 +209,7 @@ const EventDetailsPage = () => {
             {imageUrl && (
               <img
                 src={imageUrl}
-                alt={event.title}
+                alt={decodeText(event.title)}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -234,11 +235,11 @@ const EventDetailsPage = () => {
                 color: 'white'
               }}>
                 <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
-                  {event.title}
+                  {decodeText(event.title)}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Chip 
-                    label={event.category} 
+                    label={decodeText(event.category)} 
                     color="primary" 
                     sx={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -266,11 +267,11 @@ const EventDetailsPage = () => {
               {!imageToUse && (
                 <Box>
                   <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
-                    {event.title}
+                    {decodeText(event.title)}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
                     <Chip 
-                      label={event.category} 
+                      label={decodeText(event.category)} 
                       color="primary" 
                     />
                     <Chip 
@@ -484,7 +485,7 @@ const EventDetailsPage = () => {
                             }
                             
                             // Fallback to direct location field
-                            return event.location || 'Chưa có thông tin địa điểm';
+                            return decodeText(event.location) || 'Chưa có thông tin địa điểm';
                           })()}
                         </Typography>
                       </Box>
@@ -504,7 +505,7 @@ const EventDetailsPage = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1">
-                      <strong>Tên:</strong> {event.hostName}
+                      <strong>Tên:</strong> {decodeText(event.hostName)}
                     </Typography>
                     <Typography variant="body1">
                       <strong>Email:</strong> {event.hostEmail}

@@ -79,9 +79,19 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: 'Login failed' };
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Check if user is banned (status 403)
+      if (error.response?.status === 403 && error.response?.data?.isBanned) {
+        return { 
+          success: false, 
+          message: error.response.data.message || 'Tài khoản của bạn đã bị cấm',
+          isBanned: true
+        };
+      }
+      
       return { 
         success: false, 
-        message: error.message || 'Login failed' 
+        message: error.response?.data?.message || error.message || 'Login failed' 
       };
     }
   };

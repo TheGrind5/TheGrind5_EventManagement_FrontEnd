@@ -1,6 +1,6 @@
 // React & Router
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 // Material-UI Components
 import { 
@@ -20,6 +20,7 @@ import {
   Alert,
   CircularProgress,
   Stack,
+  IconButton,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -32,18 +33,27 @@ import {
   People,
   Business,
   Event,
-  TrendingUp
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight
 } from '@mui/icons-material';
 
 // Components & Services
 import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
+import CategoryTabs from '../components/ui/CategoryTabs';
+import EventCard from '../components/ui/EventCard';
 import { eventsAPI } from '../services/apiClient';
+import Pagination from '@mui/material/Pagination';
 
 const HomePage = () => {
   //State declaration để quản lý trạng thái của component
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [totalCount, setTotalCount] = useState(0);
   
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,115 +65,40 @@ const HomePage = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const location = useLocation();
-  const isInitialMount = useRef(true);
-  const prevPathname = useRef(location.pathname);
 
-  // Hàm để fetch events từ backend
-  const fetchEvents = async (showLoading = true) => {
-    try {
-      if (showLoading) {
+  // Refs for horizontal scroll containers
+  const trendingScrollRef = useRef(null);
+  const recommendedScrollRef = useRef(null);
+  const upcomingScrollRef = useRef(null);
+
+  //useEffect hook để fetch events từ backend
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
         setLoading(true);
-      }
-      console.log('HomePage - Fetching events...');
-      const response = await eventsAPI.getAll();
-      console.log('HomePage - Full response:', response);
-      console.log('HomePage - Response data:', response.data);
-      console.log('HomePage - Response data type:', Array.isArray(response.data) ? 'Array' : typeof response.data);
-      
-      // Handle both array and paginated response
-      let events = [];
-      if (Array.isArray(response.data)) {
-        events = response.data;
-      } else if (response.data?.data && Array.isArray(response.data.data)) {
-        events = response.data.data;
-      } else if (response.data && Array.isArray(response)) {
-        events = response;
-      }
-      
-      console.log('HomePage - Parsed events count:', events.length);
-      setEvents(events);
-      setError(null);
-    } catch (err) {
-      console.error('HomePage - Error fetching events:', err);
-      console.error('HomePage - Error details:', JSON.stringify(err, null, 2));
-      
-      // Cải thiện error message
-      let errorMessage = 'Không thể tải danh sách sự kiện';
-      if (err.message) {
-        if (err.message.includes('Network') || err.message.includes('connection')) {
-          errorMessage = 'Lỗi kết nối - Vui lòng kiểm tra backend có đang chạy không. Đảm bảo backend đang chạy tại http://localhost:5000';
+        const response = await eventsAPI.getAll(page, pageSize);
+        // response.data có thể là PagedResponse hoặc mảng
+        const payload = response.data;
+        if (payload && Array.isArray(payload.data)) {
+          setEvents(payload.data);
+          setTotalCount(payload.totalCount || payload.data.length || 0);
+        } else if (Array.isArray(payload)) {
+          setEvents(payload);
+          setTotalCount(payload.length);
         } else {
-          errorMessage = err.message;
+          setEvents([]);
+          setTotalCount(0);
         }
-      } else if (err.code === 0 || !err.response) {
-        errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra backend có đang chạy tại http://localhost:5000 không.';
-      }
-      
-      setError(errorMessage);
-      setEvents([]);
-    } finally {
-      if (showLoading) {
+      } catch (err) {
+        setError('Failed to load events');
+        console.error('Error fetching events:', err);
+      } finally {
         setLoading(false);
       }
-    }
-  };
-
-  //useEffect hook để fetch events từ backend khi component mount
-  useEffect(() => {
-    fetchEvents(true);
-    isInitialMount.current = false;
-  }, []);
-
-  // Refetch events khi quay lại trang HomePage (để cập nhật dữ liệu mới sau khi chỉnh sửa)
-  useEffect(() => {
-    // Kiểm tra xem có event nào vừa được update không
-    const eventUpdatedFlag = sessionStorage.getItem('eventUpdated');
-    if (eventUpdatedFlag && location.pathname === '/') {
-      console.log('HomePage - Event was updated, force reloading events...');
-      sessionStorage.removeItem('eventUpdated'); // Xóa flag sau khi dùng
-      fetchEvents(false);
-      return;
-    }
-    
-    // Chỉ refetch khi:
-    // 1. Đang ở trang home (pathname === '/')
-    // 2. Không phải lần mount đầu tiên
-    // 3. Đã có events (tránh refetch khi chưa có dữ liệu)
-    // 4. Pathname thay đổi từ trang khác về home (prevPathname !== '/')
-    if (
-      location.pathname === '/' && 
-      !isInitialMount.current && 
-      prevPathname.current !== '/'
-    ) {
-      console.log('HomePage - Returning to home page, refetching events to get updates...');
-      fetchEvents(false); // Không hiển thị loading khi refetch
-    }
-    
-    // Cập nhật prevPathname
-    prevPathname.current = location.pathname;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
-
-  // Thêm listener để refetch khi trang được focus lại (khi người dùng quay lại tab)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && location.pathname === '/') {
-        // Chỉ refetch nếu đã mount xong (có events) để tránh refetch ngay khi mount
-        setTimeout(() => {
-          console.log('HomePage - Page became visible, checking if refetch needed...');
-          fetchEvents(false);
-        }, 100);
-      }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+    fetchEvents();
+  }, [page, pageSize]);
 
   //Hàm constants để format date
   const formatDate = (dateString) => {
@@ -176,60 +111,7 @@ const HomePage = () => {
     });
   };
 
-  // Hàm để xác định trạng thái event dựa trên thời gian
-  const getEventStatus = (startTime, endTime) => {
-    const now = new Date();
-    const start = new Date(startTime);
-    const end = endTime ? new Date(endTime) : null;
-    
-    // Nếu có endTime, so sánh với endTime
-    if (end) {
-      if (now < start) {
-        return 'Upcoming';
-      } else if (now >= start && now <= end) {
-        return 'Active';
-      } else {
-        return 'Completed';
-      }
-    } else {
-      // Nếu không có endTime, chỉ so sánh với startTime
-      if (now < start) {
-        return 'Upcoming';
-      } else {
-        return 'Completed';
-      }
-    }
-  };
-
-  // Hàm để lấy text hiển thị cho status
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'Active':
-        return 'Đang diễn ra';
-      case 'Upcoming':
-        return 'Sắp diễn ra';
-      case 'Completed':
-        return 'Đã kết thúc';
-      default:
-        return 'Không xác định';
-    }
-  };
-
-  // Hàm để lấy màu cho status
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Active':
-        return 'success';
-      case 'Upcoming':
-        return 'warning';
-      case 'Completed':
-        return 'default';
-      default:
-        return 'default';
-    }
-  };
-
-  // Hàm constants để filter valid events (eventId > 0)
+  // Filter valid events (eventId > 0)
   const validEvents = events.filter(event => event.eventId && event.eventId > 0);
 
   // Get unique categories for filter dropdown
@@ -315,35 +197,8 @@ const HomePage = () => {
     return matchesSearch && matchesStatus && matchesDate && matchesCampus;
   });
 
-  // Chuẩn hóa đường dẫn ảnh từ API (xử lý dấu \\ của Windows, thiếu dấu / đầu)
-  const buildImageUrl = (rawPath) => {
-    if (!rawPath) return null;
-    if (rawPath.startsWith('http')) return rawPath;
-    // thay \\ -> / và đảm bảo có leading '/'
-    const normalized = rawPath.replace(/\\/g, '/');
-    const withLeading = normalized.startsWith('/') ? normalized : `/${normalized}`;
-    return `http://localhost:5000${withLeading}`;
-  };
-
-  // Hàm constants để render individual event card
-  const renderEventCard = (event) => {
-    // Tính toán status dựa trên thời gian thực tế
-    const currentStatus = getEventStatus(event.startTime, event.endTime);
-    
-    // Đơn giản hóa: Lấy ảnh trực tiếp từ database giống EventDetailsPage
-    // Ưu tiên backgroundImage, fallback về eventImage (lấy từ eventDetails hoặc root level)
-    const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage || null;
-    const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
-    const imageToUse = backgroundImage || eventImage;
-    
-    
-    // Build URL đơn giản - giống EventDetailsPage (lấy trực tiếp từ database)
-    const imageUrl = buildImageUrl(imageToUse);
-    
-    // Dùng cùng imageUrl cho cả default và hover
-    const backgroundImageUrl = imageUrl;
-    
-    return (
+  // Render individual event card using EventCard component
+  const renderEventCard = (event, fixedWidth = false) => (
     <Grid 
       item 
       xs={12} 
@@ -356,355 +211,52 @@ const HomePage = () => {
         justifyContent: 'center'
       }}
     >
-      <Card 
-        component={Link}
-        to={`/event/${event.eventId}`}
-        sx={{ 
-          width: '100%',
-          maxWidth: 320,
-          height: 420,
-          display: 'flex', 
-          flexDirection: 'column',
-          borderRadius: 3,
-          transition: 'all 0.3s ease',
-          boxShadow: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          overflow: 'hidden',
-          textDecoration: 'none',
-          color: 'inherit',
-          cursor: 'pointer',
-          '&:hover': {
-            transform: 'translateY(-6px)',
-            boxShadow: theme.palette.mode === 'dark' 
-              ? '0 12px 30px rgba(0, 0, 0, 0.4)' 
-              : '0 12px 30px rgba(0, 0, 0, 0.2)',
-            borderColor: 'primary.main'
-          }
-        }}
-      >
-        {/* Event Image Container with Hover Effect */}
-        <Box 
-          sx={{ 
-            height: 200,
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: 'grey.100',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            '&:hover .hover-overlay': {
-              opacity: 1
-            },
-            '&:hover .default-image': {
-              opacity: 0,
-              transform: 'scale(1.05)'
-            },
-            '&:hover .hover-image': {
-              opacity: 1,
-              transform: 'scale(1.1)'
-            }
-          }}
-        >
-          {/* Placeholder - luôn hiển thị, sẽ hiện khi không có ảnh hoặc ảnh lỗi */}
-          <Box 
-            className="event-placeholder"
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              width: '100%',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              zIndex: imageUrl ? 1 : 2  // Hiển thị trên cùng nếu không có ảnh
-            }}
-          >
-            <Event sx={{ fontSize: 48, mb: 1, opacity: 0.8 }} />
-            <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>Sự Kiện</Typography>
-          </Box>
-          
-          {/* Default Image - Ảnh nền (1280x720) - mặc định ở danh sách */}
-          {imageUrl && (
-            <img
-              className="default-image"
-              src={imageUrl}
-              alt={event.title}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                zIndex: 2,
-                display: 'block',
-                opacity: 1
-              }}
-              onError={(e) => {
-                console.error('Image failed to load:', imageUrl);
-                // Ẩn ảnh và hiển thị placeholder
-                e.target.style.display = 'none';
-                e.target.style.opacity = '0';
-                // Hiển thị placeholder
-                const placeholder = e.target.parentElement?.querySelector('.event-placeholder');
-                if (placeholder) {
-                  placeholder.style.zIndex = '10';
-                }
-              }}
-              onLoad={(e) => {
-                console.log('Default image loaded:', imageUrl);
-                e.target.style.display = 'block';
-                e.target.style.opacity = '1';
-                // Ẩn placeholder khi ảnh load thành công
-                const placeholder = e.target.parentElement?.querySelector('.event-placeholder');
-                if (placeholder) {
-                  placeholder.style.zIndex = '1';
-                }
-              }}
-            />
-          )}
-          
-          {/* Hover Image - Vẫn dùng backgroundImage (1280x720) với hiệu ứng zoom */}
-          {backgroundImageUrl && (
-            <img
-              className="hover-image"
-              src={backgroundImageUrl}
-              alt={event.title}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                zIndex: 3,
-                display: 'block',
-                opacity: 0,
-                transform: 'scale(1.05)'
-              }}
-              onError={(e) => {
-                console.error('Background image failed to load:', backgroundImageUrl);
-                e.target.style.display = 'none';
-              }}
-              onLoad={(e) => {
-                console.log('Hover image loaded:', backgroundImageUrl);
-                e.target.style.display = 'block';
-              }}
-            />
-          )}
-          
-          {/* Hover Overlay - Hiển thị thông tin sự kiện khi hover */}
-          <Box 
-            className="hover-overlay"
-            sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%)',
-              zIndex: 4,
-              opacity: 0,
-              transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-end',
-              p: 2,
-              color: 'white'
-            }}
-          >
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 700, 
-                mb: 1,
-                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                fontSize: '1.1rem'
-              }}
-            >
-              {event.title}
-            </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                mb: 1.5,
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                fontSize: '0.85rem',
-                lineHeight: 1.4
-              }}
-            >
-              {event.description}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <AccessTime sx={{ fontSize: '0.9rem' }} />
-              <Typography variant="caption" sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                {formatDate(event.startTime)}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <LocationOn sx={{ fontSize: '0.9rem' }} />
-              <Typography variant="caption" sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                {event.location || 'Địa điểm chưa cập nhật'}
-              </Typography>
-            </Box>
-          </Box>
-          {/* Overlay with chips - Always visible on top */}
-          <Box sx={{ 
-            position: 'absolute',
-            top: 12,
-            left: 12,
-            right: 12,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            zIndex: 5 // Above hover overlay
-          }}>
-            <Chip 
-              label={event.category} 
-              color="primary" 
-              size="small"
-              sx={{ 
-                fontWeight: 600,
-                borderRadius: 2,
-                fontSize: '0.75rem',
-                height: 26,
-                px: 1,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                color: 'primary.main',
-                '& .MuiChip-label': {
-                  color: 'primary.main'
-                }
-              }}
-            />
-            <Chip 
-              label={getStatusText(currentStatus)}
-              color={getStatusColor(currentStatus)}
-              size="small"
-              variant="outlined"
-              sx={{ 
-                borderRadius: 2,
-                fontSize: '0.75rem',
-                height: 26,
-                px: 1,
-                fontWeight: 500,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                borderColor: 'rgba(255, 255, 255, 0.8)',
-                '& .MuiChip-label': {
-                  color: currentStatus === 'Active' ? 'success.main' : 
-                         currentStatus === 'Upcoming' ? 'warning.main' : 'text.secondary'
-                }
-              }}
-            />
-          </Box>
-        </Box>
-
-        <CardContent sx={{ 
-          p: 3,
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1
-        }}>
-          
-          {/* Title - Fixed height */}
-          <Typography 
-            variant="h6" 
-            component="h3" 
-            sx={{ 
-              fontWeight: 700,
-              lineHeight: 1.3,
-              mb: 2,
-              minHeight: 44,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              fontSize: '1.1rem',
-              color: 'text.primary'
-            }}
-          >
-            {event.title}
-          </Typography>
-          
-          {/* Description - Fixed height */}
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 2.5, 
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              lineHeight: 1.5,
-              minHeight: 44,
-              fontSize: '0.9rem'
-            }}
-          >
-            {event.description}
-          </Typography>
-          
-          {/* Event Details - Fixed height */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            <Stack spacing={1.5}>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <AccessTime fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ 
-                  lineHeight: 1.4,
-                  fontSize: '0.85rem',
-                  flex: 1
-                }}>
-                  {formatDate(event.startTime)}
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <LocationOn fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ 
-                  lineHeight: 1.4,
-                  fontSize: '0.85rem',
-                  flex: 1
-                }}>
-                  {event.location}
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <Person fontSize="small" color="action" sx={{ fontSize: '1rem', mt: 0.2 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ 
-                  lineHeight: 1.4,
-                  fontSize: '0.85rem',
-                  flex: 1
-                }}>
-                  Host: {event.hostName || 'N/A'}
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-        </CardContent>
-      </Card>
+      <Box sx={{ width: fixedWidth ? 300 : '100%', maxWidth: 320 }}>
+        <EventCard event={event} />
+      </Box>
     </Grid>
-    );
-  };
+  );
 
-  // Hàm constants để render filter UI (không còn search bar)
+  // Get featured events (top 6 events for grid display)
+  const featuredEvents = filteredEvents
+    .filter(event => {
+      const start = new Date(event.startTime);
+      return start > new Date();
+    })
+    .slice(0, 6);
+
+  // Get trending events (upcoming events with most recent start time)
+  const trendingEvents = filteredEvents
+    .filter(event => {
+      const start = new Date(event.startTime);
+      return start > new Date();
+    })
+    .slice(0, 6);
+
+  // Get recommended events (random selection for now)
+  const recommendedEvents = filteredEvents
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 8);
+
+  // Get upcoming events (sorted by start time)
+  const upcomingEvents = filteredEvents
+    .filter(event => {
+      const start = new Date(event.startTime);
+      return start > new Date();
+    })
+    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    .slice(0, 8);
+
+  // Render filter UI with TicketBox styling
   const renderFilterControls = () => (
     <Paper 
       sx={{ 
-        p: 3, 
+        p: { xs: 2, md: 3 }, 
         mb: 3,
         borderRadius: 2,
-        boxShadow: 1
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: 'none',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#FFFFFF',
       }}
     >
       <Stack spacing={3}>
@@ -815,20 +367,243 @@ const HomePage = () => {
     </Paper>
   );
 
-  // Hàm constants để render events grid
+  // Render event section with horizontal scroll
+  const renderEventSection = (title, events, icon, scrollRef) => {
+    if (events.length === 0) return null;
+
+    const scroll = (direction) => {
+      if (scrollRef.current) {
+        const scrollAmount = 350; // Width of card + gap
+        const currentScroll = scrollRef.current.scrollLeft;
+        const targetScroll = direction === 'left' 
+          ? currentScroll - scrollAmount 
+          : currentScroll + scrollAmount;
+        
+        scrollRef.current.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+      }
+    };
+
+    return (
+      <Box sx={{ mb: 6, position: 'relative' }}>
+        {/* Section Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, px: { xs: 0, md: 0 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {icon}
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 700,
+                color: 'text.primary',
+                fontSize: { xs: '1.25rem', md: '1.5rem' }
+              }}
+            >
+              {title}
+            </Typography>
+            <Chip 
+              label={`${events.length}`} 
+              size="small" 
+              sx={{ 
+                fontWeight: 600,
+                backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+                color: 'text.secondary'
+              }} 
+            />
+          </Box>
+
+          {/* Navigation Buttons */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
+            <IconButton
+              onClick={() => scroll('left')}
+              sx={{
+                backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+                border: `1px solid ${theme.palette.divider}`,
+                '&:hover': {
+                  backgroundColor: theme.palette.mode === 'dark' ? '#262626' : '#E5E5E5',
+                  borderColor: 'primary.main',
+                }
+              }}
+              size="small"
+            >
+              <ChevronLeft />
+            </IconButton>
+            <IconButton
+              onClick={() => scroll('right')}
+              sx={{
+                backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+                border: `1px solid ${theme.palette.divider}`,
+                '&:hover': {
+                  backgroundColor: theme.palette.mode === 'dark' ? '#262626' : '#E5E5E5',
+                  borderColor: 'primary.main',
+                }
+              }}
+              size="small"
+            >
+              <ChevronRight />
+            </IconButton>
+          </Box>
+        </Box>
+
+        {/* Horizontal Scroll Container */}
+        <Box
+          ref={scrollRef}
+          sx={{
+            display: 'flex',
+            gap: 3,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            scrollBehavior: 'smooth',
+            pb: 2,
+            px: { xs: 0, md: 0 },
+            // Hide scrollbar for cleaner look
+            '&::-webkit-scrollbar': {
+              height: 8,
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+              borderRadius: 4,
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: theme.palette.mode === 'dark' ? '#404040' : '#D4D4D4',
+              borderRadius: 4,
+              '&:hover': {
+                backgroundColor: theme.palette.mode === 'dark' ? '#525252' : '#A3A3A3',
+              }
+            }
+          }}
+        >
+          {events.map((event) => (
+            <Box
+              key={event.eventId}
+              sx={{
+                minWidth: { xs: 280, sm: 320 },
+                maxWidth: { xs: 280, sm: 320 },
+                flexShrink: 0,
+              }}
+            >
+              {renderEventCard(event)}
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    );
+  };
+
+  // Render featured events section with grid layout (3 columns)
+  const renderFeaturedEventsGrid = () => {
+    if (featuredEvents.length === 0) return null;
+
+    return (
+      <Box sx={{ mb: 6 }}>
+        {/* Section Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #3DBE29 0%, #2FA320 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Event sx={{ fontSize: 18, color: '#FFFFFF' }} />
+          </Box>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 700,
+              color: 'text.primary',
+              fontSize: { xs: '1.25rem', md: '1.5rem' }
+            }}
+          >
+            🔥 Sự kiện nổi bật
+          </Typography>
+          <Chip 
+            label={`${featuredEvents.length}`} 
+            size="small" 
+            sx={{ 
+              fontWeight: 600,
+              backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+              color: 'text.secondary'
+            }} 
+          />
+        </Box>
+
+        {/* Grid Layout - 3 columns */}
+        <Grid 
+          container 
+          spacing={{ xs: 2, md: 3 }}
+          sx={{
+            justifyContent: 'center',
+            alignItems: 'stretch',
+          }}
+        >
+          {featuredEvents.map((event) => (
+            <Grid 
+              item 
+              xs={12}   // 1 column on mobile
+              sm={6}    // 2 columns on tablet
+              md={4}    // 3 columns on desktop
+              key={event.eventId}
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                maxWidth: { md: '33.333%' }, // Đảm bảo đúng 3 cột
+              }}
+            >
+              <Box sx={{ width: '100%', maxWidth: 380 }}>
+                <EventCard event={event} />
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    );
+  };
+
+  // Render events grid with TicketBox styling
   const renderEventsGrid = () => {
     if (filteredEvents.length === 0) {
       return (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Event sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
+        <Box 
+          sx={{ 
+            textAlign: 'center', 
+            py: { xs: 6, md: 10 },
+            px: 2
+          }}
+        >
+          <Event 
+            sx={{ 
+              fontSize: { xs: 56, md: 72 }, 
+              color: 'text.secondary', 
+              mb: 2,
+              opacity: 0.5
+            }} 
+          />
+          <Typography 
+            variant="h5" 
+            gutterBottom
+            sx={{
+              fontWeight: 600,
+              fontSize: { xs: '1.25rem', md: '1.5rem' },
+              mb: 1
+            }}
+          >
             Không tìm thấy sự kiện
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc
+          <Typography 
+            variant="body1" 
+            color="text.secondary" 
+            sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}
+          >
+            Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc để xem thêm sự kiện
           </Typography>
           <Button
-            variant="outlined"
+            variant="contained"
             onClick={() => {
               setSearchTerm('');
               setCategoryFilter('all');
@@ -837,6 +612,10 @@ const HomePage = () => {
               setCampusFilter('all');
               setPriceFilter('all');
             }}
+            sx={{
+              fontWeight: 600,
+              px: 4,
+            }}
           >
             Đặt lại bộ lọc
           </Button>
@@ -844,17 +623,68 @@ const HomePage = () => {
       );
     }
 
+    // Check if filters are active
+    const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all';
+
+    // If filters are active, show filtered results
+    if (hasFilters) {
+      return (
+        <Box sx={{ mb: 6 }}>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 700,
+              color: 'text.primary',
+              fontSize: { xs: '1.25rem', md: '1.5rem' },
+              mb: 3
+            }}
+          >
+            Kết quả tìm kiếm ({filteredEvents.length})
+          </Typography>
+          <Grid 
+            container 
+            spacing={3}
+            sx={{
+              justifyContent: 'flex-start',
+              alignItems: 'stretch'
+            }}
+          >
+            {filteredEvents.map(renderEventCard)}
+          </Grid>
+        </Box>
+      );
+    }
+
+    // Otherwise show sections
     return (
-      <Grid 
-        container 
-        spacing={3}
-        sx={{
-          justifyContent: 'center',
-          alignItems: 'flex-start'
-        }}
-      >
-        {filteredEvents.map(renderEventCard)}
-      </Grid>
+      <Box>
+        {/* Featured Events Grid - 3 columns */}
+        {renderFeaturedEventsGrid()}
+
+        {/* Trending Events - Horizontal Scroll */}
+        {renderEventSection(
+          '⚡ Sự kiện xu hướng',
+          trendingEvents,
+          <TrendingUp sx={{ fontSize: 28, color: 'primary.main' }} />,
+          trendingScrollRef
+        )}
+
+        {/* Recommended Events - Horizontal Scroll */}
+        {renderEventSection(
+          '✨ Dành cho bạn',
+          recommendedEvents,
+          <Event sx={{ fontSize: 28, color: 'primary.main' }} />,
+          recommendedScrollRef
+        )}
+
+        {/* Upcoming Events - Horizontal Scroll */}
+        {renderEventSection(
+          '📅 Sự kiện sắp diễn ra',
+          upcomingEvents,
+          <AccessTime sx={{ fontSize: 28, color: 'primary.main' }} />,
+          upcomingScrollRef
+        )}
+      </Box>
     );
   };
 
@@ -886,82 +716,53 @@ const HomePage = () => {
         onSearchChange={setSearchTerm}
       />
       
-      {/* Hero Section */}
+      {/* Hero Section - Simple & Clean */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          py: 8,
-          textAlign: 'center'
+          background: theme.palette.mode === 'dark'
+            ? '#0A0A0A'
+            : '#FAFAFA',
+          py: { xs: 4, md: 6 },
+          borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
         <Container maxWidth="lg">
-          <Stack spacing={4} alignItems="center">
-            <Typography variant="h2" component="h1" sx={{ fontWeight: 700 }}>
-              Khám Phá Sự Kiện Tuyệt Vời
-            </Typography>
-            <Typography variant="h5" sx={{ opacity: 0.9, maxWidth: 600 }}>
-              Tìm kiếm và tham gia những sự kiện thú vị nhất tại thành phố của bạn
-            </Typography>
-            <Stack 
-              direction={isMobile ? 'column' : 'row'} 
-              spacing={2} 
-              sx={{ mt: 2 }}
+          <Stack spacing={{ xs: 2, md: 3 }} alignItems="center">
+            <Typography 
+              variant="h2" 
+              component="h1" 
+              sx={{ 
+                fontWeight: 700,
+                fontSize: { xs: '1.75rem', md: '2.5rem' },
+                color: 'text.primary',
+              }}
             >
-              <Button 
-                component={Link} 
-                to="/register" 
-                variant="contained" 
-                size="large"
-                sx={{ 
-                  bgcolor: 'white', 
-                  color: 'primary.main',
-                  '&:hover': { bgcolor: 'grey.100' }
-                }}
-              >
-                Bắt Đầu Ngay
-              </Button>
-              <Button 
-                component={Link} 
-                to="/" 
-                variant="outlined" 
-                size="large"
-                sx={{ 
-                  borderColor: 'white', 
-                  color: 'white',
-                  '&:hover': { 
-                    borderColor: 'white', 
-                    bgcolor: 'rgba(255, 255, 255, 0.1)' 
-                  }
-                }}
-              >
-                Khám Phá Sự Kiện
-              </Button>
-            </Stack>
-            
-            <Grid container spacing={4} sx={{ mt: 4, maxWidth: 600 }}>
-              <Grid item xs={4}>
-                <Stack alignItems="center" spacing={1}>
-                  <TrendingUp sx={{ fontSize: 40 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>100+</Typography>
-                  <Typography variant="body2">Sự Kiện</Typography>
-                </Stack>
-              </Grid>
-              <Grid item xs={4}>
-                <Stack alignItems="center" spacing={1}>
-                  <People sx={{ fontSize: 40 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>5000+</Typography>
-                  <Typography variant="body2">Người Tham Gia</Typography>
-                </Stack>
-              </Grid>
-              <Grid item xs={4}>
-                <Stack alignItems="center" spacing={1}>
-                  <Business sx={{ fontSize: 40 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>50+</Typography>
-                  <Typography variant="body2">Đối Tác</Typography>
-                </Stack>
-              </Grid>
-            </Grid>
+              Khám Phá Sự Kiện
+            </Typography>
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                maxWidth: 500,
+                fontSize: { xs: '0.9rem', md: '1rem' },
+                color: 'text.secondary',
+                textAlign: 'center',
+              }}
+            >
+              Tìm kiếm và tham gia sự kiện tại Việt Nam
+            </Typography>
+            <Button 
+              component={Link} 
+              to="/create-event" 
+              variant="contained" 
+              size="medium"
+              sx={{ 
+                fontWeight: 600,
+                px: 3,
+                mt: 1,
+              }}
+            >
+              Tạo sự kiện mới
+            </Button>
           </Stack>
         </Container>
       </Box>
@@ -1129,25 +930,17 @@ const HomePage = () => {
       })()}
 
       {/* Events Section */}
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h4" component="h2" textAlign="center" gutterBottom sx={{ mb: 4 }}>
-          Sự Kiện Sắp Diễn Ra
-        </Typography>
+      <Box
+        sx={{
+          backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+          minHeight: '60vh',
+        }}
+      >
+        <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
         
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
-            <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
-              {error.split('\n')[0]}
-            </Typography>
-            {error.split('\n').length > 1 && (
-              <Box component="ul" sx={{ mt: 1, mb: 0, pl: 3 }}>
-                {error.split('\n').slice(1).map((line, index) => (
-                  <li key={index}>
-                    <Typography variant="body2">{line}</Typography>
-                  </li>
-                ))}
-              </Box>
-            )}
+            {error}
           </Alert>
         )}
 
@@ -1156,7 +949,11 @@ const HomePage = () => {
 
         {/* Events Grid */}
         {renderEventsGrid()}
-      </Container>
+        </Container>
+      </Box>
+
+      {/* Footer */}
+      <Footer />
     </Box>
   );
 };

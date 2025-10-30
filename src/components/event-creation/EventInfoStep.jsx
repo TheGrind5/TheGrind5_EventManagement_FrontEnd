@@ -22,16 +22,14 @@ import { CloudUpload, Image, Folder } from '@mui/icons-material';
 // import 'react-quill/dist/quill.snow.css';
 import { eventsAPI } from '../../services/apiClient';
 import DebouncedTextField from '../common/DebouncedTextField';
-import ImageCropModal from '../common/ImageCropModal';
+import ImageDisplayLocationsModal from './ImageDisplayLocationsModal';
 
 const EventInfoStep = ({ data, onChange }) => {
   const theme = useTheme();
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [cropModalOpen, setCropModalOpen] = useState(false);
-  const [imageToCrop, setImageToCrop] = useState(null);
-  const [cropField, setCropField] = useState(null);
-  const [cropConfig, setCropConfig] = useState({ aspectRatio: 720 / 958, width: 720, height: 958 });
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  
 
   const handleInputChange = useCallback((field, value) => {
     // Clear error when user starts typing
@@ -109,43 +107,11 @@ const EventInfoStep = ({ data, onChange }) => {
     validateField(field, value);
   };
 
-  // Xử lý khi chọn file - mở crop modal
-  const handleFileSelect = (file, field) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // Thiết lập config crop dựa trên field
-      let config = {};
-      switch (field) {
-        case 'eventImage':
-          config = { aspectRatio: 720 / 958, width: 720, height: 958 };
-          break;
-        case 'backgroundImage':
-          config = { aspectRatio: 1280 / 720, width: 1280, height: 720 };
-          break;
-        case 'organizerLogo':
-          config = { aspectRatio: 275 / 275, width: 275, height: 275 };
-          break;
-        default:
-          config = { aspectRatio: 1, width: 720, height: 958 };
-      }
-      
-      setCropConfig(config);
-      setImageToCrop(reader.result);
-      setCropField(field);
-      setCropModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Xử lý sau khi crop xong - upload ảnh đã crop
-  const handleCropComplete = async (croppedFile) => {
+  const handleImageUpload = async (file, field) => {
     try {
       setUploading(true);
-      const response = await eventsAPI.uploadImage(croppedFile);
-      handleInputChange(cropField, response.data.imageUrl);
-      setCropModalOpen(false);
-      setImageToCrop(null);
-      setCropField(null);
+      const response = await eventsAPI.uploadImage(file);
+      handleInputChange(field, response.data.imageUrl);
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Upload ảnh thất bại: ' + error.message);
@@ -405,10 +371,7 @@ const EventInfoStep = ({ data, onChange }) => {
               variant="text" 
               color="primary" 
               sx={{ textDecoration: 'underline' }}
-              onClick={() => {
-                // TODO: Implement image display locations modal
-                alert('Chức năng xem vị trí hiển thị ảnh sẽ được thêm sau');
-              }}
+              onClick={() => setImageModalOpen(true)}
             >
               Xem vị trí hiển thị các ảnh
             </Button>
@@ -435,7 +398,7 @@ const EventInfoStep = ({ data, onChange }) => {
                   input.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      handleFileSelect(file, 'eventImage');
+                      handleImageUpload(file, 'eventImage');
                     }
                   };
                   input.click();
@@ -444,25 +407,12 @@ const EventInfoStep = ({ data, onChange }) => {
                 {data.eventImage ? (
                   <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
                     <img
-                      src={data.eventImage.startsWith('http') 
-                        ? data.eventImage 
-                        : `http://localhost:5000${data.eventImage.startsWith('/') ? '' : '/'}${data.eventImage}`}
+                      src={`http://localhost:5000${data.eventImage}`}
                       alt="Event Image Preview"
                       style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        console.error('Image failed to load:', data.eventImage);
-                        console.error('Image URL was:', data.eventImage.startsWith('http') 
-                          ? data.eventImage 
-                          : `http://localhost:5000${data.eventImage.startsWith('/') ? '' : '/'}${data.eventImage}`);
-                        // Don't clear automatically - let user decide
-                        // Maybe show a warning instead
-                      }}
-                      onLoad={() => {
-                        console.log('Image loaded successfully:', data.eventImage);
                       }}
                     />
                     <Button
@@ -474,12 +424,10 @@ const EventInfoStep = ({ data, onChange }) => {
                         top: 8,
                         right: 8,
                         minWidth: 'auto',
-                        width: 32,
-                        height: 32,
+                        width: 24,
+                        height: 24,
                         borderRadius: '50%',
-                        padding: 0,
-                        fontSize: '20px',
-                        lineHeight: '20px'
+                        padding: 0
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -490,14 +438,15 @@ const EventInfoStep = ({ data, onChange }) => {
                     </Button>
                   </Box>
                 ) : (
-                  <CardContent sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', p: 3 }}>
+                  <CardContent sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <CloudUpload sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Ảnh chính - hiển thị ở trang chủ (danh sách sự kiện) (720x958)
+                    <Typography variant="body2" color="text.secondary">
+                      Thêm ảnh sự kiện để hiển thị ở các vị trí khác (720x958)
                     </Typography>
                     <Button
+                      size="small"
                       variant="outlined"
-                      startIcon={<CloudUpload />}
+                      sx={{ mt: 2 }}
                       disabled={uploading}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -507,7 +456,7 @@ const EventInfoStep = ({ data, onChange }) => {
                         input.onchange = (e) => {
                           const file = e.target.files[0];
                           if (file) {
-                            handleFileSelect(file, 'eventImage');
+                            handleImageUpload(file, 'eventImage');
                           }
                         };
                         input.click();
@@ -540,7 +489,7 @@ const EventInfoStep = ({ data, onChange }) => {
                   input.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      handleFileSelect(file, 'backgroundImage');
+                      handleImageUpload(file, 'backgroundImage');
                     }
                   };
                   input.click();
@@ -549,25 +498,12 @@ const EventInfoStep = ({ data, onChange }) => {
                 {data.backgroundImage ? (
                   <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
                     <img
-                      src={data.backgroundImage.startsWith('http') 
-                        ? data.backgroundImage 
-                        : `http://localhost:5000${data.backgroundImage.startsWith('/') ? '' : '/'}${data.backgroundImage}`}
+                      src={`http://localhost:5000${data.backgroundImage}`}
                       alt="Background Image Preview"
                       style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        console.error('Background image failed to load:', data.backgroundImage);
-                        console.error('Background Image URL was:', data.backgroundImage.startsWith('http') 
-                          ? data.backgroundImage 
-                          : `http://localhost:5000${data.backgroundImage.startsWith('/') ? '' : '/'}${data.backgroundImage}`);
-                        // Don't clear automatically - let user decide
-                        // Maybe show a warning instead
-                      }}
-                      onLoad={() => {
-                        console.log('Background image loaded successfully:', data.backgroundImage);
                       }}
                     />
                     <Button
@@ -579,12 +515,10 @@ const EventInfoStep = ({ data, onChange }) => {
                         top: 8,
                         right: 8,
                         minWidth: 'auto',
-                        width: 32,
-                        height: 32,
+                        width: 24,
+                        height: 24,
                         borderRadius: '50%',
-                        padding: 0,
-                        fontSize: '20px',
-                        lineHeight: '20px'
+                        padding: 0
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -595,14 +529,15 @@ const EventInfoStep = ({ data, onChange }) => {
                     </Button>
                   </Box>
                 ) : (
-                  <CardContent sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', p: 3 }}>
+                  <CardContent sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <CloudUpload sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Ảnh nền - hiển thị ở chi tiết sự kiện, sự kiện của tôi và phần nổi bật (1280x720)
+                    <Typography variant="body2" color="text.secondary">
+                      Thêm ảnh nền sự kiện (1280x720)
                     </Typography>
                     <Button
+                      size="small"
                       variant="outlined"
-                      startIcon={<CloudUpload />}
+                      sx={{ mt: 2 }}
                       disabled={uploading}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -612,7 +547,7 @@ const EventInfoStep = ({ data, onChange }) => {
                         input.onchange = (e) => {
                           const file = e.target.files[0];
                           if (file) {
-                            handleFileSelect(file, 'backgroundImage');
+                            handleImageUpload(file, 'backgroundImage');
                           }
                         };
                         input.click();
@@ -1124,7 +1059,7 @@ Chi tiết sự kiện:
                   input.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      handleFileSelect(file, 'organizerLogo');
+                      handleImageUpload(file, 'organizerLogo');
                     }
                   };
                   input.click();
@@ -1182,7 +1117,7 @@ Chi tiết sự kiện:
                         input.onchange = (e) => {
                           const file = e.target.files[0];
                           if (file) {
-                            handleFileSelect(file, 'organizerLogo');
+                            handleImageUpload(file, 'organizerLogo');
                           }
                         };
                         input.click();
@@ -1243,20 +1178,15 @@ Chi tiết sự kiện:
         </Card>
       </Box>
 
-      {/* Image Crop Modal */}
-      <ImageCropModal
-        open={cropModalOpen}
-        onClose={() => {
-          setCropModalOpen(false);
-          setImageToCrop(null);
-          setCropField(null);
+      {/* Image Display Locations Modal */}
+      <ImageDisplayLocationsModal
+        open={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        images={{
+          eventImage: data.eventImage,
+          backgroundImage: data.backgroundImage,
+          organizerLogo: data.organizerLogo
         }}
-        imageSrc={imageToCrop}
-        aspectRatio={cropConfig.aspectRatio}
-        cropWidth={cropConfig.width}
-        cropHeight={cropConfig.height}
-        onCropComplete={handleCropComplete}
-        fieldName={cropField}
       />
     </Box>
   );
