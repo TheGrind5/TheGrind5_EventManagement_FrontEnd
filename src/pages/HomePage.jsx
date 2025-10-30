@@ -406,22 +406,28 @@ const HomePage = () => {
       />
 
       {/* Events Section */}
-      <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
-        <Typography 
-          variant="h4" 
-          component="h2" 
-          textAlign="center" 
-          gutterBottom 
-          sx={{ 
-            mb: 4,
-            fontWeight: 700,
-            fontSize: { xs: '1.75rem', md: '2.125rem' },
-            color: 'text.primary',
-            letterSpacing: '-0.02em'
-          }}
-        >
-          Sự Kiện Sắp Diễn Ra
-        </Typography>
+      <Box
+        sx={{
+          backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+          minHeight: '60vh',
+        }}
+      >
+        <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
+          <Typography 
+            variant="h4" 
+            component="h2" 
+            textAlign="center" 
+            gutterBottom 
+            sx={{ 
+              mb: 4,
+              fontWeight: 700,
+              fontSize: { xs: '1.75rem', md: '2.125rem' },
+              color: 'text.primary',
+              letterSpacing: '-0.02em'
+            }}
+          >
+            Sự Kiện Sắp Diễn Ra
+          </Typography>
         
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -434,7 +440,8 @@ const HomePage = () => {
 
         {/* Events Grid */}
         {renderEventsGrid()}
-      </Container>
+        </Container>
+      </Box>
 
       {/* Footer */}
       <Footer />
