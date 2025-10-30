@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import { eventsAPI } from '../services/apiClient';
+import { decodeText } from '../utils/textDecoder';
 import { useAuth } from '../contexts/AuthContext';
 
 const MyEventsPage = () => {
@@ -233,7 +234,7 @@ const MyEventsPage = () => {
                       }
                       return '/default-event.svg';
                     })()}
-                    alt={event.title}
+                    alt={decodeText(event.title)}
                     onError={(e) => {
                       e.target.src = '/default-event.svg';
                     }}
@@ -243,7 +244,7 @@ const MyEventsPage = () => {
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
                       <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
-                        {event.title}
+                        {decodeText(event.title)}
                       </Typography>
                       <Chip
                         label={getStatusLabel(event.status)}
@@ -265,7 +266,7 @@ const MyEventsPage = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <LocationOn fontSize="small" color="action" />
                           <Typography variant="body2" color="text.secondary" noWrap>
-                            {event.location}
+                            {decodeText(event.location)}
                           </Typography>
                         </Box>
                       )}
@@ -273,7 +274,7 @@ const MyEventsPage = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <People fontSize="small" color="action" />
                         <Typography variant="body2" color="text.secondary">
-                          {event.category || 'Chưa phân loại'}
+                          {decodeText(event.category) || 'Chưa phân loại'}
                         </Typography>
                       </Box>
                     </Box>
