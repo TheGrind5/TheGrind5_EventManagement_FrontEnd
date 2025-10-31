@@ -25,7 +25,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Divider
 } from '@mui/material';
 import { 
   Search, 
@@ -42,6 +43,7 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import { ticketsAPI, eventsAPI } from '../services/apiClient';
+import { decodeText } from '../utils/textDecoder';
 
 const MyTicketsPage = () => {
   const navigate = useNavigate();
@@ -76,16 +78,23 @@ const MyTicketsPage = () => {
     try {
       setLoading(true);
       const response = await ticketsAPI.getMyTickets();
-      const newTickets =
-        (response && Array.isArray(response.data))
-          ? response.data
-          : (response && response.data && Array.isArray(response.data.tickets))
-            ? response.data.tickets
-            : (Array.isArray(response.tickets) ? response.tickets : []);
+      console.log('🔍 DEBUG MyTickets - Full response:', response);
+      
+      // API returns: { data: [...tickets...], totalCount, page, ... }
+      const newTickets = response?.data?.data || response?.data || response?.tickets || [];
+      console.log('🔍 DEBUG MyTickets - Parsed tickets:', newTickets);
+      console.log('🔍 DEBUG MyTickets - Ticket count:', newTickets.length);
+      
+      if (newTickets.length > 0) {
+        console.log('🔍 DEBUG MyTickets - First ticket structure:', newTickets[0]);
+        console.log('🔍 DEBUG MyTickets - Has Event?', !!newTickets[0]?.Event || !!newTickets[0]?.event);
+        console.log('🔍 DEBUG MyTickets - Has TicketType?', !!newTickets[0]?.TicketType || !!newTickets[0]?.ticketType);
+      }
       
       // Check if there are new tickets (recently created)
       const recentTickets = newTickets.filter(ticket => {
-        const ticketDate = new Date(ticket.issuedAt);
+        const ticketDate = new Date(ticket.issuedAt || ticket.IssuedAt);
+        if (isNaN(ticketDate.getTime())) return false;
         const now = new Date();
         const diffHours = (now - ticketDate) / (1000 * 60 * 60);
         return diffHours < 24; // Tickets created in last 24 hours
@@ -100,8 +109,8 @@ const MyTicketsPage = () => {
       setTickets(newTickets);
       setError(null);
     } catch (err) {
-      setError(err.message);
-      console.error('Error fetching tickets:', err);
+      console.error('🔍 DEBUG MyTickets - Error:', err);
+      setError(err.message || 'Không thể tải danh sách vé. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -211,36 +220,53 @@ const MyTicketsPage = () => {
   };
 
   // Get unique events for filter dropdown
-  const events = [...new Set(tickets.map(ticket => ticket.eventTitle).filter(Boolean))];
+  const events = [...new Set(tickets.map(ticket => 
+    ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || ''
+  ).filter(Boolean))];
 
   const filteredTickets = tickets.filter(ticket => {
+    const ticketStatus = ticket.Status || ticket.status;
+    const eventTitle = ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || '';
+    const ticketTypeName = ticket.TicketType?.TypeName || ticket.ticketType?.typeName || ticket.TicketType?.typeName || '';
+    const serialNumber = ticket.SerialNumber || ticket.serialNumber || '';
+    const issuedAt = ticket.IssuedAt || ticket.issuedAt;
+    
     // Status filter
     let matchesStatus = true;
     switch (filter) {
       case 'available':
-        matchesStatus = ticket.status === 'Assigned';
+        matchesStatus = ticketStatus === 'Assigned';
         break;
       case 'used':
-        matchesStatus = ticket.status === 'Used';
+        matchesStatus = ticketStatus === 'Used';
         break;
       case 'refunded':
-        matchesStatus = ticket.status === 'Refunded';
+        matchesStatus = ticketStatus === 'Refunded';
         break;
       default:
         matchesStatus = true;
     }
 
     // Search filter
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm || 
-      ticket.eventTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.ticketTypeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.serialNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      decodeText(eventTitle).toLowerCase().includes(searchLower) ||
+      decodeText(ticketTypeName).toLowerCase().includes(searchLower) ||
+      serialNumber.toLowerCase().includes(searchLower);
 
     // Event filter
-    const matchesEvent = eventFilter === 'all' || ticket.eventTitle === eventFilter;
+    const matchesEvent = eventFilter === 'all' || eventTitle === eventFilter;
 
     // Date filter
-    const ticketDate = new Date(ticket.issuedAt);
+    if (!issuedAt) {
+      return matchesStatus && matchesSearch && matchesEvent;
+    }
+    
+    const ticketDate = new Date(issuedAt);
+    if (isNaN(ticketDate.getTime())) {
+      return matchesStatus && matchesSearch && matchesEvent;
+    }
+    
     const now = new Date();
     let matchesDate = true;
     
@@ -442,19 +468,19 @@ const MyTicketsPage = () => {
               variant={filter === 'Assigned' ? 'contained' : 'outlined'}
               onClick={() => setFilter('Assigned')}
             >
-              Có thể dùng ({tickets.filter(t => t.status === 'Assigned').length})
+              Có thể dùng ({tickets.filter(t => (t.Status || t.status) === 'Assigned').length})
             </Button>
             <Button 
               variant={filter === 'Used' ? 'contained' : 'outlined'}
               onClick={() => setFilter('Used')}
             >
-              Đã dùng ({tickets.filter(t => t.status === 'Used').length})
+              Đã dùng ({tickets.filter(t => (t.Status || t.status) === 'Used').length})
             </Button>
             <Button 
               variant={filter === 'Refunded' ? 'contained' : 'outlined'}
               onClick={() => setFilter('Refunded')}
             >
-              Đã hoàn ({tickets.filter(t => t.status === 'Refunded').length})
+              Đã hoàn ({tickets.filter(t => (t.Status || t.status) === 'Refunded').length})
             </Button>
           </Box>
           )}
@@ -497,66 +523,203 @@ const MyTicketsPage = () => {
             )
           ) : (
             activeTab === 'tickets' && (
-            <Grid container spacing={3}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  md: 'repeat(2, 1fr)'
+                },
+                gap: 3,
+                alignItems: 'stretch'
+              }}
+            >
               {filteredTickets.map((ticket) => (
-                <Grid item xs={12} md={6} key={ticket.ticketId}>
-                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Stack spacing={2}>
+                <Card 
+                  key={ticket.TicketId || ticket.ticketId || Math.random()}
+                  elevation={0}
+                  sx={{ 
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 3,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: `0 8px 24px ${theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.12)'}`,
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                >
+                    <CardContent 
+                      sx={{ 
+                        flexGrow: 1, 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        p: 3,
+                        minHeight: 0,
+                        '&:last-child': { pb: 3 }
+                      }}
+                    >
+                      <Stack spacing={2.5} sx={{ flexGrow: 1, minHeight: 0 }}>
                         {/* Header */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                              {ticket.event.title}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                          <Box sx={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+                            <Typography 
+                              variant="h6" 
+                              sx={{ 
+                                fontWeight: 600,
+                                mb: 1,
+                                lineHeight: 1.4,
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word',
+                                hyphens: 'auto'
+                              }}
+                            >
+                              {decodeText(ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || 'Chưa có tiêu đề')}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {ticket.ticketType.typeName}
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary" 
+                              sx={{ 
+                                mb: 0.5,
+                                lineHeight: 1.5,
+                                wordWrap: 'break-word'
+                              }}
+                            >
+                              {decodeText(ticket.TicketType?.TypeName || ticket.ticketType?.typeName || ticket.TicketType?.typeName || 'Chưa có loại vé')}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              Số vé: {ticket.serialNumber}
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary" 
+                              sx={{ 
+                                fontSize: '0.85rem',
+                                lineHeight: 1.5,
+                                fontFamily: 'monospace'
+                              }}
+                            >
+                              Số vé: {ticket.SerialNumber || ticket.serialNumber || 'N/A'}
                             </Typography>
                           </Box>
-                          <Box sx={{ textAlign: 'right' }}>
+                          <Box sx={{ textAlign: 'right', flexShrink: 0, alignSelf: 'flex-start' }}>
                             <Chip 
-                              label={getStatusText(ticket.status)}
-                              color={ticket.status === 'Assigned' ? 'success' : 
-                                     ticket.status === 'Used' ? 'info' : 'default'}
+                              label={getStatusText(ticket.Status || ticket.status)}
+                              color={(ticket.Status || ticket.status) === 'Assigned' ? 'success' : 
+                                     (ticket.Status || ticket.status) === 'Used' ? 'info' : 'default'}
                               size="small"
+                              sx={{ mb: 1, display: 'block' }}
                             />
-                            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mt: 1 }}>
-                              {formatPrice(ticket.ticketType.price)}
+                            <Typography 
+                              variant="h6" 
+                              sx={{ 
+                                fontWeight: 600, 
+                                color: 'primary.main',
+                                lineHeight: 1.2
+                              }}
+                            >
+                              {formatPrice((ticket.TicketType?.Price || ticket.ticketType?.price || ticket.TicketType?.price || 0))}
                             </Typography>
                           </Box>
                         </Box>
 
-                        {/* Details */}
-                        <Stack spacing={1}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <AccessTime fontSize="small" color="action" />
-                            <Typography variant="body2" color="text.secondary">
-                              {formatDate(ticket.event.startTime)}
+                        <Divider sx={{ my: 0.5 }} />
+
+                        {/* Details - Allow natural wrapping */}
+                        <Stack spacing={1.5} sx={{ flexGrow: 1, minHeight: 0 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                            <AccessTime 
+                              fontSize="small" 
+                              color="action" 
+                              sx={{ 
+                                mt: 0.25, 
+                                flexShrink: 0,
+                                width: '20px'
+                              }} 
+                            />
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary"
+                              sx={{ 
+                                flex: 1,
+                                lineHeight: 1.6,
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word'
+                              }}
+                            >
+                              {formatDate((ticket.Event?.StartTime || ticket.event?.startTime || ticket.Event?.startTime))}
                             </Typography>
                           </Box>
                           
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <LocationOn fontSize="small" color="action" />
-                            <Typography variant="body2" color="text.secondary">
-                              {ticket.event.location}
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                            <LocationOn 
+                              fontSize="small" 
+                              color="action" 
+                              sx={{ 
+                                mt: 0.25, 
+                                flexShrink: 0,
+                                width: '20px'
+                              }} 
+                            />
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary"
+                              sx={{ 
+                                flex: 1,
+                                lineHeight: 1.6,
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word',
+                                hyphens: 'auto'
+                              }}
+                            >
+                              {decodeText(ticket.Event?.Location || ticket.event?.location || ticket.Event?.location || 'Chưa có địa điểm')}
                             </Typography>
                           </Box>
                           
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Person fontSize="small" color="action" />
-                            <Typography variant="body2" color="text.secondary">
-                              Phát hành: {formatDate(ticket.issuedAt)}
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                            <Person 
+                              fontSize="small" 
+                              color="action" 
+                              sx={{ 
+                                mt: 0.25, 
+                                flexShrink: 0,
+                                width: '20px'
+                              }} 
+                            />
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary"
+                              sx={{ 
+                                flex: 1,
+                                lineHeight: 1.6,
+                                wordWrap: 'break-word'
+                              }}
+                            >
+                              Phát hành: {formatDate(ticket.IssuedAt || ticket.issuedAt)}
                             </Typography>
                           </Box>
                           
-                          {ticket.usedAt && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <ConfirmationNumber fontSize="small" color="action" />
-                              <Typography variant="body2" color="text.secondary">
-                                Sử dụng: {formatDate(ticket.usedAt)}
+                          {(ticket.UsedAt || ticket.usedAt) && (
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                              <ConfirmationNumber 
+                                fontSize="small" 
+                                color="action" 
+                                sx={{ 
+                                  mt: 0.25, 
+                                  flexShrink: 0,
+                                  width: '20px'
+                                }} 
+                              />
+                              <Typography 
+                                variant="body2" 
+                                color="text.secondary"
+                                sx={{ 
+                                  flex: 1,
+                                  lineHeight: 1.6,
+                                  wordWrap: 'break-word'
+                                }}
+                              >
+                                Sử dụng: {formatDate(ticket.UsedAt || ticket.usedAt)}
                               </Typography>
                             </Box>
                           )}
@@ -564,16 +727,31 @@ const MyTicketsPage = () => {
                       </Stack>
                     </CardContent>
 
-                    {/* Actions */}
-                    <Box sx={{ p: 2, pt: 0 }}>
-                      <Stack direction="row" spacing={1} flexWrap="wrap">
-                        {ticket.status === 'Assigned' && (
+                    {/* Actions - Fixed at bottom */}
+                    <Box 
+                      sx={{ 
+                        p: 2, 
+                        pt: 2, 
+                        mt: 'auto',
+                        borderTop: `1px solid ${theme.palette.divider}`,
+                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.01)',
+                        flexShrink: 0
+                      }}
+                    >
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        {(ticket.Status || ticket.status) === 'Assigned' && (
                           <>
                             <Button 
                               variant="contained"
                               color="success"
                               size="small"
-                              onClick={() => handleCheckIn(ticket.ticketId)}
+                              onClick={() => handleCheckIn(ticket.TicketId || ticket.ticketId)}
+                              sx={{ 
+                                flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                                minWidth: '100px',
+                                textTransform: 'none',
+                                fontWeight: 600
+                              }}
                             >
                               Check-in
                             </Button>
@@ -581,7 +759,13 @@ const MyTicketsPage = () => {
                               variant="outlined"
                               color="warning"
                               size="small"
-                              onClick={() => handleRefund(ticket.ticketId)}
+                              onClick={() => handleRefund(ticket.TicketId || ticket.ticketId)}
+                              sx={{ 
+                                flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                                minWidth: '100px',
+                                textTransform: 'none',
+                                fontWeight: 600
+                              }}
                             >
                               Hoàn tiền
                             </Button>
@@ -589,18 +773,23 @@ const MyTicketsPage = () => {
                         )}
                         <Button 
                           component={Link} 
-                          to={`/event/${ticket.event.eventId}`}
+                          to={`/event/${ticket.Event?.EventId || ticket.event?.eventId || ticket.Event?.eventId || '0'}`}
                           variant="outlined"
                           size="small"
+                          sx={{ 
+                            flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                            minWidth: '120px',
+                            textTransform: 'none',
+                            fontWeight: 600
+                          }}
                         >
                           Xem sự kiện
                         </Button>
                       </Stack>
                     </Box>
                   </Card>
-                </Grid>
               ))}
-            </Grid>
+            </Box>
             )
           )}
 
@@ -648,10 +837,10 @@ const MyTicketsPage = () => {
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <Box>
                                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    {event.title}
+                                    {decodeText(event.title)}
                                   </Typography>
                                   <Chip 
-                                    label={event.category || 'Không có danh mục'} 
+                                    label={decodeText(event.category) || 'Không có danh mục'} 
                                     size="small" 
                                     sx={{ mt: 1 }}
                                   />
@@ -682,7 +871,7 @@ const MyTicketsPage = () => {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <LocationOn fontSize="small" color="action" />
                                   <Typography variant="body2" color="text.secondary">
-                                    {event.location || 'Chưa có địa điểm'}
+                                    {decodeText(event.location) || 'Chưa có địa điểm'}
                                   </Typography>
                                 </Box>
                               </Stack>

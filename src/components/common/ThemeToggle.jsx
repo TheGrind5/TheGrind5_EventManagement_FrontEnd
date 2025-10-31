@@ -13,6 +13,8 @@ const ThemeToggle = ({ className = '' }) => {
         color="inherit"
         sx={{
           borderRadius: 2,
+          width: 40,
+          height: 40,
           '&:hover': {
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
           },

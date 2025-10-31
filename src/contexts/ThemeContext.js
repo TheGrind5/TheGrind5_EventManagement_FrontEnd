@@ -22,41 +22,50 @@ export const CustomThemeProvider = ({ children }) => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
-  // Tạo Material-UI theme
+  // Tạo Material-UI theme - TicketBox.vn Design System
   const muiTheme = createTheme({
     palette: {
       mode: themeMode,
       primary: {
-        main: '#667eea',
-        light: '#764ba2',
-        dark: '#4a5568',
+        main: '#3DBE29',        // TicketBox signature green
+        light: '#5FD946',
+        dark: '#2FA320',
+        contrastText: '#FFFFFF',
       },
       secondary: {
-        main: '#22c55e',
-        light: '#4CAF50',
-        dark: '#16a34a',
+        main: '#F97316',        // Accent orange
+        light: '#FB923C',
+        dark: '#EA580C',
       },
       error: {
-        main: '#ef4444',
+        main: '#EF4444',
       },
       warning: {
-        main: '#f59e0b',
+        main: '#F59E0B',
+      },
+      info: {
+        main: '#3B82F6',
+      },
+      success: {
+        main: '#10B981',
       },
       background: {
-        default: themeMode === 'dark' ? '#0f0f23' : '#ffffff',
-        paper: themeMode === 'dark' ? '#2d3748' : '#ffffff',
+        default: themeMode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+        paper: themeMode === 'dark' ? '#1C1C1C' : '#FFFFFF',
       },
       text: {
-        primary: themeMode === 'dark' ? '#ffffff' : '#212529',
-        secondary: themeMode === 'dark' ? '#e2e8f0' : '#6c757d',
+        primary: themeMode === 'dark' ? '#FFFFFF' : '#000000',
+        secondary: themeMode === 'dark' ? '#A3A3A3' : '#737373',
       },
+      divider: themeMode === 'dark' ? '#333333' : '#E5E7EB',
     },
     typography: {
       fontFamily: [
+        'Inter',
+        'Roboto',
         '-apple-system',
         'BlinkMacSystemFont',
         '"Segoe UI"',
-        'Roboto',
         '"Helvetica Neue"',
         'Arial',
         'sans-serif',
@@ -64,10 +73,12 @@ export const CustomThemeProvider = ({ children }) => {
       h1: {
         fontSize: '2.5rem',
         fontWeight: 700,
+        letterSpacing: '-0.02em',
       },
       h2: {
         fontSize: '2rem',
-        fontWeight: 600,
+        fontWeight: 700,
+        letterSpacing: '-0.01em',
       },
       h3: {
         fontSize: '1.75rem',
@@ -85,9 +96,17 @@ export const CustomThemeProvider = ({ children }) => {
         fontSize: '1rem',
         fontWeight: 600,
       },
+      body1: {
+        fontSize: '1rem',
+        fontWeight: 400,
+      },
+      body2: {
+        fontSize: '0.875rem',
+        fontWeight: 400,
+      },
     },
     shape: {
-      borderRadius: 12,
+      borderRadius: 8,
     },
     components: {
       MuiButton: {
@@ -95,18 +114,27 @@ export const CustomThemeProvider = ({ children }) => {
           root: {
             textTransform: 'none',
             fontWeight: 600,
-            borderRadius: 12,
-            padding: '10px 24px',
+            borderRadius: 6,
+            padding: '8px 20px',
+            boxShadow: 'none',
+          },
+          contained: {
+            boxShadow: 'none',
+            '&:hover': {
+              boxShadow: 'none',
+            },
           },
         },
       },
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 16,
-            boxShadow: themeMode === 'dark' 
-              ? '0 8px 30px rgba(0, 0, 0, 0.3)' 
-              : '0 8px 30px rgba(0, 0, 0, 0.08)',
+            borderRadius: 8,
+            border: themeMode === 'dark' 
+              ? '1px solid #333333' 
+              : '1px solid #E5E7EB',
+            boxShadow: 'none',
+            backgroundColor: themeMode === 'dark' ? '#1C1C1C' : '#FFFFFF',
           },
         },
       },
@@ -114,8 +142,16 @@ export const CustomThemeProvider = ({ children }) => {
         styleOverrides: {
           root: {
             '& .MuiOutlinedInput-root': {
-              borderRadius: 12,
+              borderRadius: 8,
             },
+          },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: {
+            borderRadius: 6,
+            fontWeight: 500,
           },
         },
       },
