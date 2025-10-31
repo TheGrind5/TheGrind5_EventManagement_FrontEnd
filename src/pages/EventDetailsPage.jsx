@@ -30,7 +30,6 @@ import WishlistButton from '../components/common/WishlistButton';
 import StageViewer from '../components/stage/StageViewer';
 import { eventsAPI, ticketsAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
-import { decodeText } from '../utils/textDecoder';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
