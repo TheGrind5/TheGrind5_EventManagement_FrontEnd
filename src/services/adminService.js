@@ -100,6 +100,33 @@ const adminService = {
       console.error('Error getting customers:', error);
       throw error;
     }
+  },
+
+  /**
+   * Lấy danh sách tất cả orders với filter và pagination
+   * @param {Object} params - Query parameters
+   * @param {string} params.searchTerm - Tìm kiếm theo tên khách hàng, email, event title (optional)
+   * @param {number} params.pageNumber - Số trang (default: 1)
+   * @param {number} params.pageSize - Số items mỗi trang (default: 10)
+   * @param {string} params.sortBy - Sắp xếp theo field (default: "CreatedAt")
+   * @param {string} params.sortOrder - Thứ tự: "asc" hoặc "desc" (default: "desc")
+   */
+  async getAllOrders(params = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.searchTerm) queryParams.append('searchTerm', params.searchTerm);
+      if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+      if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+      if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+
+      const response = await apiClient.get(`/admin/orders?${queryParams.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error getting orders:', error);
+      throw error;
+    }
   }
 };
 
