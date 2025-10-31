@@ -1,7 +1,10 @@
 import React from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Box } from '@mui/material';
 import AdminSidebar from '../components/admin/AdminSidebar';
+import AdminHeader from '../components/admin/AdminHeader';
 import UserManagement from '../components/admin/UserManagement';
+import EventManagement from '../components/admin/EventManagement';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminDashboard.css';
 
@@ -17,13 +20,14 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard-container">
       <AdminSidebar onLogout={handleLogout} />
+      <AdminHeader />
       
-      <div className="admin-main-content">
+      <div className="admin-main-content" style={{ paddingTop: '64px' }}>
         <Routes>
           <Route path="/" element={<Navigate to="/admin/users" replace />} />
           <Route path="/dashboard" element={<Navigate to="/admin/users" replace />} />
           <Route path="/users" element={<UserManagement />} />
-          <Route path="/events" element={<ComingSoon title="Quản Lý Events" />} />
+          <Route path="/events" element={<EventManagement />} />
           <Route path="/orders" element={<ComingSoon title="Quản Lý Orders" />} />
           <Route path="/settings" element={<ComingSoon title="Cài Đặt" />} />
         </Routes>

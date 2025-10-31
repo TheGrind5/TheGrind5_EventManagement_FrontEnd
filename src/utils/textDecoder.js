@@ -1,4 +1,5 @@
 /**
+ * Decode text that may have encoding issues
  * Text Decoder Utility
  * Fixes UTF-8 encoding issues from backend
  */
