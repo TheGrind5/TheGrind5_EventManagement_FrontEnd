@@ -134,8 +134,43 @@ const StageEditor = ({ layout, onChange, ticketTypes }) => {
   const handleAreaClick = (area) => {
     if (!previewMode) {
       console.log('Area clicked:', area);
+      // Nếu khu vực đã liên kết loại vé, lưu snapshot thông tin vé vào khu vực
+      let updatedArea = { ...area };
+      if (area.ticketTypeId !== null && area.ticketTypeId !== undefined) {
+        const matchedTicket = (ticketTypes || []).find(t => {
+          const tId = t?.ticketTypeId;
+          return tId !== null && tId !== undefined && Number(tId) === Number(area.ticketTypeId);
+        });
+        if (matchedTicket) {
+          // Lưu snapshot để đảm bảo khi dữ liệu vé thay đổi, khu vực vẫn giữ thông tin tại thời điểm liên kết/click
+          updatedArea = {
+            ...updatedArea,
+            linkedTicket: {
+              ticketTypeId: matchedTicket.ticketTypeId,
+              typeName: matchedTicket.typeName,
+              price: matchedTicket.price,
+              quantity: matchedTicket.quantity,
+              minOrder: matchedTicket.minOrder,
+              maxOrder: matchedTicket.maxOrder,
+              saleStart: matchedTicket.saleStart,
+              saleEnd: matchedTicket.saleEnd,
+              status: matchedTicket.status
+            }
+          };
+          // Cập nhật mảng areas và propagate lên layout
+          const updatedAreas = areas.map(a => a.id === updatedArea.id ? updatedArea : a);
+          setAreas(updatedAreas);
+          onChange({
+            ...layout,
+            hasVirtualStage: true,
+            canvasWidth: stageWidth,
+            canvasHeight: stageHeight,
+            areas: updatedAreas
+          });
+        }
+      }
       // Clone the area object to avoid reference issues
-      setSelectedArea({ ...area });
+      setSelectedArea({ ...updatedArea });
     }
   };
 
@@ -421,10 +456,32 @@ const StageEditor = ({ layout, onChange, ticketTypes }) => {
                       const newValue = e.target.value;
                       setSelectedArea(prevArea => {
                         const ticketTypeId = newValue !== '' ? Number(newValue) : null;
-                        const updatedArea = { 
+                        let updatedArea = { 
                           ...prevArea, 
                           ticketTypeId: ticketTypeId
                         };
+                        // Auto link snapshot khi chọn loại vé
+                        if (ticketTypeId !== null) {
+                          const matched = (ticketTypes || []).find(t => Number(t?.ticketTypeId) === ticketTypeId);
+                          if (matched) {
+                            updatedArea = {
+                              ...updatedArea,
+                              linkedTicket: {
+                                ticketTypeId: matched.ticketTypeId,
+                                typeName: matched.typeName,
+                                price: matched.price,
+                                quantity: matched.quantity,
+                                minOrder: matched.minOrder,
+                                maxOrder: matched.maxOrder,
+                                saleStart: matched.saleStart,
+                                saleEnd: matched.saleEnd,
+                                status: matched.status
+                              }
+                            };
+                          }
+                        } else {
+                          updatedArea = { ...updatedArea, linkedTicket: null };
+                        }
                         console.log('Updated area with ticketTypeId:', updatedArea);
                         return updatedArea;
                       });

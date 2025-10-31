@@ -299,13 +299,23 @@ const CreateOrderPage = () => {
             
             // 🔧 FIX: Sử dụng React Router thay vì window.location để preserve state
             setTimeout(() => {
-                navigate(`/payment/${orderId}`, {
-                    state: {
-                        order: response.data?.order || response.order,
-                        fromOrderCreation: true,
-                        orderData: orderData
-                    }
-                });
+                const selectedTicketForNav = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
+                if (selectedTicketForNav && (selectedTicketForNav.isFree || selectedTicketForNav.price === 0)) {
+                    navigate(`/order-confirmation/${orderId}`, {
+                        state: {
+                            order: response.data?.order || response.order,
+                            fromOrderCreation: true
+                        }
+                    });
+                } else {
+                    navigate(`/payment/${orderId}`, {
+                        state: {
+                            order: response.data?.order || response.order,
+                            fromOrderCreation: true,
+                            orderData: orderData
+                        }
+                    });
+                }
             }, 2000);
             
         } catch (error) {
