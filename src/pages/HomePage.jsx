@@ -45,6 +45,7 @@ import CategoryTabs from '../components/ui/CategoryTabs';
 import EventCard from '../components/ui/EventCard';
 import { eventsAPI } from '../services/apiClient';
 import Pagination from '@mui/material/Pagination';
+import { useDebounce } from '../hooks/useDebounce';
 
 const HomePage = () => {
   //State declaration để quản lý trạng thái của component
@@ -54,6 +55,9 @@ const HomePage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [totalCount, setTotalCount] = useState(0);
+  
+  // Tính tổng số trang
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,17 +70,41 @@ const HomePage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Debounce search term để giảm số lượng API calls
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // Trạng thái có đang dùng bộ lọc (đặt sau khi khai báo state filter)
+  const filtersActive = debouncedSearchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
+
   // Refs for horizontal scroll containers
   const trendingScrollRef = useRef(null);
   const recommendedScrollRef = useRef(null);
   const upcomingScrollRef = useRef(null);
+
+  // Reset page khi filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchTerm, categoryFilter, statusFilter, campusFilter, priceFilter]);
 
   //useEffect hook để fetch events từ backend
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const response = await eventsAPI.getAll(page, pageSize);
+        
+        // Build filters object for API
+        const filters = {};
+        if (debouncedSearchTerm) filters.searchTerm = debouncedSearchTerm;
+        if (categoryFilter !== 'all') filters.category = categoryFilter;
+        if (statusFilter !== 'all') {
+          // Map frontend status to backend status
+          if (statusFilter === 'Active') filters.status = 'Open';
+          else if (statusFilter === 'Upcoming') filters.status = 'Open'; // Backend doesn't have Upcoming status
+          else if (statusFilter === 'Completed') filters.status = 'Closed';
+        }
+        // Note: dateFilter is handled client-side as backend doesn't support date range filtering
+        
+        const response = await eventsAPI.getAll(page, pageSize, filters);
         // response.data có thể là PagedResponse hoặc mảng
         const payload = response.data;
         if (payload && Array.isArray(payload.data)) {
@@ -98,7 +126,7 @@ const HomePage = () => {
     };
 
     fetchEvents();
-  }, [page, pageSize]);
+  }, [page, pageSize, debouncedSearchTerm, categoryFilter, statusFilter, campusFilter, priceFilter]);
 
   //Hàm constants để format date
   const formatDate = (dateString) => {
@@ -114,9 +142,28 @@ const HomePage = () => {
   // Filter valid events (eventId > 0)
   const validEvents = events.filter(event => event.eventId && event.eventId > 0);
 
-  // Get unique categories for filter dropdown
-  const categories = [...new Set(validEvents.map(event => event.category).filter(Boolean))];
+  // Get unique categories for filter dropdown - fetch all categories from backend
+  const [allCategories, setAllCategories] = useState([]);
   
+  // Fetch all categories when component mounts (without filters)
+  useEffect(() => {
+    const fetchAllCategories = async () => {
+      try {
+        // Fetch first page of all events to get unique categories
+        const response = await eventsAPI.getAll(1, 100); // Get first 100 events to get all categories
+        const payload = response.data;
+        if (payload && Array.isArray(payload.data)) {
+          const cats = [...new Set(payload.data.map(event => event.category).filter(Boolean))];
+          setAllCategories(cats);
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    
+    fetchAllCategories();
+  }, []); // Only run once on mount
+
   // FPT Campuses list
   const campuses = [
     { value: 'all', label: 'Tất cả campus' },
@@ -127,12 +174,7 @@ const HomePage = () => {
     { value: 'Cần Thơ', label: 'Cần Thơ' }
   ];
 
-  // Tạo lại categoryOptions chỉ chứa danh mục
-  const categoryOptions = [
-    { value: 'all', label: 'Tất cả' },
-    ...categories.map(c => ({ value: c, label: c }))
-  ];
-  // Tạo lại priceOptions riêng cho dropdown Giá Tiền
+  // Price filter options
   const priceOptions = [
     { value: 'all', label: 'Tất cả' },
     { value: 'free', label: 'Miễn phí' },
@@ -141,60 +183,64 @@ const HomePage = () => {
     { value: 'above100', label: 'Trên 100.000đ' }
   ];
 
-  // Filter events based on search and filter criteria
-  const filteredEvents = validEvents.filter(event => {
-    // Search filter
-    const matchesSearch = !searchTerm || 
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.category?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    // Status filter
-    const matchesStatus = statusFilter === 'all' || getEventStatus(event.startTime, event.endTime) === statusFilter;
-
-    // Date filter
+  // Helper function to get event status
+  const getEventStatus = (startTime, endTime) => {
     const now = new Date();
-    const eventStart = new Date(event.startTime);
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    if (start > now) return 'Upcoming';
+    if (start <= now && end >= now) return 'Active';
+    return 'Completed';
+  };
+
+  // Filter events based on date, campus, and price filters (search/category/status handled by backend)
+  const filteredEvents = validEvents.filter(event => {
+    const now = new Date();
+    const eventDate = new Date(event.startTime);
+    
+    // Date filter
     let matchesDate = true;
-    if (dateFilter === 'today') {
-      matchesDate = eventStart.toDateString() === now.toDateString();
-    } else if (dateFilter === 'upcoming') {
-      matchesDate = eventStart > now;
+    if (dateFilter === 'upcoming') {
+      matchesDate = eventDate > now;
     } else if (dateFilter === 'past') {
-      matchesDate = eventStart < now;
+      matchesDate = eventDate < now;
+    } else if (dateFilter === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      matchesDate = eventDate >= today && eventDate < tomorrow;
     }
-
+    if (!matchesDate) return false;
+    
     // Campus filter
-    const matchesCampus = campusFilter === 'all' || 
-      event.location?.includes(campusFilter) || 
-      event.campus?.includes(campusFilter);
-
-    // Category/Price filter
-    if (categoryFilter === 'free') {
-      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price === 0 || t.isFree)) return false;
-    } else if (categoryFilter === 'below50') {
-      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price > 0 && t.price < 50000)) return false;
-    } else if (categoryFilter === '50to100') {
-      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price >= 50000 && t.price <= 100000)) return false;
-    } else if (categoryFilter === 'above100') {
-      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price > 100000)) return false;
-    } else if (categoryFilter !== 'all') {
-      // các danh mục khác
-      if (event.category !== categoryFilter) return false;
-    }
-
+    const matchesCampus = campusFilter === 'all' ||
+      event.location?.includes(campusFilter) ||
+      event.campus?.includes(campusFilter) ||
+      event.eventDetails?.location?.includes(campusFilter);
+    if (!matchesCampus) return false;
+    
     // Price filter
-    if (priceFilter === 'free') {
-      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price === 0 || t.isFree)) return false;
-    } else if (priceFilter === 'below50') {
-      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price > 0 && t.price < 50000)) return false;
-    } else if (priceFilter === '50to100') {
-      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price >= 50000 && t.price <= 100000)) return false;
-    } else if (priceFilter === 'above100') {
-      if (!event.ticketTypes || !event.ticketTypes.some(t => t.price > 100000)) return false;
+    if (priceFilter !== 'all') {
+      if (!event.ticketTypes || event.ticketTypes.length === 0) return false;
+      
+      if (priceFilter === 'free') {
+        const hasFree = event.ticketTypes.some(t => (t.price === 0 || t.isFree === true));
+        if (!hasFree) return false;
+      } else if (priceFilter === 'below50') {
+        const hasBelow50 = event.ticketTypes.some(t => t.price > 0 && t.price < 50000);
+        if (!hasBelow50) return false;
+      } else if (priceFilter === '50to100') {
+        const has50to100 = event.ticketTypes.some(t => t.price >= 50000 && t.price <= 100000);
+        if (!has50to100) return false;
+      } else if (priceFilter === 'above100') {
+        const hasAbove100 = event.ticketTypes.some(t => t.price > 100000);
+        if (!hasAbove100) return false;
+      }
     }
-
-    return matchesSearch && matchesStatus && matchesDate && matchesCampus;
+    
+    return true;
   });
 
   // Render individual event card using EventCard component
@@ -260,32 +306,26 @@ const HomePage = () => {
       }}
     >
       <Stack spacing={3}>
-        {/* Filter bar (dòng dưới Search) */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 2 }}>
-          {/* Dropdown Danh mục riêng biệt */}
-          <FormControl sx={{ minWidth: 150 }} size="small">
-            <InputLabel>Danh mục</InputLabel>
-            <Select
-              value={categoryFilter}
-              label="Danh mục"
-              onChange={e => setCategoryFilter(e.target.value)}
-            >
-              {categoryOptions.map(o => <MenuItem value={o.value} key={o.value}>{o.label}</MenuItem>)}
-            </Select>
-          </FormControl>
-          {/* Dropdown Giá tiền riêng biệt */}
-          <FormControl sx={{ minWidth: 150 }} size="small">
-            <InputLabel>Giá tiền</InputLabel>
-            <Select
-              value={priceFilter}
-              label="Giá tiền"
-              onChange={e => setPriceFilter(e.target.value)}
-            >
-              {priceOptions.map(o => <MenuItem value={o.value} key={o.value}>{o.label}</MenuItem>)}
-            </Select>
-          </FormControl>
+        {/* Filter Controls */}
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>Danh mục</InputLabel>
+              <Select
+                value={categoryFilter}
+                label="Danh mục"
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                {allCategories.map(category => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Trạng thái</InputLabel>
               <Select
@@ -318,7 +358,7 @@ const HomePage = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Campus</InputLabel>
               <Select
@@ -329,6 +369,23 @@ const HomePage = () => {
                 {campuses.map((campus) => (
                   <MenuItem key={campus.value} value={campus.value}>
                     {campus.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>Giá tiền</InputLabel>
+              <Select
+                value={priceFilter}
+                label="Giá tiền"
+                onChange={(e) => setPriceFilter(e.target.value)}
+              >
+                {priceOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
                   </MenuItem>
                 ))}
               </Select>
@@ -352,14 +409,14 @@ const HomePage = () => {
               Đặt lại
             </Button>
           </Grid>
-        </Box>
+        </Grid>
 
         {/* Results Summary */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="body2" color="text.secondary">
             Hiển thị {filteredEvents.length} / {validEvents.length} sự kiện
           </Typography>
-          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all') && (
+          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all') && (
             <Chip label="Đang lọc" color="primary" size="small" />
           )}
         </Box>
@@ -624,7 +681,7 @@ const HomePage = () => {
     }
 
     // Check if filters are active
-    const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all';
+    const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
 
     // If filters are active, show filtered results
     if (hasFilters) {
@@ -767,167 +824,12 @@ const HomePage = () => {
         </Container>
       </Box>
 
-      {/* Featured Events Section - Poster Row with Slider */}
-      {(() => {
-        // Chọn các sự kiện sắp diễn ra (featured)
-        const featuredEvents = validEvents
-          .filter(event => {
-            const now = new Date();
-            const start = new Date(event.startTime);
-            return start > now;
-          })
-          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-
-        if (featuredEvents.length === 0) return null;
-
-        const sliderRef = React.createRef();
-        const cardGap = 16;
-        const scrollByCards = (num) => {
-          const container = sliderRef.current;
-          if (!container) return;
-          const card = container.querySelector('.featured-card');
-          if (!card) return;
-          const cardWidth = card.getBoundingClientRect().width + cardGap;
-          container.scrollBy({ left: num * cardWidth, behavior: 'smooth' });
-        };
-
-        return (
-          <Box sx={{ bgcolor: 'background.default', py: 6 }}>
-            <Container maxWidth="xl">
-              <Typography variant="h4" component="h2" textAlign="center" gutterBottom sx={{ mb: 4, fontWeight: 700 }}>
-                Sự Kiện Nổi Bật
-              </Typography>
-
-              <Box sx={{ position: 'relative' }}>
-                {/* Nút trái */}
-                <Button
-                  aria-label="prev"
-                  onClick={() => scrollByCards(-1)}
-                  sx={{
-                    minWidth: 0,
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    position: 'absolute',
-                    left: -4,
-                    top: '40%',
-                    zIndex: 2
-                  }}
-                >
-                  {'<'}
-                </Button>
-
-                {/* Dải poster một hàng, có thể cuộn */}
-                <Box
-                  ref={sliderRef}
-                  sx={{
-                    display: 'flex',
-                    gap: cardGap,
-                    overflowX: 'auto',
-                    overflowY: 'hidden',
-                    scrollBehavior: 'smooth',
-                    px: 0.5,
-                    '::-webkit-scrollbar': { display: 'none' }
-                  }}
-                >
-                  {featuredEvents.map((event) => {
-                    const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
-                    const imageUrl = buildImageUrl(eventImage);
-
-                    return (
-                      <Card
-                        className="featured-card"
-                        key={event.eventId}
-                        component={Link}
-                        to={`/event/${event.eventId}`}
-                        sx={{
-                          flex: '0 0 auto',
-                          width: { xs: 180, sm: 200, md: 220, lg: 240 },
-                          bgcolor: 'transparent',
-                          boxShadow: 'none',
-                          textDecoration: 'none',
-                          color: 'inherit',
-                          transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-                          '&:hover': {
-                            transform: 'translateY(-6px)',
-                            boxShadow: theme.palette.mode === 'dark' 
-                              ? '0 12px 24px rgba(0,0,0,0.45)' 
-                              : '0 12px 24px rgba(0,0,0,0.2)'
-                          }
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: '100%',
-                            aspectRatio: '720 / 958',
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                            backgroundColor: 'grey.100',
-                            position: 'relative',
-                            '& img': {
-                              transition: 'transform 0.35s ease, opacity 0.35s ease'
-                            },
-                            '&:after': {
-                              content: '""',
-                              position: 'absolute',
-                              inset: 0,
-                              background: 'linear-gradient(to top, rgba(0,0,0,0.25), rgba(0,0,0,0))',
-                              opacity: 0,
-                              transition: 'opacity 0.35s ease'
-                            },
-                            '&:hover img': {
-                              transform: 'scale(1.06)'
-                            },
-                            '&:hover:after': {
-                              opacity: 1
-                            }
-                          }}
-                        >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={event.title}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                              onError={(e) => { e.target.style.display = 'none'; }}
-                            />
-                          ) : (
-                            <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                              <Event sx={{ fontSize: 48, opacity: 0.85 }} />
-                            </Box>
-                          )}
-                        </Box>
-                        <CardContent sx={{ px: 0 }}>
-                          <Typography variant="subtitle1" component="h3" sx={{ mt: 1.5, fontWeight: 700, textAlign: 'center' }}>
-                            {event.title}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </Box>
-
-                {/* Nút phải */}
-                <Button
-                  aria-label="next"
-                  onClick={() => scrollByCards(1)}
-                  sx={{
-                    minWidth: 0,
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    position: 'absolute',
-                    right: -4,
-                    top: '40%',
-                    zIndex: 2
-                  }}
-                >
-                  {'>'}
-                </Button>
-              </Box>
-            </Container>
-          </Box>
-        );
-      })()}
+      {/* Category Tabs */}
+      <CategoryTabs 
+        categories={allCategories}
+        selectedCategory={categoryFilter}
+        onCategoryChange={setCategoryFilter}
+      />
 
       {/* Events Section */}
       <Box
@@ -949,6 +851,18 @@ const HomePage = () => {
 
         {/* Events Grid */}
         {renderEventsGrid()}
+
+        {/* Pagination - chỉ hiển thị khi không dùng bộ lọc và có nhiều trang */}
+        {!filtersActive && totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(event, value) => setPage(value)}
+              color="primary"
+            />
+          </Box>
+        )}
         </Container>
       </Box>
 
