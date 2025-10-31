@@ -264,6 +264,10 @@ export const ordersAPI = {
     return api.get(`/Order/${orderId}`);
   },
   
+  update: async (orderId, orderData) => {
+    return api.put(`/Order/${orderId}`, orderData);
+  },
+  
   getMyOrders: async () => {
     return api.get('/Order/my-orders');
   },
@@ -386,6 +390,71 @@ export const wishlistAPI = {
   
   checkout: async (itemIds) => {
     return api.post('/Wishlist/checkout', { Ids: itemIds });
+  }
+};
+
+// Notification API
+export const notificationAPI = {
+  getNotifications: async (page = 1, pageSize = 10) => {
+    return api.get(`/Notification?page=${page}&pageSize=${pageSize}`);
+  },
+  
+  getNotification: async (notificationId) => {
+    return api.get(`/Notification/${notificationId}`);
+  },
+  
+  markAsRead: async (notificationId) => {
+    return api.put(`/Notification/${notificationId}/read`);
+  },
+  
+  markAllAsRead: async () => {
+    return api.put('/Notification/read-all');
+  },
+  
+  deleteNotification: async (notificationId) => {
+    return api.delete(`/Notification/${notificationId}`);
+  },
+  
+  getStats: async () => {
+    return api.get('/Notification/stats');
+  }
+};
+
+// EventQuestion API
+export const eventQuestionsAPI = {
+  getByEventId: async (eventId) => {
+    return api.get(`/EventQuestion/by-event/${eventId}`);
+  },
+  
+  getById: async (questionId) => {
+    return api.get(`/EventQuestion/${questionId}`);
+  },
+  
+  create: async (data) => {
+    return api.post('/EventQuestion', data);
+  },
+  
+  update: async (questionId, data) => {
+    return api.put(`/EventQuestion/${questionId}`, data);
+  },
+  
+  delete: async (questionId) => {
+    return api.delete(`/EventQuestion/${questionId}`);
+  }
+};
+
+// Payment API
+export const paymentAPI = {
+  createVNPayQR: async (orderId) => {
+    return api.post('/Payment/vnpay/create', { orderId });
+  },
+  
+  getStatus: async (paymentId) => {
+    return api.get(`/Payment/status/${paymentId}`);
+  },
+  
+  cancelPayment: async (paymentId) => {
+    return api.post(`/Payment/${paymentId}/cancel`);
   }
 };
 

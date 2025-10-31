@@ -64,6 +64,8 @@ const HomePage = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [campusFilter, setCampusFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState('all');
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -72,7 +74,7 @@ const HomePage = () => {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // Trạng thái có đang dùng bộ lọc (đặt sau khi khai báo state filter)
-  const filtersActive = debouncedSearchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all';
+  const filtersActive = debouncedSearchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
 
   // Refs for horizontal scroll containers
   const trendingScrollRef = useRef(null);
@@ -82,7 +84,7 @@ const HomePage = () => {
   // Reset page khi filter thay đổi
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearchTerm, categoryFilter, statusFilter]);
+  }, [debouncedSearchTerm, categoryFilter, statusFilter, campusFilter, priceFilter]);
 
   //useEffect hook để fetch events từ backend
   useEffect(() => {
@@ -124,7 +126,7 @@ const HomePage = () => {
     };
 
     fetchEvents();
-  }, [page, pageSize, debouncedSearchTerm, categoryFilter, statusFilter]);
+  }, [page, pageSize, debouncedSearchTerm, categoryFilter, statusFilter, campusFilter, priceFilter]);
 
   //Hàm constants để format date
   const formatDate = (dateString) => {
@@ -162,25 +164,83 @@ const HomePage = () => {
     fetchAllCategories();
   }, []); // Only run once on mount
 
-  // Filter events based on date filter only (search/category/status handled by backend)
+  // FPT Campuses list
+  const campuses = [
+    { value: 'all', label: 'Tất cả campus' },
+    { value: 'Hà Nội', label: 'Hà Nội' },
+    { value: 'TP. Hồ Chí Minh', label: 'TP. Hồ Chí Minh' },
+    { value: 'Đà Nẵng', label: 'Đà Nẵng' },
+    { value: 'Quy Nhơn', label: 'Quy Nhơn' },
+    { value: 'Cần Thơ', label: 'Cần Thơ' }
+  ];
+
+  // Price filter options
+  const priceOptions = [
+    { value: 'all', label: 'Tất cả' },
+    { value: 'free', label: 'Miễn phí' },
+    { value: 'below50', label: 'Dưới 50.000đ' },
+    { value: '50to100', label: '50.000đ - 100.000đ' },
+    { value: 'above100', label: 'Trên 100.000đ' }
+  ];
+
+  // Helper function to get event status
+  const getEventStatus = (startTime, endTime) => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    if (start > now) return 'Upcoming';
+    if (start <= now && end >= now) return 'Active';
+    return 'Completed';
+  };
+
+  // Filter events based on date, campus, and price filters (search/category/status handled by backend)
   const filteredEvents = validEvents.filter(event => {
     const now = new Date();
     const eventDate = new Date(event.startTime);
     
-    // Date filter only
+    // Date filter
+    let matchesDate = true;
     if (dateFilter === 'upcoming') {
-      return eventDate > now;
+      matchesDate = eventDate > now;
     } else if (dateFilter === 'past') {
-      return eventDate < now;
+      matchesDate = eventDate < now;
     } else if (dateFilter === 'today') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      return eventDate >= today && eventDate < tomorrow;
+      matchesDate = eventDate >= today && eventDate < tomorrow;
+    }
+    if (!matchesDate) return false;
+    
+    // Campus filter
+    const matchesCampus = campusFilter === 'all' ||
+      event.location?.includes(campusFilter) ||
+      event.campus?.includes(campusFilter) ||
+      event.eventDetails?.location?.includes(campusFilter);
+    if (!matchesCampus) return false;
+    
+    // Price filter
+    if (priceFilter !== 'all') {
+      if (!event.ticketTypes || event.ticketTypes.length === 0) return false;
+      
+      if (priceFilter === 'free') {
+        const hasFree = event.ticketTypes.some(t => (t.price === 0 || t.isFree === true));
+        if (!hasFree) return false;
+      } else if (priceFilter === 'below50') {
+        const hasBelow50 = event.ticketTypes.some(t => t.price > 0 && t.price < 50000);
+        if (!hasBelow50) return false;
+      } else if (priceFilter === '50to100') {
+        const has50to100 = event.ticketTypes.some(t => t.price >= 50000 && t.price <= 100000);
+        if (!has50to100) return false;
+      } else if (priceFilter === 'above100') {
+        const hasAbove100 = event.ticketTypes.some(t => t.price > 100000);
+        if (!hasAbove100) return false;
+      }
     }
     
-    return true; // 'all' - no date filtering
+    return true;
   });
 
   // Render individual event card using EventCard component
@@ -248,7 +308,7 @@ const HomePage = () => {
       <Stack spacing={3}>
         {/* Filter Controls */}
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Danh mục</InputLabel>
               <Select
@@ -265,7 +325,7 @@ const HomePage = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Trạng thái</InputLabel>
               <Select
@@ -282,7 +342,7 @@ const HomePage = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Thời gian</InputLabel>
               <Select
@@ -298,7 +358,41 @@ const HomePage = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>Campus</InputLabel>
+              <Select
+                value={campusFilter}
+                label="Campus"
+                onChange={(e) => setCampusFilter(e.target.value)}
+              >
+                {campuses.map((campus) => (
+                  <MenuItem key={campus.value} value={campus.value}>
+                    {campus.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>Giá tiền</InputLabel>
+              <Select
+                value={priceFilter}
+                label="Giá tiền"
+                onChange={(e) => setPriceFilter(e.target.value)}
+              >
+                {priceOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={2}>
             <Button
               variant="outlined"
               fullWidth
@@ -307,6 +401,8 @@ const HomePage = () => {
                 setCategoryFilter('all');
                 setStatusFilter('all');
                 setDateFilter('all');
+                setCampusFilter('all');
+                setPriceFilter('all');
               }}
               sx={{ height: '56px' }}
             >
@@ -320,7 +416,7 @@ const HomePage = () => {
           <Typography variant="body2" color="text.secondary">
             Hiển thị {filteredEvents.length} / {validEvents.length} sự kiện
           </Typography>
-          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all') && (
+          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all') && (
             <Chip label="Đang lọc" color="primary" size="small" />
           )}
         </Box>
@@ -570,6 +666,8 @@ const HomePage = () => {
               setCategoryFilter('all');
               setStatusFilter('all');
               setDateFilter('all');
+              setCampusFilter('all');
+              setPriceFilter('all');
             }}
             sx={{
               fontWeight: 600,
@@ -583,7 +681,7 @@ const HomePage = () => {
     }
 
     // Check if filters are active
-    const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all';
+    const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
 
     // If filters are active, show filtered results
     if (hasFilters) {
