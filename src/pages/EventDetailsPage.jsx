@@ -14,8 +14,7 @@ import {
   Stack,
   Divider,
   Paper,
-  useTheme,
-  useMediaQuery
+  useTheme
 } from '@mui/material';
 import { 
   LocationOn, 
