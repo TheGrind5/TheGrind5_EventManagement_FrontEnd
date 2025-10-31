@@ -14,6 +14,7 @@ import {
   ArrowForwardIos,
   Event
 } from '@mui/icons-material';
+import { decodeText } from '../../utils/textDecoder';
 
 /**
  * Hero Banner Carousel Component - Cân đối và đẹp hơn
@@ -166,7 +167,7 @@ const HeroBannerCarousel = ({ events = [] }) => {
                   <Box
                     component="img"
                     src={imageUrl}
-                    alt={event.title}
+                    alt={decodeText(event.title)}
                     sx={{
                       width: '100%',
                       height: '100%',

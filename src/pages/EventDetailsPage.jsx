@@ -15,6 +15,7 @@ import {
   Divider,
   Paper,
   useTheme,
+  useMediaQuery,
   Collapse
 } from '@mui/material';
 import { 
@@ -23,7 +24,8 @@ import {
   Person, 
   ConfirmationNumber,
   ShoppingCart,
-  ArrowBack
+  ArrowBack,
+  Business
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
@@ -39,6 +41,7 @@ const EventDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   
   const theme = useTheme();
 
@@ -99,6 +102,24 @@ const EventDetailsPage = () => {
   const handleBuyNow = (ticket) => {
     // Navigate directly to order creation page
     navigate(`/event/${id}/order/create?ticketTypeId=${ticket.ticketTypeId}&quantity=1`);
+  };
+
+  // Hàm để đếm số dòng trong text
+  const countLines = (text) => {
+    if (!text) return 0;
+    const lines = text.split('\n');
+    return lines.length;
+  };
+
+  // --- Thêm logic tính nhãn giá tổng quát cho event: ---
+  const getEventPriceSummary = () => {
+    if (!ticketTypes.length) return '';
+    const allFree = ticketTypes.every(t => (t.isFree || t.price === 0));
+    if (allFree) return 'Miễn phí';
+    const hasFree = ticketTypes.some(t => (t.isFree || t.price === 0));
+    if (hasFree) return 'Chỉ từ 0đ';
+    const minPrice = Math.min(...ticketTypes.map(t => t.price));
+    return `Chỉ từ ${formatPrice(minPrice)}`;
   };
 
 
@@ -180,7 +201,7 @@ const EventDetailsPage = () => {
                   EVENT
                 </Typography>
                 <Typography variant="h5" sx={{ opacity: 0.9 }}>
-                  {event.title}
+                  {decodeText(event.title)}
                 </Typography>
               </Box>
             )}
@@ -188,7 +209,7 @@ const EventDetailsPage = () => {
             {imageUrl && (
               <img
                 src={imageUrl}
-                alt={event.title}
+                alt={decodeText(event.title)}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -214,11 +235,11 @@ const EventDetailsPage = () => {
                 color: 'white'
               }}>
                 <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
-                  {event.title}
+                  {decodeText(event.title)}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Chip 
-                    label={event.category} 
+                    label={decodeText(event.category)} 
                     color="primary" 
                     sx={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -240,35 +261,40 @@ const EventDetailsPage = () => {
             )}
           </Box>
 
-          <CardContent sx={{ p: 4 }}>
-            <Stack spacing={4}>
-              {/* Title và Category khi không có ảnh */}
-              {!imageToUse && (
-                <Box>
-                  <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
-                    {event.title}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
-                    <Chip 
-                      label={event.category} 
-                      color="primary" 
-                    />
-                    <Chip 
-                      label={event.status} 
-                      color={event.status === 'Active' ? 'success' : 
-                             event.status === 'Upcoming' ? 'warning' : 'default'}
-                    />
-                  </Box>
-                </Box>
-              )}
+          <CardContent sx={{ p: { xs: 2, md: 4 } }}>
+            <Grid container spacing={4}>
+              {/* Left Column - Description and Details */}
+              <Grid item xs={12} md={8}>
+                <Stack spacing={4}>
+                  {/* Title và Category khi không có ảnh */}
+                  {!imageToUse && (
+                    <Box>
+                      <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
+                        {decodeText(event.title)}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
+                        <Chip 
+                          label={decodeText(event.category)} 
+                          color="primary" 
+                        />
+                        <Chip 
+                          label={event.status} 
+                          color={event.status === 'Active' ? 'success' : 
+                                 event.status === 'Upcoming' ? 'warning' : 'default'}
+                        />
+                      </Box>
+                    </Box>
+                  )}
 
-              {/* Description */}
-              <Box>
+                  {/* Description - With max height and scroll */}
+                  <Box>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                   Mô tả
                 </Typography>
                 {(() => {
                   const description = event.description || '';
+                  const lineCount = countLines(description);
+                  const shouldShowExpandButton = lineCount > 10;
                   
                   // Check if description contains JSON-like content
                   if (description.includes('{') && description.includes('}')) {
@@ -277,19 +303,10 @@ const EventDetailsPage = () => {
                       const jsonMatch = description.match(/\{.*\}/);
                       if (jsonMatch) {
                         const parsedDesc = JSON.parse(jsonMatch[0]);
-                        return (
+                        const textPart = description.split('{')[0].trim();
+                        const textLineCount = countLines(textPart);
+                        const jsonDisplay = (
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {/* Show the text part before JSON */}
-                            {description.split('{')[0].trim() && (
-                              <Typography 
-                                variant="body1" 
-                                color="text.secondary" 
-                                sx={{ mb: 2, whiteSpace: 'pre-line' }}
-                              >
-                                {description.split('{')[0].trim()}
-                              </Typography>
-                            )}
-                            
                             {/* Show parsed JSON fields */}
                             {parsedDesc.eventStatus && (
                               <Box>
@@ -336,6 +353,47 @@ const EventDetailsPage = () => {
                             )}
                           </Box>
                         );
+                        
+                        return (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {/* Show the text part before JSON */}
+                            {textPart && (
+                              <>
+                                {shouldShowExpandButton && textLineCount > 10 ? (
+                                  <>
+                                    <Typography 
+                                      variant="body1" 
+                                      color="text.secondary" 
+                                      sx={{ whiteSpace: 'pre-line' }}
+                                    >
+                                      {descriptionExpanded 
+                                        ? textPart 
+                                        : textPart.split('\n').slice(0, 10).join('\n')}
+                                    </Typography>
+                                    <Button 
+                                      variant="text" 
+                                      onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                                      sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
+                                    >
+                                      {descriptionExpanded ? 'Thu gọn' : 'Xem thêm'}
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Typography 
+                                    variant="body1" 
+                                    color="text.secondary" 
+                                    sx={{ whiteSpace: 'pre-line' }}
+                                  >
+                                    {textPart}
+                                  </Typography>
+                                )}
+                              </>
+                            )}
+                            
+                            {/* Show parsed JSON fields */}
+                            {jsonDisplay}
+                          </Box>
+                        );
                       }
                     } catch (error) {
                       console.log('JSON parse error:', error);
@@ -343,16 +401,35 @@ const EventDetailsPage = () => {
                   }
                   
                   // Fallback: display as normal text with line breaks preserved
-                  return (
+                  return shouldShowExpandButton ? (
+                    <>
+                      <Typography 
+                        variant="body1" 
+                        color="text.secondary" 
+                        sx={{ whiteSpace: 'pre-line' }}
+                      >
+                        {descriptionExpanded 
+                          ? description 
+                          : description.split('\n').slice(0, 10).join('\n')}
+                      </Typography>
+                      <Button 
+                        variant="text" 
+                        onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                        sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
+                      >
+                        {descriptionExpanded ? 'Thu gọn' : 'Xem thêm'}
+                      </Button>
+                    </>
+                  ) : (
                     <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>
-                      {event.description}
+                      {description}
                     </Typography>
                   );
                 })()}
-              </Box>
+                  </Box>
 
-              {/* Event Details */}
-              <Grid container spacing={3}>
+                  {/* Event Details */}
+                  <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Stack spacing={2}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -382,7 +459,17 @@ const EventDetailsPage = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <LocationOn color="action" />
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Địa điểm</Typography>
+                        <Typography variant="body2" color="text.secondary">Campus</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {event.campus || event.eventDetails?.province || 'Chưa có thông tin campus'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <LocationOn color="action" />
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Địa chỉ</Typography>
                         <Typography variant="body1" sx={{ fontWeight: 500 }}>
                           {(() => {
                             // Try to get location from eventDetails first
@@ -401,7 +488,7 @@ const EventDetailsPage = () => {
                             }
                             
                             // Fallback to direct location field
-                            return event.location || 'Chưa có thông tin địa điểm';
+                            return decodeText(event.location) || 'Chưa có thông tin địa điểm';
                           })()}
                         </Typography>
                       </Box>
@@ -421,7 +508,7 @@ const EventDetailsPage = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1">
-                      <strong>Tên:</strong> {event.hostName}
+                      <strong>Tên:</strong> {decodeText(event.hostName)}
                     </Typography>
                     <Typography variant="body1">
                       <strong>Email:</strong> {event.hostEmail}
@@ -462,10 +549,37 @@ const EventDetailsPage = () => {
                 }
               })()}
 
-              <Divider />
+                  {/* ===== HIỂN THỊ GIÁ TỔNG QUÁT ===== */}
+                  <Box mb={2}>
+                    <Typography
+                      variant="h4"
+                      sx={{ color: getEventPriceSummary() === 'Miễn phí' ? '#7AC943' : 'primary.main', fontWeight: 'bold' }}
+                      data-testid="event-price-summary"
+                    >
+                      {getEventPriceSummary()}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Grid>
 
-              {/* Ticket Information Section */}
-              <Box>
+              {/* Right Column - Ticket Booking (Sticky) */}
+              <Grid item xs={12} md={4}>
+                <Box sx={{ 
+                  position: { xs: 'static', md: 'sticky' },
+                  top: { md: 100 },
+                  maxHeight: { md: 'calc(100vh - 120px)' },
+                  overflowY: { md: 'auto' }
+                }}>
+                  <Card sx={{ 
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 3,
+                    boxShadow: theme.palette.mode === 'dark' 
+                      ? '0 8px 30px rgba(0, 0, 0, 0.3)' 
+                      : '0 8px 30px rgba(0, 0, 0, 0.1)'
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      {/* Ticket Information Section */}
+                      <Box>
                 <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <ConfirmationNumber />
                   Thông tin vé
@@ -479,110 +593,189 @@ const EventDetailsPage = () => {
                     </Typography>
                   </Box>
                 ) : (
-                  <Grid container spacing={3}>
+                  <Stack spacing={2}>
                     {ticketTypes.map((ticket) => {
                       const isAvailable = ticket.availableQuantity > 0 && ticket.status === 'Active';
                       const isOnSale = new Date() >= new Date(ticket.saleStart) && new Date() <= new Date(ticket.saleEnd);
                       
                       return (
-                        <Grid item xs={12} md={6} key={ticket.ticketTypeId}>
-                          <Card 
-                            sx={{ 
-                              opacity: (!isAvailable || !isOnSale) ? 0.6 : 1,
-                              transition: 'all 0.3s ease',
-                              '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: theme.palette.mode === 'dark' 
-                                  ? '0 8px 30px rgba(0, 0, 0, 0.3)' 
-                                  : '0 8px 30px rgba(0, 0, 0, 0.15)'
-                              }
-                            }}
-                          >
-                            <CardContent>
-                              <Stack spacing={2}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                  <Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                      {ticket.typeName}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                      {ticket.minOrder && `Tối thiểu: ${ticket.minOrder} vé`}
-                                      {ticket.maxOrder && ` | Tối đa: ${ticket.maxOrder} vé`}
-                                    </Typography>
-                                  </Box>
-                                  <Box sx={{ textAlign: 'right' }}>
-                                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                                      {formatPrice(ticket.price)}
-                                    </Typography>
-                                    {(!isAvailable || !isOnSale) && (
-                                      <Chip 
-                                        label={!isOnSale ? 'Chưa mở bán' : 'Hết vé'} 
-                                        color="error" 
-                                        size="small" 
-                                      />
-                                    )}
-                                  </Box>
-                                </Box>
-                                
-                                <Typography variant="body2" color="text.secondary">
-                                  {isAvailable && isOnSale ? `Còn lại: ${ticket.availableQuantity} vé` : 'Không khả dụng'}
+                        <Paper 
+                          key={ticket.ticketTypeId}
+                          sx={{ 
+                            p: 2,
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 2,
+                            opacity: (!isAvailable || !isOnSale) ? 0.6 : 1,
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: theme.palette.mode === 'dark' 
+                                ? '0 4px 15px rgba(0, 0, 0, 0.3)' 
+                                : '0 4px 15px rgba(0, 0, 0, 0.1)'
+                            }
+                          }}
+                        >
+                          <Stack spacing={1.5}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <Box>
+                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                  {ticket.typeName}
                                 </Typography>
-                                
-                                {isAvailable && isOnSale && (
-                                  <Stack direction="row" spacing={1}>
-                                    <Button 
-                                      variant="outlined"
-                                      startIcon={<ShoppingCart />}
-                                      onClick={() => handleBuyNow(ticket)}
-                                      sx={{ flex: 1 }}
-                                    >
-                                      Mua ngay
-                                    </Button>
-                                    <Button 
-                                      component={Link} 
-                                      to={`/event/${id}/order/create?ticketType=${ticket.ticketTypeId}`}
-                                      variant="contained"
-                                      sx={{ flex: 1 }}
-                                    >
-                                      Mua ngay
-                                    </Button>
-                                    <WishlistButton 
-                                      ticketTypeId={ticket.ticketTypeId}
-                                      ticketName={ticket.typeName}
-                                      size="medium"
-                                      variant="outlined"
-                                    />
-                                  </Stack>
+                                <Typography variant="caption" color="text.secondary">
+                                  {isAvailable && isOnSale ? `Còn lại: ${ticket.availableQuantity} vé` : 'Không khả dụng'}
+                                  {ticket.minOrder && ` • Tối thiểu: ${ticket.minOrder} vé`}
+                                  {ticket.maxOrder && ` • Tối đa: ${ticket.maxOrder} vé`}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ textAlign: 'right' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                  {ticket.price === 0 ? 'Miễn phí' : formatPrice(ticket.price)}
+                                </Typography>
+                                {(!isAvailable || !isOnSale) && (
+                                  <Chip 
+                                    label={!isOnSale ? 'Chưa mở bán' : 'Hết vé'} 
+                                    color="error" 
+                                    size="small" 
+                                    sx={{ mt: 0.5 }}
+                                  />
                                 )}
-                              </Stack>
-                            </CardContent>
-                          </Card>
-                        </Grid>
+                              </Box>
+                            </Box>
+                            
+                            {isAvailable && isOnSale && (
+                              <Button 
+                                component={Link} 
+                                to={`/event/${id}/order/create?ticketType=${ticket.ticketTypeId}`}
+                                variant="contained"
+                                fullWidth
+                                size="small"
+                                startIcon={<ShoppingCart />}
+                              >
+                                Chọn vé
+                              </Button>
+                            )}
+                          </Stack>
+                        </Paper>
                       );
                     })}
-                  </Grid>
+                  </Stack>
                 )}
-              </Box>
+                      </Box>
 
-              {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button 
-                  component={Link} 
-                  to="/" 
-                  variant="outlined"
-                  startIcon={<ArrowBack />}
-                >
-                  Back to Events
-                </Button>
-                <Button 
-                  component={Link} 
-                  to={`/event/${id}/order/create`}
-                  variant="contained"
-                >
-                  Xem tất cả vé
-                </Button>
-              </Box>
-            </Stack>
+                      {/* Quick Action Button */}
+                      <Button 
+                        component={Link} 
+                        to={`/ticket-selection/${id}`}
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        sx={{ 
+                          mt: 3,
+                          py: 1.5,
+                          fontSize: '1.1rem',
+                          fontWeight: 700
+                        }}
+                      >
+                        Đặt vé ngay
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* Action Buttons - Moved outside Grid */}
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mt: 4 }}>
+              <Button 
+                component={Link} 
+                to="/" 
+                variant="outlined"
+                startIcon={<ArrowBack />}
+              >
+                Back to Events
+              </Button>
+            </Box>
+
+            {/* Organizer Information Section */}
+            {event.organizerInfo && (event.organizerInfo.organizerName || event.organizerInfo.organizerInfo) && (
+                <Box>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                    <Business />
+                    Ban tổ chức
+                  </Typography>
+                  <Card 
+                    sx={{ 
+                      borderRadius: 2,
+                      boxShadow: 2,
+                      overflow: 'hidden',
+                      bgcolor: 'background.paper'
+                    }}
+                  >
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {/* Title */}
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                          Ban tổ chức
+                        </Typography>
+                        
+                        {/* Divider */}
+                        <Divider sx={{ mb: 2 }} />
+                        
+                        {/* Organizer Content */}
+                        <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
+                          {/* Logo */}
+                          {event.organizerInfo.organizerLogo && (
+                            <Box
+                              sx={{
+                                flexShrink: 0,
+                                width: 120,
+                                height: 120,
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                                backgroundColor: 'grey.100',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <img
+                                src={
+                                  event.organizerInfo.organizerLogo.startsWith('http')
+                                    ? event.organizerInfo.organizerLogo
+                                    : `http://localhost:5000${event.organizerInfo.organizerLogo.startsWith('/') ? '' : '/'}${event.organizerInfo.organizerLogo}`
+                                }
+                                alt={event.organizerInfo.organizerName || 'Logo ban tổ chức'}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'contain'
+                                }}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            </Box>
+                          )}
+                          
+                          {/* Organizer Info */}
+                          <Box sx={{ flex: 1 }}>
+                            {event.organizerInfo.organizerName && (
+                              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, textTransform: 'uppercase' }}>
+                                {event.organizerInfo.organizerName}
+                              </Typography>
+                            )}
+                            {event.organizerInfo.organizerInfo && (
+                              <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                                {event.organizerInfo.organizerInfo}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Box>
+            )}
           </CardContent>
         </Card>
       </Container>
