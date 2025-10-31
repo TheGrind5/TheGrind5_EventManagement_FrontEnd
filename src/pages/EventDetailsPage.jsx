@@ -29,17 +29,18 @@ import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
 import StageViewer from '../components/stage/StageViewer';
 import { eventsAPI, ticketsAPI } from '../services/apiClient';
+import { useAuth } from '../contexts/AuthContext';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
   
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     // Check if id is valid
@@ -76,7 +77,7 @@ const EventDetailsPage = () => {
     };
 
     fetchEvent();
-  }, [id]);
+  }, [id, user]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
