@@ -45,6 +45,7 @@ import CategoryTabs from '../components/ui/CategoryTabs';
 import EventCard from '../components/ui/EventCard';
 import { eventsAPI } from '../services/apiClient';
 import Pagination from '@mui/material/Pagination';
+import { useDebounce } from '../hooks/useDebounce';
 
 const HomePage = () => {
   //State declaration để quản lý trạng thái của component
@@ -55,6 +56,9 @@ const HomePage = () => {
   const [pageSize, setPageSize] = useState(12);
   const [totalCount, setTotalCount] = useState(0);
   
+  // Tính tổng số trang
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -64,17 +68,41 @@ const HomePage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Debounce search term để giảm số lượng API calls
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // Trạng thái có đang dùng bộ lọc (đặt sau khi khai báo state filter)
+  const filtersActive = debouncedSearchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all';
+
   // Refs for horizontal scroll containers
   const trendingScrollRef = useRef(null);
   const recommendedScrollRef = useRef(null);
   const upcomingScrollRef = useRef(null);
+
+  // Reset page khi filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchTerm, categoryFilter, statusFilter]);
 
   //useEffect hook để fetch events từ backend
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const response = await eventsAPI.getAll(page, pageSize);
+        
+        // Build filters object for API
+        const filters = {};
+        if (debouncedSearchTerm) filters.searchTerm = debouncedSearchTerm;
+        if (categoryFilter !== 'all') filters.category = categoryFilter;
+        if (statusFilter !== 'all') {
+          // Map frontend status to backend status
+          if (statusFilter === 'Active') filters.status = 'Open';
+          else if (statusFilter === 'Upcoming') filters.status = 'Open'; // Backend doesn't have Upcoming status
+          else if (statusFilter === 'Completed') filters.status = 'Closed';
+        }
+        // Note: dateFilter is handled client-side as backend doesn't support date range filtering
+        
+        const response = await eventsAPI.getAll(page, pageSize, filters);
         // response.data có thể là PagedResponse hoặc mảng
         const payload = response.data;
         if (payload && Array.isArray(payload.data)) {
@@ -96,7 +124,7 @@ const HomePage = () => {
     };
 
     fetchEvents();
-  }, [page, pageSize]);
+  }, [page, pageSize, debouncedSearchTerm, categoryFilter, statusFilter]);
 
   //Hàm constants để format date
   const formatDate = (dateString) => {
@@ -112,51 +140,47 @@ const HomePage = () => {
   // Filter valid events (eventId > 0)
   const validEvents = events.filter(event => event.eventId && event.eventId > 0);
 
-  // Get unique categories for filter dropdown
-  const categories = [...new Set(validEvents.map(event => event.category).filter(Boolean))];
-
-  // Filter events based on search and filter criteria
-  const filteredEvents = validEvents.filter(event => {
-    // Search filter
-    const matchesSearch = !searchTerm || 
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchTerm.toLowerCase());
-
-    // Category filter
-    const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
-
-    // Status filter - calculate status based on time
-    const now = new Date();
-    const start = new Date(event.startTime);
-    const end = event.endTime ? new Date(event.endTime) : null;
-    let currentEventStatus;
-    if (end) {
-      if (now < start) currentEventStatus = 'Upcoming';
-      else if (now >= start && now <= end) currentEventStatus = 'Active';
-      else currentEventStatus = 'Completed';
-    } else {
-      currentEventStatus = now < start ? 'Upcoming' : 'Completed';
-    }
-    const matchesStatus = statusFilter === 'all' || currentEventStatus === statusFilter;
-
-    // Date filter
-    const eventDate = new Date(event.startTime);
-    let matchesDate = true;
+  // Get unique categories for filter dropdown - fetch all categories from backend
+  const [allCategories, setAllCategories] = useState([]);
+  
+  // Fetch all categories when component mounts (without filters)
+  useEffect(() => {
+    const fetchAllCategories = async () => {
+      try {
+        // Fetch first page of all events to get unique categories
+        const response = await eventsAPI.getAll(1, 100); // Get first 100 events to get all categories
+        const payload = response.data;
+        if (payload && Array.isArray(payload.data)) {
+          const cats = [...new Set(payload.data.map(event => event.category).filter(Boolean))];
+          setAllCategories(cats);
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
     
+    fetchAllCategories();
+  }, []); // Only run once on mount
+
+  // Filter events based on date filter only (search/category/status handled by backend)
+  const filteredEvents = validEvents.filter(event => {
+    const now = new Date();
+    const eventDate = new Date(event.startTime);
+    
+    // Date filter only
     if (dateFilter === 'upcoming') {
-      matchesDate = eventDate > now;
+      return eventDate > now;
     } else if (dateFilter === 'past') {
-      matchesDate = eventDate < now;
+      return eventDate < now;
     } else if (dateFilter === 'today') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      matchesDate = eventDate >= today && eventDate < tomorrow;
+      return eventDate >= today && eventDate < tomorrow;
     }
-
-    return matchesSearch && matchesCategory && matchesStatus && matchesDate;
+    
+    return true; // 'all' - no date filtering
   });
 
   // Render individual event card using EventCard component
@@ -234,7 +258,7 @@ const HomePage = () => {
                 sx={{ borderRadius: 2 }}
               >
                 <MenuItem value="all">Tất cả</MenuItem>
-                {categories.map(category => (
+                {allCategories.map(category => (
                   <MenuItem key={category} value={category}>{category}</MenuItem>
                 ))}
               </Select>
@@ -704,7 +728,7 @@ const HomePage = () => {
 
       {/* Category Tabs */}
       <CategoryTabs 
-        categories={categories}
+        categories={allCategories}
         selectedCategory={categoryFilter}
         onCategoryChange={setCategoryFilter}
       />
@@ -729,6 +753,18 @@ const HomePage = () => {
 
         {/* Events Grid */}
         {renderEventsGrid()}
+
+        {/* Pagination - chỉ hiển thị khi không dùng bộ lọc và có nhiều trang */}
+        {!filtersActive && totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(event, value) => setPage(value)}
+              color="primary"
+            />
+          </Box>
+        )}
         </Container>
       </Box>
 

@@ -167,8 +167,21 @@ export const authAPI = {
 
 // Events API
 export const eventsAPI = {
-  getAll: async (page = 1, pageSize = 12) => {
-    return api.get(`/Event?page=${page}&pageSize=${pageSize}`);
+  getAll: async (page = 1, pageSize = 12, filters = {}) => {
+    // Build query params
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    
+    // Add filters if provided
+    if (filters.searchTerm) params.append('searchTerm', filters.searchTerm);
+    if (filters.category) params.append('category', filters.category);
+    if (filters.eventMode) params.append('eventMode', filters.eventMode);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    
+    return api.get(`/Event?${params.toString()}`);
   },
   
   getById: async (eventId) => {
