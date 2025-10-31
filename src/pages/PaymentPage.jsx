@@ -326,6 +326,18 @@ const PaymentPage = () => {
                         Thanh Toán
                     </Typography>
                     
+                    {/* Warning: Only pending orders can be paid */}
+                    {order.status && order.status !== 'Pending' && (
+                        <Alert severity="error" sx={{ mb: 3 }}>
+                            <Typography>
+                                <strong>⚠️ Chỉ có thể thanh toán order đang Pending</strong>
+                            </Typography>
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                                Đơn hàng hiện tại có trạng thái: <strong>{order.status}</strong>
+                            </Typography>
+                        </Alert>
+                    )}
+                    
                     {error && (
                         <Alert severity="error" sx={{ mb: 3 }}>
                             <Typography>{error}</Typography>
@@ -486,7 +498,11 @@ const PaymentPage = () => {
                                     size="large"
                                     startIcon={processing ? <CircularProgress size={20} /> : <Payment />}
                                     onClick={handlePayment}
-                                    disabled={processing || (paymentMethod === 'wallet' && walletBalance < (order.amount || 0))}
+                                    disabled={
+                                        processing || 
+                                        order.status !== 'Pending' ||
+                                        (paymentMethod === 'wallet' && walletBalance < (order.amount || 0))
+                                    }
                                     sx={{ minWidth: 200 }}
                                 >
                                     {processing ? 'Đang xử lý...' : 'Thanh toán ngay'}
