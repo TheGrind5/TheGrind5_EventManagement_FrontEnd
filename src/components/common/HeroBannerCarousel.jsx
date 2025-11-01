@@ -14,6 +14,7 @@ import {
   ArrowForwardIos,
   Event
 } from '@mui/icons-material';
+import { decodeText } from '../../utils/textDecoder';
 
 /**
  * Hero Banner Carousel Component - Cân đối và đẹp hơn
@@ -111,9 +112,11 @@ const HeroBannerCarousel = ({ events = [] }) => {
         }}
       >
         {featuredEvents.map((event, index) => {
-          const eventImage = event?.eventDetails?.eventImage || event?.eventImage || null;
-          const imageUrl = eventImage 
-            ? (eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`)
+          // Use backgroundImage (1280x720) - main display image for all pages
+          // eventImage (720x958) is saved but not displayed
+          const backgroundImage = event?.eventDetails?.backgroundImage || event?.backgroundImage || null;
+          const imageUrl = backgroundImage 
+            ? (backgroundImage.startsWith('http') ? backgroundImage : `http://localhost:5000${backgroundImage}`)
             : null;
 
           const isActive = index === currentIndex;
@@ -166,7 +169,7 @@ const HeroBannerCarousel = ({ events = [] }) => {
                   <Box
                     component="img"
                     src={imageUrl}
-                    alt={event.title}
+                    alt={decodeText(event.title)}
                     sx={{
                       width: '100%',
                       height: '100%',

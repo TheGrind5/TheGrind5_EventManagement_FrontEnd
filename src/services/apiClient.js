@@ -30,11 +30,25 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => {
     // Standardize response format
+    const body = response.data;
+    // Preserve pagination payloads (have totalCount/page/pageSize)
+    const hasPagingKeys = body && typeof body === 'object' && (
+      Object.prototype.hasOwnProperty.call(body, 'totalCount') ||
+      Object.prototype.hasOwnProperty.call(body, 'page') ||
+      Object.prototype.hasOwnProperty.call(body, 'pageSize')
+    );
+
+    // Handle both camelCase (data) and PascalCase (Data) from .NET serialization
+    // .NET by default uses PascalCase, but can be configured to camelCase
+    const normalizedData = hasPagingKeys 
+      ? body 
+      : (body?.data ?? body?.Data ?? body);
+
     return {
       success: true,
-      data: response.data?.data || response.data,
-      message: response.data?.message || 'Success',
-      timestamp: response.data?.timestamp || new Date().toISOString()
+      data: normalizedData,
+      message: body?.message || body?.Message || 'Success',
+      timestamp: body?.timestamp || body?.Timestamp || new Date().toISOString()
     };
   },
   (error) => {
@@ -79,8 +93,8 @@ apiClient.interceptors.response.use(
         }
       }
     } else if (error.request) {
-      // Network error
-      errorMessage = 'Network error - please check your connection';
+      // Network error - không thể kết nối đến server
+      errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra backend có đang chạy tại http://localhost:5000 không.';
       errorCode = 0;
     } else {
       // Other error
@@ -157,8 +171,23 @@ export const authAPI = {
 
 // Events API
 export const eventsAPI = {
-  getAll: async () => {
-    return api.get('/Event');
+  getAll: async (page = 1, pageSize = 12, filters = {}) => {
+    // Build query params
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    
+    // Add filters if provided
+    if (filters.searchTerm) params.append('searchTerm', filters.searchTerm);
+    if (filters.category) params.append('category', filters.category);
+    if (filters.eventMode) params.append('eventMode', filters.eventMode);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.location) params.append('location', filters.location);
+    if (filters.city) params.append('city', filters.city);
+    
+    return api.get(`/Event?${params.toString()}`);
   },
   
   getById: async (eventId) => {
@@ -211,6 +240,11 @@ export const eventsAPI = {
   updateStep4: async (eventId, eventData) => {
     return api.put(`/Event/${eventId}/create/step4`, eventData);
   },
+
+  // Tạo event hoàn chỉnh với tất cả 5 bước cùng lúc
+  createCompleteEvent: async (eventData) => {
+    return api.post('/Event/create/complete', eventData);
+  },
   
   // Venue Layout API for Virtual Stage 2D
   getVenueLayout: async (eventId) => {
@@ -234,6 +268,10 @@ export const ordersAPI = {
   
   getById: async (orderId) => {
     return api.get(`/Order/${orderId}`);
+  },
+  
+  update: async (orderId, orderData) => {
+    return api.put(`/Order/${orderId}`, orderData);
   },
   
   getMyOrders: async () => {
@@ -358,6 +396,71 @@ export const wishlistAPI = {
   
   checkout: async (itemIds) => {
     return api.post('/Wishlist/checkout', { Ids: itemIds });
+  }
+};
+
+// Notification API
+export const notificationAPI = {
+  getNotifications: async (page = 1, pageSize = 10) => {
+    return api.get(`/Notification?page=${page}&pageSize=${pageSize}`);
+  },
+  
+  getNotification: async (notificationId) => {
+    return api.get(`/Notification/${notificationId}`);
+  },
+  
+  markAsRead: async (notificationId) => {
+    return api.put(`/Notification/${notificationId}/read`);
+  },
+  
+  markAllAsRead: async () => {
+    return api.put('/Notification/read-all');
+  },
+  
+  deleteNotification: async (notificationId) => {
+    return api.delete(`/Notification/${notificationId}`);
+  },
+  
+  getStats: async () => {
+    return api.get('/Notification/stats');
+  }
+};
+
+// EventQuestion API
+export const eventQuestionsAPI = {
+  getByEventId: async (eventId) => {
+    return api.get(`/EventQuestion/by-event/${eventId}`);
+  },
+  
+  getById: async (questionId) => {
+    return api.get(`/EventQuestion/${questionId}`);
+  },
+  
+  create: async (data) => {
+    return api.post('/EventQuestion', data);
+  },
+  
+  update: async (questionId, data) => {
+    return api.put(`/EventQuestion/${questionId}`, data);
+  },
+  
+  delete: async (questionId) => {
+    return api.delete(`/EventQuestion/${questionId}`);
+  }
+};
+
+// Payment API
+export const paymentAPI = {
+  createVNPayQR: async (orderId) => {
+    return api.post('/Payment/vnpay/create', { orderId });
+  },
+  
+  getStatus: async (paymentId) => {
+    return api.get(`/Payment/status/${paymentId}`);
+  },
+  
+  cancelPayment: async (paymentId) => {
+    return api.post(`/Payment/${paymentId}/cancel`);
   }
 };
 

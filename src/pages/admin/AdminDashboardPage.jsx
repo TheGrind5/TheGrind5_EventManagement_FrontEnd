@@ -174,6 +174,14 @@ const AdminDashboardPage = () => {
               <p>Quản lý khách hàng</p>
             </div>
           </Link>
+
+          <Link to="/admin/orders" className="action-btn action-btn-warning">
+            <span className="action-icon">📦</span>
+            <div>
+              <h3>Quản lý Order</h3>
+              <p>Xem danh sách đơn hàng</p>
+            </div>
+          </Link>
         </div>
       </div>
 

@@ -4,7 +4,7 @@ echo TheGrind5 Event Management System
 echo Starting Frontend (React)...
 echo ========================================
 
-cd /d "C:\Users\PHOENIX\Desktop\5GrindThe\TheGrind5_EventManagement_FrontEnd"
+cd /d "%~dp0"
 if not exist "package.json" (
     echo ERROR: Frontend project not found!
     pause

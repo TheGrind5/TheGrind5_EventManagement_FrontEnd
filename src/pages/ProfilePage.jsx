@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/apiClient';
 import Header from '../components/layout/Header';
+import AIHistory from '../components/ai/AIHistory';
 import config from '../config/environment';
+import Cropper from 'react-easy-crop';
+import './ProfilePage.css';
 
 const ProfilePage = () => {
   const { refreshProfile } = useAuth();
@@ -21,6 +24,13 @@ const ProfilePage = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [avatarKey, setAvatarKey] = useState(0); // Key để force re-render avatar
+  
+  // Crop states
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   useEffect(() => {
     loadProfile();
@@ -37,6 +47,12 @@ const ProfilePage = () => {
 
       const response = await authAPI.getCurrentUserProfile();
       const profileData = response.data;
+      
+      // Fix avatar URL nếu cần
+      if (profileData.avatar && profileData.avatar.startsWith("/")) {
+        profileData.avatar = `${config.BASE_URL}${profileData.avatar}`;
+      }
+      
       setProfile(profileData);
       setFormData({
         fullName: profileData.fullName || '',
@@ -75,15 +91,18 @@ const ProfilePage = () => {
         return;
       }
 
-      setAvatarFile(file);
       setError('');
       
-      // Tạo preview
+      // Hiển thị modal crop
       const reader = new FileReader();
       reader.onload = (e) => {
-        setAvatarPreview(e.target.result);
+        setCropImageSrc(e.target.result);
+        setShowCropModal(true);
       };
       reader.readAsDataURL(file);
+      
+      // Reset input
+      e.target.value = '';
     }
   };
 
@@ -182,13 +201,105 @@ const ProfilePage = () => {
     setError('');
   };
 
+  // Crop functions
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const createImage = (url) =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', (error) => reject(error));
+      image.src = url;
+    });
+
+  const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('No 2d context');
+    }
+
+    const maxSize = Math.max(image.width, image.height);
+    const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+    canvas.width = safeArea;
+    canvas.height = safeArea;
+
+    ctx.translate(safeArea / 2, safeArea / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.translate(-safeArea / 2, -safeArea / 2);
+
+    ctx.drawImage(
+      image,
+      safeArea / 2 - image.width * 0.5,
+      safeArea / 2 - image.height * 0.5
+    );
+    const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.putImageData(
+      data,
+      Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+      Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error('Canvas is empty');
+          return;
+        }
+        const fileUrl = window.URL.createObjectURL(blob);
+        resolve({ blob, url: fileUrl });
+      }, 'image/jpeg', 0.9);
+    });
+  };
+
+  const handleCropComplete = async () => {
+    try {
+      const croppedImage = await getCroppedImg(
+        cropImageSrc,
+        croppedAreaPixels
+      );
+      
+      // Tạo File từ blob
+      const file = new File([croppedImage.blob], 'avatar.jpg', { type: 'image/jpeg' });
+      
+      // Lưu file và preview
+      setAvatarFile(file);
+      setAvatarPreview(croppedImage.url);
+      
+      // Đóng modal
+      setShowCropModal(false);
+      setCropImageSrc(null);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+    } catch (error) {
+      console.error('Error cropping image:', error);
+      setError('Có lỗi xảy ra khi cắt ảnh');
+    }
+  };
+
+  const handleCancelCrop = () => {
+    setShowCropModal(false);
+    setCropImageSrc(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+  };
+
 
   if (loading) {
     return (
-      <div>
+      <div className="profile-page">
         <Header />
-        <div className="loading-container">
-          <div className="loading-spinner">Loading profile...</div>
+        <div className="profile-loading">
+          <div className="loading-spinner">Đang tải thông tin...</div>
         </div>
       </div>
     );
@@ -196,15 +307,15 @@ const ProfilePage = () => {
 
   if (error && !profile) {
     return (
-      <div>
+      <div className="profile-page">
         <Header />
         <div className="main-content">
-          <div className="text-center">
-            <div className="text-red-400 text-xl mb-4">⚠️</div>
-            <p className="text-red-400 mb-4">{error}</p>
+          <div className="profile-error">
+            <div className="profile-error-icon">⚠️</div>
+            <p>{error}</p>
             <button 
               onClick={loadProfile}
-              className="btn btn-primary"
+              className="profile-btn profile-btn-primary"
             >
               Thử lại
             </button>
@@ -215,123 +326,102 @@ const ProfilePage = () => {
   }
 
   return (
-    <div>
+    <div className="profile-page">
       <Header />
       
       <div className="main-content">
         {/* Header */}
-        <div className="card mb-6">
-          <div className="card-body">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#ffffff', marginBottom: '8px' }}>
-                  Profile
-                </h1>
-                <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
-                  Quản lý thông tin cá nhân của bạn
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                {!editing ? (
+        <div className="profile-header">
+          <div className="profile-header-content">
+            <div>
+              <h1 className="profile-header-title">
+                Profile
+              </h1>
+              <p className="profile-header-subtitle">
+                Quản lý thông tin cá nhân của bạn
+              </p>
+            </div>
+            <div className="profile-header-actions">
+              {!editing ? (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="profile-btn profile-btn-primary"
+                >
+                  ✏️ Chỉnh sửa
+                </button>
+              ) : (
+                <>
                   <button
-                    onClick={() => setEditing(true)}
-                    className="btn btn-primary"
+                    onClick={handleCancel}
+                    className="profile-btn profile-btn-secondary"
                   >
-                    Chỉnh sửa
+                    Hủy
                   </button>
-                ) : (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={handleCancel}
-                      className="btn btn-secondary"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      onClick={handleSubmit}
-                      className="btn btn-primary"
-                    >
-                      Lưu thay đổi
-                    </button>
-                  </div>
-                )}
-              </div>
+                  <button
+                    onClick={handleSubmit}
+                    className="profile-btn profile-btn-primary"
+                  >
+                    💾 Lưu thay đổi
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* Messages */}
         {message && (
-          <div className="alert alert-success mb-4">
+          <div className="profile-alert profile-alert-success">
+            <span>✓</span>
             {message}
           </div>
         )}
         {error && (
-          <div className="alert alert-error mb-4">
+          <div className="profile-alert profile-alert-error">
+            <span>✕</span>
             {error}
           </div>
         )}
 
         {/* Profile Content */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+        <div className="profile-content">
           {/* Avatar Section */}
-          <div>
-            <div className="card">
-              <div className="card-body" style={{ textAlign: 'center' }}>
-                <div style={{ 
-                  margin: '0 auto 16px', 
-                  width: '128px', 
-                  height: '128px', 
-                  background: 'rgba(102, 126, 234, 0.2)', 
-                  borderRadius: '50%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  border: '2px solid rgba(102, 126, 234, 0.3)',
-                  overflow: 'hidden'
-                }}>
-                  {avatarPreview || profile?.avatar ? (
-                    <img 
-                      key={avatarKey}
-                      src={avatarPreview || profile?.avatar} 
-                      alt="Avatar" 
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover' 
-                      }}
-                    />
-                  ) : (
-                    <span style={{ fontSize: '3rem', color: '#667eea', fontWeight: '600' }}>
-                      {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
-                  )}
-                </div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                  {profile?.fullName || 'Chưa có tên'}
-                </h3>
-                <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '16px' }}>
-                  {profile?.role}
-                </p>
-                <div style={{ fontSize: '0.875rem', color: '#9ca3af' }}>
-                  <p>ID: {profile?.userId}</p>
-                </div>
-              </div>
+          <div className="profile-avatar-card">
+            <div className="profile-avatar-wrapper">
+              {avatarPreview || profile?.avatar ? (
+                <img 
+                  key={avatarKey}
+                  src={avatarPreview || profile?.avatar} 
+                  alt="Avatar" 
+                  className="profile-avatar-img"
+                />
+              ) : (
+                <span className="profile-avatar-initial">
+                  {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
+              )}
+            </div>
+            <h3 className="profile-name">
+              {profile?.fullName || 'Chưa có tên'}
+            </h3>
+            <div className="profile-role">
+              {profile?.role}
+            </div>
+            <div className="profile-id">
+              ID: {profile?.userId}
             </div>
           </div>
 
           {/* Profile Details */}
-          <div style={{ gridColumn: 'span 2' }}>
-            <div className="card">
-              <div className="card-body">
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#ffffff', marginBottom: '24px' }}>
-                  Thông tin chi tiết
-                </h3>
-                <form onSubmit={handleSubmit}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}>
+          <div className="profile-details-card">
+            <h3 className="profile-details-title">
+              Thông tin chi tiết
+            </h3>
+            <form onSubmit={handleSubmit}>
+              <div className="profile-details-grid">
                     {/* Full Name */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                    <div className="profile-field">
+                      <label className="profile-field-label">
                         Họ và tên
                       </label>
                       {editing ? (
@@ -340,38 +430,32 @@ const ProfilePage = () => {
                           name="fullName"
                           value={formData.fullName}
                           onChange={handleInputChange}
-                          className="form-input"
+                          className="profile-field-input"
                           placeholder="Nhập họ và tên"
                         />
                       ) : (
-                        <p style={{ color: '#ffffff', padding: '12px 0' }}>
+                        <div className="profile-field-value">
                           {profile?.fullName || 'Chưa cập nhật'}
-                        </p>
+                        </div>
                       )}
                     </div>
 
                     {/* Email */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                    <div className="profile-field">
+                      <label className="profile-field-label">
                         Email
                       </label>
-                      <p style={{ 
-                        color: '#ffffff', 
-                        padding: '12px 16px', 
-                        background: 'rgba(255, 255, 255, 0.05)', 
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
-                      }}>
+                      <div className="profile-field-value profile-field-value-disabled">
                         {profile?.email}
-                      </p>
-                      <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '4px' }}>
+                      </div>
+                      <p className="profile-field-hint">
                         Email không thể thay đổi
                       </p>
                     </div>
 
                     {/* Phone */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                    <div className="profile-field">
+                      <label className="profile-field-label">
                         Số điện thoại
                       </label>
                       {editing ? (
@@ -380,112 +464,64 @@ const ProfilePage = () => {
                           name="phone"
                           value={formData.phone}
                           onChange={handleInputChange}
-                          className="form-input"
+                          className="profile-field-input"
                           placeholder="Nhập số điện thoại"
                         />
                       ) : (
-                        <p style={{ color: '#ffffff', padding: '12px 0' }}>
+                        <div className="profile-field-value">
                           {profile?.phone || 'Chưa cập nhật'}
-                        </p>
+                        </div>
                       )}
                     </div>
 
                     {/* Avatar */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                    <div className="profile-field">
+                      <label className="profile-field-label">
                         Ảnh đại diện
                       </label>
                       {editing ? (
                         <div>
-                          {/* File Upload */}
-                          <div>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleAvatarChange}
-                              style={{
-                                display: 'none'
-                              }}
-                              id="avatar-upload"
-                            />
-                            <label
-                              htmlFor="avatar-upload"
-                              style={{
-                                display: 'inline-block',
-                                padding: '12px 24px',
-                                background: 'rgba(102, 126, 234, 0.1)',
-                                border: '2px dashed rgba(102, 126, 234, 0.3)',
-                                borderRadius: '12px',
-                                color: '#667eea',
-                                cursor: 'pointer',
-                                fontSize: '0.875rem',
-                                fontWeight: '500',
-                                textAlign: 'center',
-                                width: '100%',
-                                transition: 'all 0.2s ease',
-                                minHeight: '60px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexDirection: 'column',
-                                gap: '8px'
-                              }}
-                              onMouseOver={(e) => {
-                                e.target.style.background = 'rgba(102, 126, 234, 0.2)';
-                                e.target.style.borderColor = 'rgba(102, 126, 234, 0.5)';
-                                e.target.style.transform = 'translateY(-2px)';
-                              }}
-                              onMouseOut={(e) => {
-                                e.target.style.background = 'rgba(102, 126, 234, 0.1)';
-                                e.target.style.borderColor = 'rgba(102, 126, 234, 0.3)';
-                                e.target.style.transform = 'translateY(0)';
-                              }}
-                            >
-                              <div style={{ fontSize: '1.5rem' }}>📷</div>
-                              <div>Chọn ảnh từ máy tính</div>
-                              <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                                Hỗ trợ: JPG, PNG, GIF (tối đa 5MB)
-                              </div>
-                            </label>
-                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="profile-avatar-upload"
+                            id="avatar-upload"
+                          />
+                          <label
+                            htmlFor="avatar-upload"
+                            className="profile-avatar-upload-label"
+                          >
+                            <div className="profile-avatar-upload-icon">📷</div>
+                            <div>Chọn ảnh từ máy tính</div>
+                            <div className="profile-avatar-upload-hint">
+                              Hỗ trợ: JPG, PNG, GIF (tối đa 5MB)
+                            </div>
+                          </label>
                           
                           {avatarPreview && (
-                            <div style={{ 
-                              marginTop: '16px', 
-                              textAlign: 'center' 
-                            }}>
-                              <p style={{ 
-                                fontSize: '0.75rem', 
-                                color: '#9ca3af', 
-                                marginBottom: '8px' 
-                              }}>
-                                Preview:
-                              </p>
+                            <div className="profile-avatar-preview">
+                              <span className="profile-avatar-preview-label">
+                                Xem trước:
+                              </span>
                               <img 
                                 src={avatarPreview} 
                                 alt="Avatar Preview" 
-                                style={{ 
-                                  width: '80px', 
-                                  height: '80px', 
-                                  borderRadius: '50%', 
-                                  objectFit: 'cover',
-                                  border: '3px solid rgba(102, 126, 234, 0.3)',
-                                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-                                }}
+                                className="profile-avatar-preview-img"
                               />
                             </div>
                           )}
                         </div>
                       ) : (
-                        <p style={{ color: '#ffffff', padding: '12px 0' }}>
+                        <div className="profile-field-value">
                           {profile?.avatar ? 'Đã cập nhật' : 'Chưa cập nhật'}
-                        </p>
+                        </div>
                       )}
                     </div>
 
                     {/* Date of Birth */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                    <div className="profile-field">
+                      <label className="profile-field-label">
                         Ngày sinh
                       </label>
                       {editing ? (
@@ -494,18 +530,18 @@ const ProfilePage = () => {
                           name="dateOfBirth"
                           value={formData.dateOfBirth}
                           onChange={handleInputChange}
-                          className="form-input"
+                          className="profile-field-input"
                         />
                       ) : (
-                        <p style={{ color: '#ffffff', padding: '12px 0' }}>
+                        <div className="profile-field-value">
                           {profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}
-                        </p>
+                        </div>
                       )}
                     </div>
 
                     {/* Gender */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                    <div className="profile-field">
+                      <label className="profile-field-label">
                         Giới tính
                       </label>
                       {editing ? (
@@ -513,44 +549,25 @@ const ProfilePage = () => {
                           name="gender"
                           value={formData.gender}
                           onChange={handleInputChange}
-                          className="form-input"
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            padding: '12px 16px',
-                            fontSize: '0.875rem',
-                            width: '100%',
-                            cursor: 'pointer'
-                          }}
+                          className="profile-field-select"
                         >
-                          <option value="" style={{ background: '#1f2937', color: '#9ca3af' }}>
+                          <option value="">
                             Chọn giới tính
                           </option>
-                          <option value="Nam" style={{ background: '#1f2937', color: '#ffffff' }}>
+                          <option value="Nam">
                             👨 Nam
                           </option>
-                          <option value="Nữ" style={{ background: '#1f2937', color: '#ffffff' }}>
+                          <option value="Nữ">
                             👩 Nữ
                           </option>
-                          <option value="Khác" style={{ background: '#1f2937', color: '#ffffff' }}>
+                          <option value="Khác">
                             🏳️‍⚧️ Khác
                           </option>
                         </select>
                       ) : (
-                        <div style={{ 
-                          color: '#ffffff', 
-                          padding: '12px 16px',
-                          background: 'rgba(255, 255, 255, 0.05)', 
-                          borderRadius: '8px',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}>
+                        <div className="profile-gender-display">
                           {profile?.gender && (
-                            <span style={{ fontSize: '1rem' }}>
+                            <span className="profile-gender-emoji">
                               {profile.gender === 'Nam' ? '👨' : 
                                profile.gender === 'Nữ' ? '👩' : 
                                profile.gender === 'Khác' ? '🏳️‍⚧️' : ''}
@@ -564,28 +581,80 @@ const ProfilePage = () => {
                     </div>
 
                     {/* Role */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#9ca3af', marginBottom: '8px' }}>
+                    <div className="profile-field">
+                      <label className="profile-field-label">
                         Vai trò
                       </label>
-                      <p style={{ 
-                        color: '#ffffff', 
-                        padding: '12px 16px', 
-                        background: 'rgba(255, 255, 255, 0.05)', 
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
-                      }}>
+                      <div className="profile-field-value profile-field-value-disabled">
                         {profile?.role}
-                      </p>
+                      </div>
                     </div>
 
-                  </div>
-                </form>
               </div>
-            </div>
+            </form>
+          </div>
+
+          {/* AI History Section */}
+          <div className="profile-details-card" style={{ marginTop: '2rem' }}>
+            <AIHistory />
           </div>
         </div>
       </div>
+
+      {/* Crop Modal */}
+      {showCropModal && cropImageSrc && (
+        <div className="crop-modal-overlay" onClick={handleCancelCrop}>
+          <div className="crop-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="crop-modal-header">
+              <h3>Cắt ảnh đại diện</h3>
+              <button className="crop-modal-close" onClick={handleCancelCrop}>
+                ✕
+              </button>
+            </div>
+            <div className="crop-modal-body">
+              <div className="crop-container">
+                <Cropper
+                  image={cropImageSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              </div>
+              <div className="crop-controls">
+                <label className="crop-zoom-label">
+                  Phóng to/thu nhỏ:
+                  <input
+                    type="range"
+                    value={zoom}
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="crop-zoom-slider"
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="crop-modal-footer">
+              <button
+                className="profile-btn profile-btn-secondary"
+                onClick={handleCancelCrop}
+              >
+                Hủy
+              </button>
+              <button
+                className="profile-btn profile-btn-primary"
+                onClick={handleCropComplete}
+              >
+                Áp dụng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

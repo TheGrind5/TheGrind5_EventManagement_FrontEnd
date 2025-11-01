@@ -27,6 +27,10 @@ const WishlistIcon = () => {
           color="inherit" 
           onClick={handleClick}
           disabled={loading}
+          sx={{
+            width: 40,
+            height: 40
+          }}
         >
           <Badge 
             badgeContent={wishlistCount} 

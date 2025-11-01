@@ -8,15 +8,22 @@ import {
   CardContent,
   Grid,
   IconButton,
-  Divider
+  Divider,
+  Slider,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import { Add, Delete } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import PricingSuggestionWidget from '../ai/PricingSuggestionWidget';
 
-const DateTimeTicketStep = ({ data, onChange }) => {
+const DateTimeTicketStep = ({ data, onChange, step1Data }) => {
   const validateTicketName = (name) => {
     if (!name || name.trim().length < 2) {
       return 'Tên loại vé phải có ít nhất 2 ký tự';
@@ -41,6 +48,27 @@ const DateTimeTicketStep = ({ data, onChange }) => {
     
     return null; // Không có lỗi
   };
+
+  // Validate thời gian bắt đầu/kết thúc
+  const startDate = data.startTime ? new Date(data.startTime) : null;
+  const endDate = data.endTime ? new Date(data.endTime) : null;
+  const startInvalid = !!startDate && isNaN(startDate.getTime());
+  const endInvalid = !!endDate && isNaN(endDate.getTime());
+  const rangeInvalid = !!startDate && !!endDate && startDate >= endDate; // không cho bằng hoặc lớn hơn
+  const startErrorText = !data.startTime
+    ? 'Vui lòng chọn thời gian bắt đầu'
+    : startInvalid
+      ? 'Thời gian bắt đầu không hợp lệ'
+      : rangeInvalid
+        ? 'Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc'
+        : '';
+  const endErrorText = !data.endTime
+    ? 'Vui lòng chọn thời gian kết thúc'
+    : endInvalid
+      ? 'Thời gian kết thúc không hợp lệ'
+      : rangeInvalid
+        ? 'Thời gian kết thúc phải lớn hơn thời gian bắt đầu'
+        : '';
 
   const handleInputChange = useCallback((field, value) => {
     onChange({
@@ -78,6 +106,8 @@ const DateTimeTicketStep = ({ data, onChange }) => {
     handleInputChange('ticketTypes', newTicketTypes);
   }, [data.ticketTypes, handleInputChange]);
 
+  // --- XÓA HOÀN TOÀN BỘ LỌC VÉ Ở ĐÂY, chỉ render trực tiếp data.ticketTypes ---
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
       <Box sx={{ maxWidth: 800, mx: 'auto' }}>
@@ -100,7 +130,16 @@ const DateTimeTicketStep = ({ data, onChange }) => {
                   onChange={(newValue) => {
                     handleInputChange('startTime', newValue ? newValue.toISOString() : '');
                   }}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
+                  maxDateTime={endDate || undefined}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      fullWidth 
+                      required 
+                      error={!!startErrorText}
+                      helperText={startErrorText}
+                    />
+                  )}
                 />
               </Grid>
               
@@ -111,11 +150,41 @@ const DateTimeTicketStep = ({ data, onChange }) => {
                   onChange={(newValue) => {
                     handleInputChange('endTime', newValue ? newValue.toISOString() : '');
                   }}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
+                  minDateTime={startDate || undefined}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      fullWidth 
+                      required 
+                      error={!!endErrorText}
+                      helperText={endErrorText}
+                    />
+                  )}
                 />
               </Grid>
             </Grid>
           </Card>
+
+          {/* AI Pricing Suggestion Widget */}
+          {step1Data && (
+            <PricingSuggestionWidget
+              eventCategory={step1Data.category}
+              eventStartTime={data.startTime}
+              eventLocation={step1Data.location || `${step1Data.streetAddress || ''}, ${step1Data.ward || ''}, ${step1Data.district || ''}, ${step1Data.province || ''}`}
+              onApplyPricing={(pricing) => {
+                if (pricing && data.ticketTypes.length > 0) {
+                  const newTicketTypes = [...data.ticketTypes];
+                  const lastIndex = newTicketTypes.length - 1;
+                  newTicketTypes[lastIndex] = {
+                    ...newTicketTypes[lastIndex],
+                    typeName: pricing.typeName,
+                    price: pricing.price
+                  };
+                  handleInputChange('ticketTypes', newTicketTypes);
+                }
+              }}
+            />
+          )}
 
           {/* Ticket Types Section */}
           <Card sx={{ p: 3 }}>
@@ -132,96 +201,111 @@ const DateTimeTicketStep = ({ data, onChange }) => {
               </Button>
             </Box>
 
-            {data.ticketTypes.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-                <Typography variant="body1">
-                  Chưa có loại vé nào. Nhấn "Thêm loại vé" để bắt đầu.
-                </Typography>
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {data.ticketTypes.map((ticket, index) => (
-                  <Card key={index} variant="outlined">
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                          Loại vé {index + 1}
-                        </Typography>
-                        <IconButton
-                          color="error"
-                          onClick={() => removeTicketType(index)}
-                          size="small"
-                        >
-                          <Delete />
-                        </IconButton>
-                      </Box>
+            {/* Danh sách vé đã filter */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {data.ticketTypes.map((ticket, index) => (
+                <Card key={index} variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        Loại vé {index + 1}
+                      </Typography>
+                      <IconButton
+                        color="error"
+                        onClick={() => removeTicketType(index)}
+                        size="small"
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Box>
 
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            label="Tên loại vé"
-                            value={ticket.typeName}
-                            onChange={(e) => handleTicketTypeChange(index, 'typeName', e.target.value)}
-                            fullWidth
-                            required
-                            placeholder="VD: Vé thường, Vé VIP"
-                            error={!!validateTicketName(ticket.typeName)}
-                            helperText={validateTicketName(ticket.typeName)}
-                          />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Tên loại vé"
+                          value={ticket.typeName}
+                          onChange={(e) => handleTicketTypeChange(index, 'typeName', e.target.value)}
+                          fullWidth
+                          required
+                          placeholder="VD: Vé thường, Vé VIP"
+                          error={!!validateTicketName(ticket.typeName)}
+                          helperText={validateTicketName(ticket.typeName)}
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6}>
+                        <Box display="flex" alignItems="center">
                           <TextField
                             label="Giá vé (VND)"
                             type="number"
-                            value={ticket.price}
-                            onChange={(e) => handleTicketTypeChange(index, 'price', parseInt(e.target.value) || 0)}
+                            value={ticket.isFree ? 0 : ticket.price}
+                            onChange={e => handleTicketTypeChange(index, 'price', parseInt(e.target.value) || 0)}
                             fullWidth
                             required
                             inputProps={{ min: 0 }}
+                            disabled={!!ticket.isFree}
+                            sx={{ flex: 1, mr: 2 }}
                           />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            label="Số lượng vé"
-                            type="number"
-                            value={ticket.quantity}
-                            onChange={(e) => handleTicketTypeChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                            fullWidth
-                            required
-                            inputProps={{ min: 1 }}
-                          />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            label="Đơn hàng tối thiểu"
-                            type="number"
-                            value={ticket.minOrder}
-                            onChange={(e) => handleTicketTypeChange(index, 'minOrder', parseInt(e.target.value) || 1)}
-                            fullWidth
-                            required
-                            inputProps={{ min: 1 }}
-                          />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            label="Đơn hàng tối đa"
-                            type="number"
-                            value={ticket.maxOrder}
-                            onChange={(e) => handleTicketTypeChange(index, 'maxOrder', parseInt(e.target.value) || 10)}
-                            fullWidth
-                            inputProps={{ min: 1 }}
-                          />
-                        </Grid>
+                          <Box>
+                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: 18, fontWeight: 600 }}>
+                              <input
+                                type="checkbox"
+                                checked={!!ticket.isFree}
+                                onChange={e => {
+                                  handleTicketTypeChange(index, 'isFree', e.target.checked);
+                                  handleTicketTypeChange(index, 'price', e.target.checked ? 0 : (ticket.price === 0 ? '' : ticket.price));
+                                }}
+                                style={{ width: 20, height: 20, marginRight: 10, accentColor: '#7AC943' }}
+                              />
+                              <span style={{ fontSize: 20, color: ticket.isFree ? '#7AC943' : '#222', fontWeight: 'bold', userSelect: 'none', transition: 'color 0.2s' }}>
+                                {ticket.isFree 
+                                  ? <span style={{ display: 'flex', alignItems: 'center' }}>✔<span style={{ marginLeft: 6 }}>Miễn phí</span></span>
+                                  : 'Miễn phí'}
+                              </span>
+                            </label>
+                          </Box>
+                        </Box>
                       </Grid>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Box>
-            )}
+                      
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Số lượng vé"
+                          type="number"
+                          value={ticket.quantity}
+                          onChange={(e) => handleTicketTypeChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                          fullWidth
+                          required
+                          inputProps={{ min: 1 }}
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Đơn hàng tối thiểu"
+                          type="number"
+                          value={ticket.minOrder}
+                          onChange={(e) => handleTicketTypeChange(index, 'minOrder', parseInt(e.target.value) || 1)}
+                          fullWidth
+                          required
+                          inputProps={{ min: 1 }}
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Đơn hàng tối đa"
+                          type="number"
+                          value={ticket.maxOrder}
+                          onChange={(e) => handleTicketTypeChange(index, 'maxOrder', parseInt(e.target.value) || 10)}
+                          fullWidth
+                          inputProps={{ min: 1 }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
           </Card>
         </Box>
       </Box>

@@ -58,7 +58,7 @@
 }
 
 .stat-icon.total {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
 }
 
 .stat-icon.admin {
@@ -66,11 +66,11 @@
 }
 
 .stat-icon.host {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
 }
 
 .stat-icon.customer {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
 }
 
 .stat-details h4 {
@@ -151,7 +151,7 @@
 
 /* Table Styling */
 .MuiTableHead-root .MuiTableRow-root {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
 }
 
 .MuiTableHead-root .MuiTableCell-root {
@@ -207,5 +207,31 @@
   .MuiTable-root {
     min-width: 800px;
   }
+}
+
+/* Action Cell Styling */
+.action-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.action-cell .MuiButton-root {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.action-cell .MuiButton-root:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.action-cell .MuiButton-containedError {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+}
+
+.action-cell .MuiButton-containedSuccess {
+  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
 }
 

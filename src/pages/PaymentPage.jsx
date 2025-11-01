@@ -108,6 +108,15 @@ const PaymentPage = () => {
                 } else if (orderData.status === 'Cancelled') {
                     setError('Đơn hàng này đã bị hủy và không thể thanh toán');
                 }
+
+                // Auto-bypass payment for free orders
+                const amount = orderData.data?.amount ?? orderData.amount ?? 0;
+                if (amount === 0) {
+                    setTimeout(() => {
+                        navigate(`/order-confirmation/${orderId}`, { state: { order: orderData.data || orderData } });
+                    }, 300);
+                    return;
+                }
                 
             } catch (err) {
                 console.error('Error fetching order:', err);
@@ -317,7 +326,7 @@ const PaymentPage = () => {
             <Container maxWidth="md" sx={{ py: 4 }}>
                 <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
                     <Typography variant="h3" component="h1" textAlign="center" gutterBottom sx={{ 
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
                         backgroundClip: 'text',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
@@ -325,6 +334,18 @@ const PaymentPage = () => {
                     }}>
                         Thanh Toán
                     </Typography>
+                    
+                    {/* Warning: Only pending orders can be paid */}
+                    {order.status && order.status !== 'Pending' && (
+                        <Alert severity="error" sx={{ mb: 3 }}>
+                            <Typography>
+                                <strong>⚠️ Chỉ có thể thanh toán order đang Pending</strong>
+                            </Typography>
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                                Đơn hàng hiện tại có trạng thái: <strong>{order.status}</strong>
+                            </Typography>
+                        </Alert>
+                    )}
                     
                     {error && (
                         <Alert severity="error" sx={{ mb: 3 }}>
@@ -388,7 +409,7 @@ const PaymentPage = () => {
                                     sx={{ 
                                         p: 2, 
                                         borderRadius: 2,
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        background: 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
                                         color: 'white'
                                     }}
                                 >
@@ -486,7 +507,11 @@ const PaymentPage = () => {
                                     size="large"
                                     startIcon={processing ? <CircularProgress size={20} /> : <Payment />}
                                     onClick={handlePayment}
-                                    disabled={processing || (paymentMethod === 'wallet' && walletBalance < (order.amount || 0))}
+                                    disabled={
+                                        processing || 
+                                        order.status !== 'Pending' ||
+                                        (paymentMethod === 'wallet' && walletBalance < (order.amount || 0))
+                                    }
                                     sx={{ minWidth: 200 }}
                                 >
                                     {processing ? 'Đang xử lý...' : 'Thanh toán ngay'}
