@@ -226,14 +226,13 @@ const MyEventsPage = () => {
                     component="img"
                     height={200}
                     image={(() => {
-                      // IE: Sử dụng backgroundImage (1280x720) cho MyEventsPage
+                      // Sử dụng backgroundImage (1280x720) cho MyEventsPage
+                      // eventImage (720x958) được lưu nhưng không hiển thị
                       const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage;
-                      const eventImage = event.eventDetails?.eventImage || event.eventImage;
-                      const imageToUse = backgroundImage || eventImage;
-                      if (imageToUse) {
-                        return imageToUse.startsWith('http') 
-                          ? imageToUse 
-                          : `http://localhost:5000${imageToUse.startsWith('/') ? '' : '/'}${imageToUse}`;
+                      if (backgroundImage) {
+                        return backgroundImage.startsWith('http') 
+                          ? backgroundImage 
+                          : `http://localhost:5000${backgroundImage.startsWith('/') ? '' : '/'}${backgroundImage}`;
                       }
                       return '/default-event.svg';
                     })()}

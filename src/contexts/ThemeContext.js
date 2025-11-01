@@ -12,36 +12,37 @@ export const useTheme = () => {
 };
 
 export const CustomThemeProvider = ({ children }) => {
-  // Lấy theme từ localStorage hoặc system preference
+  // Lấy theme từ localStorage hoặc default to dark (futuristic theme)
   const [themeMode, setThemeMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       return savedTheme;
     }
-    // Nếu không có theme đã lưu, kiểm tra system preference
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // Default to dark theme for futuristic look
+    return 'dark';
   });
 
-  // Tạo Material-UI theme - TicketBox.vn Design System
+  // Tạo Material-UI theme - TheGrind5 Futuristic Theme
   const muiTheme = createTheme({
     palette: {
       mode: themeMode,
       primary: {
-        main: '#3DBE29',        // TicketBox signature green
-        light: '#5FD946',
-        dark: '#2FA320',
+        main: '#FF7A00',        // Orange primary
+        light: '#FF8A00',
+        dark: '#E66A00',
         contrastText: '#FFFFFF',
       },
       secondary: {
-        main: '#F97316',        // Accent orange
-        light: '#FB923C',
-        dark: '#EA580C',
+        main: '#003820',        // Deep green secondary
+        light: '#004F34',
+        dark: '#002D1A',
+        contrastText: '#FFFFFF',
       },
       error: {
         main: '#EF4444',
       },
       warning: {
-        main: '#F59E0B',
+        main: '#FF7A00',
       },
       info: {
         main: '#3B82F6',
@@ -50,14 +51,14 @@ export const CustomThemeProvider = ({ children }) => {
         main: '#10B981',
       },
       background: {
-        default: themeMode === 'dark' ? '#0A0A0A' : '#FFFFFF',
-        paper: themeMode === 'dark' ? '#1C1C1C' : '#FFFFFF',
+        default: themeMode === 'dark' ? '#0D0D0D' : '#FFFFFF',
+        paper: themeMode === 'dark' ? '#1A1A1A' : '#FFFFFF',
       },
       text: {
-        primary: themeMode === 'dark' ? '#FFFFFF' : '#000000',
-        secondary: themeMode === 'dark' ? '#A3A3A3' : '#737373',
+        primary: themeMode === 'dark' ? '#FFFFFF' : '#0D0D0D',
+        secondary: themeMode === 'dark' ? '#A5A5A5' : '#737373',
       },
-      divider: themeMode === 'dark' ? '#333333' : '#E5E7EB',
+      divider: themeMode === 'dark' ? '#2A2A2A' : '#E5E7EB',
     },
     typography: {
       fontFamily: [
@@ -106,7 +107,7 @@ export const CustomThemeProvider = ({ children }) => {
       },
     },
     shape: {
-      borderRadius: 8,
+      borderRadius: 12,
     },
     components: {
       MuiButton: {
@@ -114,14 +115,26 @@ export const CustomThemeProvider = ({ children }) => {
           root: {
             textTransform: 'none',
             fontWeight: 600,
-            borderRadius: 6,
-            padding: '8px 20px',
-            boxShadow: 'none',
+            borderRadius: 12,
+            padding: '12px 24px',
+            transition: 'all 0.3s ease-in-out',
           },
           contained: {
-            boxShadow: 'none',
+            background: 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
+            boxShadow: '0 4px 12px rgba(255, 122, 0, 0.3)',
             '&:hover': {
-              boxShadow: 'none',
+              background: 'linear-gradient(135deg, #FF8A00 0%, #FF9A20 100%)',
+              boxShadow: '0 0 10px rgba(255, 122, 0, 0.5), 0 0 20px rgba(255, 122, 0, 0.3)',
+              transform: 'translateY(-2px)',
+            },
+          },
+          outlined: {
+            borderColor: '#FF7A00',
+            color: '#FF7A00',
+            '&:hover': {
+              borderColor: '#FF8A00',
+              backgroundColor: 'rgba(255, 122, 0, 0.1)',
+              boxShadow: '0 0 10px rgba(255, 122, 0, 0.5), 0 0 20px rgba(255, 122, 0, 0.3)',
             },
           },
         },
@@ -129,12 +142,21 @@ export const CustomThemeProvider = ({ children }) => {
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: 12,
             border: themeMode === 'dark' 
-              ? '1px solid #333333' 
+              ? '1px solid #2A2A2A' 
               : '1px solid #E5E7EB',
-            boxShadow: 'none',
-            backgroundColor: themeMode === 'dark' ? '#1C1C1C' : '#FFFFFF',
+            boxShadow: themeMode === 'dark' 
+              ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+              : '0 2px 8px rgba(0, 0, 0, 0.06)',
+            backgroundColor: themeMode === 'dark' ? '#1A1A1A' : '#FFFFFF',
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              boxShadow: themeMode === 'dark' 
+                ? '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 122, 0, 0.5)' 
+                : '0 4px 12px rgba(0, 0, 0, 0.08)',
+              transform: 'translateY(-2px)',
+            },
           },
         },
       },
@@ -142,7 +164,20 @@ export const CustomThemeProvider = ({ children }) => {
         styleOverrides: {
           root: {
             '& .MuiOutlinedInput-root': {
-              borderRadius: 8,
+              borderRadius: 12,
+              backgroundColor: themeMode === 'dark' ? 'rgba(18, 18, 18, 0.8)' : '#FFFFFF',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255, 122, 0, 0.3)',
+                },
+              },
+              '&.Mui-focused': {
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#FF7A00',
+                  boxShadow: '0 0 10px rgba(255, 122, 0, 0.5), 0 0 20px rgba(255, 122, 0, 0.3)',
+                },
+              },
             },
           },
         },
@@ -150,8 +185,25 @@ export const CustomThemeProvider = ({ children }) => {
       MuiChip: {
         styleOverrides: {
           root: {
-            borderRadius: 6,
+            borderRadius: 10,
             fontWeight: 500,
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'scale(1.05)',
+            },
+          },
+        },
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundColor: themeMode === 'dark' ? '#1A1A1A' : '#FFFFFF',
+            borderRadius: 12,
+          },
+          elevation1: {
+            boxShadow: themeMode === 'dark' 
+              ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+              : '0 2px 8px rgba(0, 0, 0, 0.06)',
           },
         },
       },

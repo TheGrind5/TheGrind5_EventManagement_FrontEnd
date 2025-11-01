@@ -161,10 +161,9 @@ const EventDetailsPage = () => {
   }
 
   // Lấy ảnh nền (1280x720) - dùng cho EventDetailsPage
+  // eventImage (720x958) được lưu nhưng không hiển thị
   const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage || null;
-  // Fallback về eventImage nếu không có backgroundImage
-  const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
-  const imageToUse = backgroundImage || eventImage;
+  const imageToUse = backgroundImage;
   const imageUrl = imageToUse ? 
     (imageToUse.startsWith('http') ? imageToUse : `http://localhost:5000${imageToUse.startsWith('/') ? '' : '/'}${imageToUse}`) : 
     null;

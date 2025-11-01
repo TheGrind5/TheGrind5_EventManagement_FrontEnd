@@ -131,26 +131,44 @@ const Header = ({ searchTerm, onSearchChange }) => {
     }}>
       <Toolbar sx={{ minHeight: { xs: 60, md: 64 } }}>
         {/* Logo */}
-        <Typography 
-          variant="h6" 
-          component={Link} 
+        <Box
+          component={Link}
           to="/"
-          sx={{ 
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
             flexGrow: 0,
-            fontWeight: 700,
             textDecoration: 'none',
-            color: 'primary.main',
             mr: { xs: 2, md: 4 },
-            fontSize: { xs: '1.1rem', md: '1.3rem' },
-            letterSpacing: '-0.02em',
-            transition: 'color 0.2s ease',
+            transition: 'opacity 0.2s ease',
             '&:hover': {
-              color: 'primary.dark',
+              opacity: 0.8,
             }
           }}
         >
-          TheGrind5 Events
-        </Typography>
+          <Box
+            component="img"
+            src="/brand-logo.png"
+            alt="FUTicket Logo"
+            sx={{
+              height: { xs: 32, md: 40 },
+              width: 'auto',
+              objectFit: 'contain',
+            }}
+          />
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 700,
+              color: 'primary.main',
+              fontSize: { xs: '1.3rem', md: '1.6rem' },
+              letterSpacing: '-0.02em',
+            }}
+          >
+            FUTicket
+          </Typography>
+        </Box>
 
         {/* Desktop Navigation */}
         {!isMobile && (

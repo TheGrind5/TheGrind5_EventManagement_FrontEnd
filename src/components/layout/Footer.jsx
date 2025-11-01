@@ -82,17 +82,35 @@ const Footer = () => {
           {/* Company Info */}
           <Grid item xs={12} md={4}>
             <Stack spacing={2}>
-              <Typography
-                variant="h6"
+              <Box
                 sx={{
-                  fontWeight: 700,
-                  color: 'primary.main',
-                  fontSize: '1.3rem',
-                  letterSpacing: '-0.02em'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
                 }}
               >
-                TheGrind5 Events
-              </Typography>
+                <Box
+                  component="img"
+                  src="/brand-logo.png"
+                  alt="FUTicket Logo"
+                  sx={{
+                    height: 40,
+                    width: 'auto',
+                    objectFit: 'contain',
+                  }}
+                />
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    color: 'primary.main',
+                    fontSize: '1.6rem',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  FUTicket
+                </Typography>
+              </Box>
               <Typography
                 variant="body2"
                 color="text.secondary"
@@ -293,7 +311,7 @@ const Footer = () => {
             color="text.secondary"
             sx={{ fontSize: '0.8125rem' }}
           >
-            © {currentYear} TheGrind5 Events. All rights reserved.
+            © {currentYear} FUTicket. All rights reserved.
           </Typography>
           
           <Stack direction="row" spacing={3}>

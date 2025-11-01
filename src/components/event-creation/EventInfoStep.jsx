@@ -23,12 +23,18 @@ import { CloudUpload, Image, Folder } from '@mui/icons-material';
 import { eventsAPI } from '../../services/apiClient';
 import DebouncedTextField from '../common/DebouncedTextField';
 import ImageDisplayLocationsModal from './ImageDisplayLocationsModal';
+import ImageCropModal from '../common/ImageCropModal';
 
 const EventInfoStep = ({ data, onChange }) => {
   const theme = useTheme();
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
   const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [cropAspect, setCropAspect] = useState(1);
+  const [cropSize, setCropSize] = useState({ width: 275, height: 275 });
+  const [cropField, setCropField] = useState(null);
   
 
   const handleInputChange = useCallback((field, value) => {
@@ -118,6 +124,45 @@ const EventInfoStep = ({ data, onChange }) => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const getCropConfig = (field) => {
+    switch (field) {
+      case 'eventImage':
+        return { aspect: 720 / 958, width: 720, height: 958 };
+      case 'backgroundImage':
+        return { aspect: 16 / 9, width: 1280, height: 720 };
+      case 'organizerLogo':
+        return { aspect: 1, width: 275, height: 275 };
+      default:
+        return { aspect: 1, width: 500, height: 500 };
+    }
+  };
+
+  const openFileSelector = (field) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const cfg = getCropConfig(field);
+        setCropField(field);
+        setCropAspect(cfg.aspect);
+        setCropSize({ width: cfg.width, height: cfg.height });
+        setCropImageSrc(reader.result);
+        setCropOpen(true);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
+  const handleCropDone = async (croppedFile) => {
+    if (!croppedFile || !cropField) return;
+    await handleImageUpload(croppedFile, cropField);
   };
 
   const categories = [
@@ -391,18 +436,7 @@ const EventInfoStep = ({ data, onChange }) => {
                     bgcolor: 'action.hover'
                   }
                 }}
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = 'image/*';
-                  input.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      handleImageUpload(file, 'eventImage');
-                    }
-                  };
-                  input.click();
-                }}
+                onClick={() => openFileSelector('eventImage')}
               >
                 {data.eventImage ? (
                   <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -450,16 +484,7 @@ const EventInfoStep = ({ data, onChange }) => {
                       disabled={uploading}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = (e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            handleImageUpload(file, 'eventImage');
-                          }
-                        };
-                        input.click();
+                        openFileSelector('eventImage');
                       }}
                     >
                       {uploading ? 'Đang upload...' : 'Chọn ảnh'}
@@ -482,18 +507,7 @@ const EventInfoStep = ({ data, onChange }) => {
                     bgcolor: 'action.hover'
                   }
                 }}
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = 'image/*';
-                  input.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      handleImageUpload(file, 'backgroundImage');
-                    }
-                  };
-                  input.click();
-                }}
+                onClick={() => openFileSelector('backgroundImage')}
               >
                 {data.backgroundImage ? (
                   <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -541,16 +555,7 @@ const EventInfoStep = ({ data, onChange }) => {
                       disabled={uploading}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = (e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            handleImageUpload(file, 'backgroundImage');
-                          }
-                        };
-                        input.click();
+                        openFileSelector('backgroundImage');
                       }}
                     >
                       {uploading ? 'Đang upload...' : 'Chọn ảnh'}
@@ -1052,18 +1057,7 @@ Chi tiết sự kiện:
                     bgcolor: 'action.hover'
                   }
                 }}
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = 'image/*';
-                  input.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      handleImageUpload(file, 'organizerLogo');
-                    }
-                  };
-                  input.click();
-                }}
+                onClick={() => openFileSelector('organizerLogo')}
               >
                 {data.organizerLogo ? (
                   <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -1111,16 +1105,7 @@ Chi tiết sự kiện:
                       disabled={uploading}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = (e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            handleImageUpload(file, 'organizerLogo');
-                          }
-                        };
-                        input.click();
+                        openFileSelector('organizerLogo');
                       }}
                     >
                       {uploading ? 'Đang upload...' : 'Chọn ảnh'}
@@ -1187,6 +1172,16 @@ Chi tiết sự kiện:
           backgroundImage: data.backgroundImage,
           organizerLogo: data.organizerLogo
         }}
+      />
+      <ImageCropModal
+        open={cropOpen}
+        onClose={() => setCropOpen(false)}
+        imageSrc={cropImageSrc}
+        aspectRatio={cropAspect}
+        cropWidth={cropSize.width}
+        cropHeight={cropSize.height}
+        onCropComplete={handleCropDone}
+        fieldName={cropField}
       />
     </Box>
   );

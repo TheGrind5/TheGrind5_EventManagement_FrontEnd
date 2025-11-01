@@ -922,6 +922,7 @@ const CreateEventPage = () => {
           streetAddress: step1Data.streetAddress || '',
           eventType: step1Data.eventType || 'Public',
           category: step1Data.category || '',
+          campus: step1Data.campus || '', // Thêm campus vào request
           eventImage: step1Data.eventImage || '',
           backgroundImage: step1Data.backgroundImage || '',
           eventIntroduction: step1Data.eventIntroduction || '',
@@ -968,6 +969,7 @@ const CreateEventPage = () => {
               streetAddress: step1Data.streetAddress || '',
               eventType: 'Public',
               category: step1Data.category || '',
+              campus: step1Data.campus || '', // Thêm campus vào request
               location: locationString,
               eventImage: step1Data.eventImage || '',
               backgroundImage: step1Data.backgroundImage || '',

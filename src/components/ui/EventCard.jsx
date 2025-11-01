@@ -79,10 +79,10 @@ const EventCard = ({ event }) => {
 
   const currentStatus = getEventStatus(event.startTime, event.endTime);
   
-  // Get event image
-  const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
-  const imageUrl = eventImage
-    ? (eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage}`)
+  // Get background image (1280x720) - main display image for all pages
+  const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage || null;
+  const imageUrl = backgroundImage
+    ? (backgroundImage.startsWith('http') ? backgroundImage : `http://localhost:5000${backgroundImage}`)
     : null;
 
   return (
@@ -123,7 +123,7 @@ const EventCard = ({ event }) => {
         }}
       >
         {/* Placeholder when no image */}
-        {!eventImage && (
+        {!imageUrl && (
           <Box
             sx={{
               display: 'flex',
@@ -140,7 +140,7 @@ const EventCard = ({ event }) => {
           </Box>
         )}
 
-        {/* Event Image */}
+        {/* Event Image - 1280x720 with hover zoom effect */}
         {imageUrl && (
           <Box
             component="img"
@@ -151,7 +151,10 @@ const EventCard = ({ event }) => {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              transition: 'transform 0.3s ease',
+              transition: 'transform 0.5s ease',
+              '&:hover': {
+                transform: 'scale(1.1)',
+              }
             }}
             onError={(e) => {
               e.target.style.display = 'none';

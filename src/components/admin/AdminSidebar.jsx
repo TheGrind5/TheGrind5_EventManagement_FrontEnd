@@ -29,7 +29,14 @@ const AdminSidebar = ({ onLogout }) => {
       <div className="sidebar-header">
         <AdminPanelSettings className="admin-icon" />
         <h3>Admin Panel</h3>
-        <p className="brand-subtitle">TheGrind5 Events</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+          <img 
+            src="/brand-logo.png" 
+            alt="FUTicket Logo" 
+            style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
+          />
+          <p className="brand-subtitle" style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>FUTicket</p>
+        </div>
       </div>
 
       <nav className="sidebar-menu">
