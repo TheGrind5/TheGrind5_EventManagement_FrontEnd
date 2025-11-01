@@ -38,13 +38,17 @@ apiClient.interceptors.response.use(
       Object.prototype.hasOwnProperty.call(body, 'pageSize')
     );
 
-    const normalizedData = hasPagingKeys ? body : (body?.data ?? body);
+    // Handle both camelCase (data) and PascalCase (Data) from .NET serialization
+    // .NET by default uses PascalCase, but can be configured to camelCase
+    const normalizedData = hasPagingKeys 
+      ? body 
+      : (body?.data ?? body?.Data ?? body);
 
     return {
       success: true,
       data: normalizedData,
-      message: body?.message || 'Success',
-      timestamp: body?.timestamp || new Date().toISOString()
+      message: body?.message || body?.Message || 'Success',
+      timestamp: body?.timestamp || body?.Timestamp || new Date().toISOString()
     };
   },
   (error) => {

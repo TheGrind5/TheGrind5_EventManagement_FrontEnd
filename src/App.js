@@ -27,6 +27,7 @@ import OrderInformationPage from './pages/OrderInformationPage';
 import RecipientInformationPage from './pages/RecipientInformationPage';
 import PaymentPage from './pages/PaymentPage';
 import VNPayPaymentPage from './pages/VNPayPaymentPage';
+import VNPayReturnPage from './pages/VNPayReturnPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
@@ -109,6 +110,10 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      
+      {/* VNPay Return Page - Public route */}
+      <Route path="/payment/vnpay/return" element={<VNPayReturnPage />} />
+      
       <Route 
         path="/order-confirmation/:orderId" 
         element={

@@ -43,11 +43,15 @@ import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import CategoryTabs from '../components/ui/CategoryTabs';
 import EventCard from '../components/ui/EventCard';
+import AIChatbot from '../components/ai/AIChatbot';
 import { eventsAPI } from '../services/apiClient';
 import Pagination from '@mui/material/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
+import { useAuth } from '../contexts/AuthContext';
 
 const HomePage = () => {
+  const { user } = useAuth();
+  
   //State declaration để quản lý trạng thái của component
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -868,6 +872,9 @@ const HomePage = () => {
 
       {/* Footer */}
       <Footer />
+
+      {/* AI Chatbot - Always available */}
+      <AIChatbot />
     </Box>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/apiClient';
 import Header from '../components/layout/Header';
+import AIHistory from '../components/ai/AIHistory';
 import config from '../config/environment';
 import './ProfilePage.css';
 
@@ -482,6 +483,11 @@ const ProfilePage = () => {
 
               </div>
             </form>
+          </div>
+
+          {/* AI History Section */}
+          <div className="profile-details-card" style={{ marginTop: '2rem' }}>
+            <AIHistory />
           </div>
         </div>
       </div>

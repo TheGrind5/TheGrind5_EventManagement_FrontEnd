@@ -21,8 +21,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import PricingSuggestionWidget from '../ai/PricingSuggestionWidget';
 
-const DateTimeTicketStep = ({ data, onChange }) => {
+const DateTimeTicketStep = ({ data, onChange, step1Data }) => {
   const validateTicketName = (name) => {
     if (!name || name.trim().length < 2) {
       return 'Tên loại vé phải có ít nhất 2 ký tự';
@@ -163,6 +164,27 @@ const DateTimeTicketStep = ({ data, onChange }) => {
               </Grid>
             </Grid>
           </Card>
+
+          {/* AI Pricing Suggestion Widget */}
+          {step1Data && (
+            <PricingSuggestionWidget
+              eventCategory={step1Data.category}
+              eventStartTime={data.startTime}
+              eventLocation={step1Data.location || `${step1Data.streetAddress || ''}, ${step1Data.ward || ''}, ${step1Data.district || ''}, ${step1Data.province || ''}`}
+              onApplyPricing={(pricing) => {
+                if (pricing && data.ticketTypes.length > 0) {
+                  const newTicketTypes = [...data.ticketTypes];
+                  const lastIndex = newTicketTypes.length - 1;
+                  newTicketTypes[lastIndex] = {
+                    ...newTicketTypes[lastIndex],
+                    typeName: pricing.typeName,
+                    price: pricing.price
+                  };
+                  handleInputChange('ticketTypes', newTicketTypes);
+                }
+              }}
+            />
+          )}
 
           {/* Ticket Types Section */}
           <Card sx={{ p: 3 }}>
