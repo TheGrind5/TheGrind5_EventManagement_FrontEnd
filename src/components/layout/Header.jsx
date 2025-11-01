@@ -40,6 +40,7 @@ import { walletAPI, eventsAPI } from '../../services/apiClient';
 
 // Components
 import WishlistIcon from '../common/WishlistIcon';
+import NotificationIcon from '../common/NotificationIcon';
 import ThemeToggle from '../common/ThemeToggle';
 
 const Header = ({ searchTerm, onSearchChange }) => {
@@ -128,8 +129,14 @@ const Header = ({ searchTerm, onSearchChange }) => {
       borderBottom: `1px solid ${theme.palette.divider}`,
       color: 'text.primary',
       boxShadow: 'none',
+      zIndex: theme.zIndex.appBar
     }}>
-      <Toolbar sx={{ minHeight: { xs: 60, md: 64 } }}>
+      <Toolbar sx={{ 
+        minHeight: { xs: 70, md: 72 }, 
+        height: { xs: 70, md: 72 },
+        px: { xs: 2, md: 4 },
+        justifyContent: 'space-between'
+      }}>
         {/* Logo */}
         <Box
           component={Link}
@@ -175,23 +182,27 @@ const Header = ({ searchTerm, onSearchChange }) => {
           <Box sx={{ 
             flexGrow: 1, 
             display: 'flex', 
-            gap: 3,
+            gap: 1,
             justifyContent: 'center',
-            alignItems: 'center'
+            alignItems: 'center',
+            mx: 2
           }}>
             <Button 
               component={Link} 
               to="/" 
               color="inherit"
               sx={{ 
-                fontWeight: 500,
+                fontWeight: 600,
                 textTransform: 'none',
-                px: 2,
+                px: 2.5,
+                py: 1,
                 color: 'text.primary',
+                fontSize: '0.95rem',
+                borderRadius: 1.5,
                 '&:hover': {
                   backgroundColor: theme.palette.mode === 'dark' 
-                    ? 'rgba(61, 190, 41, 0.08)' 
-                    : 'rgba(61, 190, 41, 0.04)',
+                    ? 'rgba(61, 190, 41, 0.12)' 
+                    : 'rgba(61, 190, 41, 0.08)',
                   color: 'primary.main',
                 }
               }}
@@ -205,14 +216,17 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   to="/dashboard" 
                   color="inherit"
                   sx={{ 
-                    fontWeight: 500,
+                    fontWeight: 600,
                     textTransform: 'none',
-                    px: 2,
+                    px: 2.5,
+                    py: 1,
                     color: 'text.primary',
+                    fontSize: '0.95rem',
+                    borderRadius: 1.5,
                     '&:hover': {
                       backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(61, 190, 41, 0.08)' 
-                        : 'rgba(61, 190, 41, 0.04)',
+                        ? 'rgba(61, 190, 41, 0.12)' 
+                        : 'rgba(61, 190, 41, 0.08)',
                       color: 'primary.main',
                     }
                   }}
@@ -224,18 +238,20 @@ const Header = ({ searchTerm, onSearchChange }) => {
                     onClick={handleTicketsMenuOpen}
                     color="inherit"
                     sx={{ 
-                      fontWeight: 500,
+                      fontWeight: 600,
                       textTransform: 'none',
-                      px: 2,
+                      px: 2.5,
+                      py: 1,
                       color: 'text.primary',
+                      fontSize: '0.95rem',
+                      borderRadius: 1.5,
                       '&:hover': {
                         backgroundColor: theme.palette.mode === 'dark' 
-                          ? 'rgba(61, 190, 41, 0.08)' 
-                          : 'rgba(61, 190, 41, 0.04)',
+                          ? 'rgba(61, 190, 41, 0.12)' 
+                          : 'rgba(61, 190, 41, 0.08)',
                         color: 'primary.main',
                       }
                     }}
-                    endIcon={<Ticket />}
                   >
                     My Tickets
                   </Button>
@@ -280,14 +296,17 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   to="/wishlist" 
                   color="inherit"
                   sx={{ 
-                    fontWeight: 500,
+                    fontWeight: 600,
                     textTransform: 'none',
-                    px: 2,
+                    px: 2.5,
+                    py: 1,
                     color: 'text.primary',
+                    fontSize: '0.95rem',
+                    borderRadius: 1.5,
                     '&:hover': {
                       backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(61, 190, 41, 0.08)' 
-                        : 'rgba(61, 190, 41, 0.04)',
+                        ? 'rgba(61, 190, 41, 0.12)' 
+                        : 'rgba(61, 190, 41, 0.08)',
                       color: 'primary.main',
                     }
                   }}
@@ -304,9 +323,10 @@ const Header = ({ searchTerm, onSearchChange }) => {
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center',
-            mx: 3,
-            minWidth: 300,
-            maxWidth: 400
+            mx: 2,
+            minWidth: 280,
+            maxWidth: 400,
+            flexGrow: 0
           }}>
             <TextField
               fullWidth
@@ -316,23 +336,22 @@ const Header = ({ searchTerm, onSearchChange }) => {
               size="small"
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 1.5,
+                  borderRadius: 2,
                   backgroundColor: theme.palette.mode === 'dark'
-                    ? '#1C1C1C'
-                    : '#F5F5F5',
-                  border: 'none',
+                    ? '#1A1A1A'
+                    : '#F8F8F8',
+                  border: '1px solid transparent',
                   '&:hover': {
                     backgroundColor: theme.palette.mode === 'dark'
-                      ? '#262626'
-                      : '#E5E5E5',
+                      ? '#242424'
+                      : '#EBEBEB',
+                    border: `1px solid ${theme.palette.mode === 'dark' ? '#2A2A2A' : '#E0E0E0'}`
                   },
                   '&.Mui-focused': {
                     backgroundColor: theme.palette.mode === 'dark'
-                      ? '#262626'
+                      ? '#242424'
                       : '#FFFFFF',
-                    border: theme.palette.mode === 'dark'
-                      ? '1px solid #404040'
-                      : '1px solid #D4D4D4',
+                    border: `1px solid ${theme.palette.primary.main}`,
                   },
                   '& fieldset': {
                     border: 'none',
@@ -340,7 +359,8 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 },
                 '& .MuiInputBase-input': {
                   color: 'text.primary',
-                  fontSize: '0.875rem',
+                  fontSize: '0.9rem',
+                  py: 1,
                   '&::placeholder': {
                     color: 'text.secondary',
                     opacity: 0.7,
@@ -350,7 +370,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                    <Search sx={{ color: 'text.secondary', fontSize: '1.2rem' }} />
                   </InputAdornment>
                 ),
                 endAdornment: searchTerm && (
@@ -359,7 +379,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
                       onClick={() => onSearchChange && onSearchChange('')}
                       edge="end"
                       size="small"
-                      sx={{ color: 'text.secondary' }}
+                      sx={{ color: 'text.secondary', ml: 0.5 }}
                     >
                       <Clear fontSize="small" />
                     </IconButton>
@@ -374,7 +394,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
-          gap: 2,
+          gap: 1.5,
           ml: 'auto'
         }}>
           {/* Theme Toggle */}
@@ -382,6 +402,9 @@ const Header = ({ searchTerm, onSearchChange }) => {
           
           {user ? (
             <>
+              {/* Notification Icon */}
+              <NotificationIcon />
+              
               {/* Wishlist Icon */}
               <WishlistIcon />
               
@@ -392,15 +415,16 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 variant="contained"
                 sx={{
                   borderRadius: 2,
-                  fontWeight: 600,
-                  px: 3,
-                  py: 1,
+                  fontWeight: 700,
+                  px: 2.5,
+                  py: 1.5,
                   textTransform: 'none',
                   fontSize: '0.875rem',
                   boxShadow: 'none',
+                  whiteSpace: 'nowrap',
                   '&:hover': {
-                    boxShadow: '0 4px 12px rgba(61, 190, 41, 0.25)',
-                    transform: 'translateY(-1px)'
+                    boxShadow: '0 6px 20px rgba(61, 190, 41, 0.3)',
+                    transform: 'translateY(-2px)'
                   },
                   transition: 'all 0.2s ease'
                 }}
@@ -410,7 +434,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
               
               {/* Wallet Balance */}
               <Chip
-                icon={<Wallet sx={{ fontSize: '1.1rem' }} />}
+                icon={<Wallet sx={{ fontSize: '1.2rem' }} />}
                 label={balanceLoading ? "Loading..." : formatCurrency(walletBalance)}
                 component={Link}
                 to="/wallet"
@@ -419,19 +443,20 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 variant="outlined"
                 sx={{ 
                   borderRadius: 2,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '0.875rem',
-                  px: 1.5,
-                  height: 36,
+                  px: 2,
+                  height: 40,
+                  borderWidth: 2,
                   borderColor: theme.palette.mode === 'dark' 
-                    ? 'rgba(61, 190, 41, 0.3)' 
-                    : 'rgba(61, 190, 41, 0.5)',
+                    ? 'rgba(61, 190, 41, 0.4)' 
+                    : 'rgba(61, 190, 41, 0.6)',
                   '&:hover': {
                     backgroundColor: 'primary.main',
                     color: 'white',
                     borderColor: 'primary.main',
-                    transform: 'translateY(-1px)',
-                    boxShadow: '0 4px 8px rgba(61, 190, 41, 0.2)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 12px rgba(61, 190, 41, 0.25)',
                   },
                   transition: 'all 0.2s ease'
                 }}
@@ -440,14 +465,17 @@ const Header = ({ searchTerm, onSearchChange }) => {
               {/* User Menu */}
               <IconButton
                 onClick={handleUserMenuOpen}
-                size="large"
                 edge="end"
                 aria-label="account of current user"
                 color="inherit"
                 sx={{
+                  width: 44,
+                  height: 44,
                   '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    transform: 'scale(1.1)'
+                    backgroundColor: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.08)'
+                      : 'rgba(0, 0, 0, 0.04)',
+                    transform: 'scale(1.05)'
                   },
                   transition: 'all 0.2s ease'
                 }}
@@ -459,7 +487,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
                     height: 36, 
                     bgcolor: 'primary.main',
                     fontWeight: 700,
-                    fontSize: '1rem'
+                    fontSize: '0.95rem'
                   }}
                   imgProps={{ onError: (e) => { e.currentTarget.src = ''; } }}
                 >

@@ -30,12 +30,15 @@ import {
 import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
 import StageViewer from '../components/stage/StageViewer';
+import AIChatbot from '../components/ai/AIChatbot';
 import { eventsAPI, ticketsAPI } from '../services/apiClient';
+import { useAuth } from '../contexts/AuthContext';
 import { decodeText } from '../utils/textDecoder';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -43,7 +46,6 @@ const EventDetailsPage = () => {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     // Check if id is valid
@@ -80,7 +82,7 @@ const EventDetailsPage = () => {
     };
 
     fetchEvent();
-  }, [id]);
+  }, [id, user]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -260,30 +262,33 @@ const EventDetailsPage = () => {
             )}
           </Box>
 
-          <CardContent sx={{ p: 4 }}>
-            <Stack spacing={4}>
-              {/* Title và Category khi không có ảnh */}
-              {!imageToUse && (
-                <Box>
-                  <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
-                    {decodeText(event.title)}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
-                    <Chip 
-                      label={decodeText(event.category)} 
-                      color="primary" 
-                    />
-                    <Chip 
-                      label={event.status} 
-                      color={event.status === 'Active' ? 'success' : 
-                             event.status === 'Upcoming' ? 'warning' : 'default'}
-                    />
-                  </Box>
-                </Box>
-              )}
+          <CardContent sx={{ p: { xs: 2, md: 4 } }}>
+            <Grid container spacing={4}>
+              {/* Left Column - Description and Details */}
+              <Grid item xs={12} md={8}>
+                <Stack spacing={4}>
+                  {/* Title và Category khi không có ảnh */}
+                  {!imageToUse && (
+                    <Box>
+                      <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
+                        {decodeText(event.title)}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
+                        <Chip 
+                          label={decodeText(event.category)} 
+                          color="primary" 
+                        />
+                        <Chip 
+                          label={event.status} 
+                          color={event.status === 'Active' ? 'success' : 
+                                 event.status === 'Upcoming' ? 'warning' : 'default'}
+                        />
+                      </Box>
+                    </Box>
+                  )}
 
-              {/* Description */}
-              <Box>
+                  {/* Description - With max height and scroll */}
+                  <Box>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                   Mô tả
                 </Typography>
@@ -422,10 +427,10 @@ const EventDetailsPage = () => {
                     </Typography>
                   );
                 })()}
-              </Box>
+                  </Box>
 
-              {/* Event Details */}
-              <Grid container spacing={3}>
+                  {/* Event Details */}
+                  <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Stack spacing={2}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -545,19 +550,37 @@ const EventDetailsPage = () => {
                 }
               })()}
 
-              {/* ===== HIỂN THỊ GIÁ TỔNG QUÁT ===== */}
-              <Box mb={2}>
-                <Typography
-                  variant="h4"
-                  sx={{ color: getEventPriceSummary() === 'Miễn phí' ? '#7AC943' : 'primary.main', fontWeight: 'bold' }}
-                  data-testid="event-price-summary"
-                >
-                  {getEventPriceSummary()}
-                </Typography>
-              </Box>
+                  {/* ===== HIỂN THỊ GIÁ TỔNG QUÁT ===== */}
+                  <Box mb={2}>
+                    <Typography
+                      variant="h4"
+                      sx={{ color: getEventPriceSummary() === 'Miễn phí' ? '#7AC943' : 'primary.main', fontWeight: 'bold' }}
+                      data-testid="event-price-summary"
+                    >
+                      {getEventPriceSummary()}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Grid>
 
-              {/* Ticket Information Section */}
-              <Box>
+              {/* Right Column - Ticket Booking (Sticky) */}
+              <Grid item xs={12} md={4}>
+                <Box sx={{ 
+                  position: { xs: 'static', md: 'sticky' },
+                  top: { md: 100 },
+                  maxHeight: { md: 'calc(100vh - 120px)' },
+                  overflowY: { md: 'auto' }
+                }}>
+                  <Card sx={{ 
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 3,
+                    boxShadow: theme.palette.mode === 'dark' 
+                      ? '0 8px 30px rgba(0, 0, 0, 0.3)' 
+                      : '0 8px 30px rgba(0, 0, 0, 0.1)'
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      {/* Ticket Information Section */}
+                      <Box>
                 <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <ConfirmationNumber />
                   Thông tin vé
@@ -571,93 +594,111 @@ const EventDetailsPage = () => {
                     </Typography>
                   </Box>
                 ) : (
-                  <Grid container spacing={3}>
+                  <Stack spacing={2}>
                     {ticketTypes.map((ticket) => {
                       const isAvailable = ticket.availableQuantity > 0 && ticket.status === 'Active';
                       const isOnSale = new Date() >= new Date(ticket.saleStart) && new Date() <= new Date(ticket.saleEnd);
                       
                       return (
-                        <Grid item xs={12} md={6} key={ticket.ticketTypeId}>
-                          <Card 
-                            sx={{ 
-                              opacity: (!isAvailable || !isOnSale) ? 0.6 : 1,
-                              transition: 'all 0.3s ease',
-                              '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: theme.palette.mode === 'dark' 
-                                  ? '0 8px 30px rgba(0, 0, 0, 0.3)' 
-                                  : '0 8px 30px rgba(0, 0, 0, 0.15)'
-                              }
-                            }}
-                          >
-                            <CardContent>
-                              <Stack spacing={2}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                  <Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                      {ticket.typeName}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                      {ticket.minOrder && `Tối thiểu: ${ticket.minOrder} vé`}
-                                      {ticket.maxOrder && ` | Tối đa: ${ticket.maxOrder} vé`}
-                                    </Typography>
-                                  </Box>
-                                  <Box sx={{ textAlign: 'right' }}>
-                                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                                      {ticket.price === 0 ? 'Miễn phí' : formatPrice(ticket.price)}
-                                    </Typography>
-                                    {(!isAvailable || !isOnSale) && (
-                                      <Chip 
-                                        label={!isOnSale ? 'Chưa mở bán' : 'Hết vé'} 
-                                        color="error" 
-                                        size="small" 
-                                      />
-                                    )}
-                                  </Box>
-                                </Box>
-                                
-                                <Typography variant="body2" color="text.secondary">
-                                  {isAvailable && isOnSale ? `Còn lại: ${ticket.availableQuantity} vé` : 'Không khả dụng'}
+                        <Paper 
+                          key={ticket.ticketTypeId}
+                          sx={{ 
+                            p: 2,
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 2,
+                            opacity: (!isAvailable || !isOnSale) ? 0.6 : 1,
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: theme.palette.mode === 'dark' 
+                                ? '0 4px 15px rgba(0, 0, 0, 0.3)' 
+                                : '0 4px 15px rgba(0, 0, 0, 0.1)'
+                            }
+                          }}
+                        >
+                          <Stack spacing={1.5}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <Box>
+                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                  {ticket.typeName}
                                 </Typography>
-                                
-                                {isAvailable && isOnSale && (
-                                  <Stack direction="row" spacing={1}>
-                                    <Button 
-                                      variant="outlined"
-                                      startIcon={<ShoppingCart />}
-                                      onClick={() => handleBuyNow(ticket)}
-                                      sx={{ flex: 1 }}
-                                    >
-                                      Mua ngay
-                                    </Button>
-                                    <Button 
-                                      component={Link} 
-                                      to={`/event/${id}/order/create?ticketType=${ticket.ticketTypeId}`}
-                                      variant="contained"
-                                      sx={{ flex: 1 }}
-                                    >
-                                      Mua ngay
-                                    </Button>
-                                    <WishlistButton 
-                                      ticketTypeId={ticket.ticketTypeId}
-                                      ticketName={ticket.typeName}
-                                      size="medium"
-                                      variant="outlined"
-                                    />
-                                  </Stack>
+                                <Typography variant="caption" color="text.secondary">
+                                  {isAvailable && isOnSale ? `Còn lại: ${ticket.availableQuantity} vé` : 'Không khả dụng'}
+                                  {ticket.minOrder && ` • Tối thiểu: ${ticket.minOrder} vé`}
+                                  {ticket.maxOrder && ` • Tối đa: ${ticket.maxOrder} vé`}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ textAlign: 'right' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                  {ticket.price === 0 ? 'Miễn phí' : formatPrice(ticket.price)}
+                                </Typography>
+                                {(!isAvailable || !isOnSale) && (
+                                  <Chip 
+                                    label={!isOnSale ? 'Chưa mở bán' : 'Hết vé'} 
+                                    color="error" 
+                                    size="small" 
+                                    sx={{ mt: 0.5 }}
+                                  />
                                 )}
-                              </Stack>
-                            </CardContent>
-                          </Card>
-                        </Grid>
+                              </Box>
+                            </Box>
+                            
+                            {isAvailable && isOnSale && (
+                              <Button 
+                                component={Link} 
+                                to={`/event/${id}/order/create?ticketType=${ticket.ticketTypeId}`}
+                                variant="contained"
+                                fullWidth
+                                size="small"
+                                startIcon={<ShoppingCart />}
+                              >
+                                Chọn vé
+                              </Button>
+                            )}
+                          </Stack>
+                        </Paper>
                       );
                     })}
-                  </Grid>
+                  </Stack>
                 )}
-              </Box>
+                      </Box>
 
-              {/* Organizer Information Section */}
-              {event.organizerInfo && (event.organizerInfo.organizerName || event.organizerInfo.organizerInfo) && (
+                      {/* Quick Action Button */}
+                      <Button 
+                        component={Link} 
+                        to={`/ticket-selection/${id}`}
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        sx={{ 
+                          mt: 3,
+                          py: 1.5,
+                          fontSize: '1.1rem',
+                          fontWeight: 700
+                        }}
+                      >
+                        Đặt vé ngay
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* Action Buttons - Moved outside Grid */}
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mt: 4 }}>
+              <Button 
+                component={Link} 
+                to="/" 
+                variant="outlined"
+                startIcon={<ArrowBack />}
+              >
+                Back to Events
+              </Button>
+            </Box>
+
+            {/* Organizer Information Section */}
+            {event.organizerInfo && (event.organizerInfo.organizerName || event.organizerInfo.organizerInfo) && (
                 <Box>
                   <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
                     <Business />
@@ -735,30 +776,13 @@ const EventDetailsPage = () => {
                     </CardContent>
                   </Card>
                 </Box>
-              )}
-
-              {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button 
-                  component={Link} 
-                  to="/" 
-                  variant="outlined"
-                  startIcon={<ArrowBack />}
-                >
-                  Back to Events
-                </Button>
-                <Button 
-                  component={Link} 
-                  to={`/event/${id}/order/create`}
-                  variant="contained"
-                >
-                  Xem tất cả vé
-                </Button>
-              </Box>
-            </Stack>
+            )}
           </CardContent>
         </Card>
       </Container>
+
+      {/* AI Chatbot */}
+      <AIChatbot eventId={id} />
     </Box>
   );
 };

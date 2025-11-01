@@ -193,6 +193,12 @@
   border-color: #4299e1;
 }
 
+.action-btn-warning {
+  background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+  color: white;
+  border-color: #ed8936;
+}
+
 /* Activity Summary */
 .activity-summary {
   background: white;

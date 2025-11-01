@@ -1335,6 +1335,7 @@ const CreateEventPage = () => {
           <DateTimeTicketStep
             data={step2Data}
             onChange={setStep2Data}
+            step1Data={step1Data}
           />
         );
       case 2:

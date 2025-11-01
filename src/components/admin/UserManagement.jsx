@@ -25,7 +25,7 @@ import {
   DialogActions,
   DialogContentText
 } from '@mui/material';
-import { Search, Person, AttachMoney, CalendarToday, Block, CheckCircle } from '@mui/icons-material';
+import { Search, Person, AttachMoney, CalendarToday, Block, CheckCircle, Event as EventIcon } from '@mui/icons-material';
 import adminAPI from '../../services/adminAPI';
 import './UserManagement.css';
 
@@ -44,6 +44,12 @@ const UserManagement = () => {
     open: false,
     user: null,
     action: '' // 'ban' or 'unban'
+  });
+  const [reportDialog, setReportDialog] = useState({
+    open: false,
+    user: null,
+    reports: [],
+    loading: false
   });
 
   useEffect(() => {
@@ -64,8 +70,27 @@ const UserManagement = () => {
       const userData = response.data?.data || response.data || [];
       console.log('User Data:', userData);
       
-      setUsers(userData);
-      calculateStats(userData);
+      // Fetch report count for each user
+      const usersWithReportCount = await Promise.all(
+        userData.map(async (user) => {
+          try {
+            const reportCountResponse = await adminAPI.getUserReportCount(user.userId);
+            return {
+              ...user,
+              reportCount: reportCountResponse.data?.reportCount || 0
+            };
+          } catch (err) {
+            console.warn(`Failed to get report count for user ${user.userId}:`, err);
+            return {
+              ...user,
+              reportCount: 0
+            };
+          }
+        })
+      );
+      
+      setUsers(usersWithReportCount);
+      calculateStats(usersWithReportCount);
     } catch (error) {
       console.error('Error fetching users:', error);
       console.error('Error details:', error.response?.data);
@@ -171,6 +196,42 @@ const UserManagement = () => {
       console.error('Error banning/unbanning user:', error);
       alert(`Lỗi khi ${banDialog.action === 'ban' ? 'cấm' : 'mở cấm'} tài khoản`);
     }
+  };
+
+  // Report dialog handlers
+  const handleViewReports = async (user) => {
+    setReportDialog({
+      open: true,
+      user: user,
+      reports: [],
+      loading: true
+    });
+
+    try {
+      const response = await adminAPI.getUserReports(user.userId);
+      const reports = response.data || [];
+      setReportDialog(prev => ({
+        ...prev,
+        reports: reports,
+        loading: false
+      }));
+    } catch (error) {
+      console.error('Error fetching user reports:', error);
+      alert('Lỗi khi tải danh sách báo cáo: ' + (error.response?.data?.message || error.message));
+      setReportDialog(prev => ({
+        ...prev,
+        loading: false
+      }));
+    }
+  };
+
+  const handleCloseReportDialog = () => {
+    setReportDialog({
+      open: false,
+      user: null,
+      reports: [],
+      loading: false
+    });
   };
 
   if (loading) {
@@ -291,7 +352,8 @@ const UserManagement = () => {
                 <TableCell>Số Dư Ví</TableCell>
                 <TableCell>SĐT</TableCell>
                 <TableCell>Ngày Tạo</TableCell>
-                <TableCell>Trạng Thái / Hành Động</TableCell>
+                <TableCell>Trạng Thái</TableCell>
+                <TableCell>Hành Động</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -345,6 +407,13 @@ const UserManagement = () => {
                         <CalendarToday fontSize="small" />
                         {formatDate(user.createdAt)}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={user.isBanned ? 'Đã cấm' : 'Hoạt động'}
+                        color={user.isBanned ? 'error' : 'success'}
+                        size="small"
+                      />
                     </TableCell>
                     <TableCell align="center">
                       {user.role !== 'Admin' && (
@@ -412,6 +481,93 @@ const UserManagement = () => {
             variant="contained"
           >
             {banDialog.action === 'ban' ? 'Cấm tài khoản' : 'Mở cấm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reports Dialog */}
+      <Dialog 
+        open={reportDialog.open} 
+        onClose={handleCloseReportDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <EventIcon />
+            <Typography variant="h6">
+              Nội dung báo cáo - {reportDialog.user?.fullName}
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {reportDialog.loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : reportDialog.reports.length === 0 ? (
+            <DialogContentText>
+              Người dùng này chưa có báo cáo nào.
+            </DialogContentText>
+          ) : (
+            <TableContainer component={Paper} elevation={0} sx={{ mt: 1 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Sự Kiện</strong></TableCell>
+                    <TableCell><strong>Người Báo Cáo</strong></TableCell>
+                    <TableCell><strong>Nội Dung Báo Cáo</strong></TableCell>
+                    <TableCell><strong>Thời Gian</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reportDialog.reports.map((report) => (
+                    <TableRow key={report.reportId} hover>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <EventIcon fontSize="small" color="primary" />
+                          <Typography variant="body2" fontWeight={500}>
+                            {report.eventTitle}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {report.reporterUsername}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {report.reporterEmail}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            maxWidth: 300,
+                            wordBreak: 'break-word',
+                            borderLeft: '2px solid',
+                            borderColor: 'error.main',
+                            pl: 1
+                          }}
+                        >
+                          {report.reportReason}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="textSecondary">
+                          {formatDate(report.reportedAt)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseReportDialog} color="inherit">
+            Đóng
           </Button>
         </DialogActions>
       </Dialog>

@@ -999,6 +999,24 @@ const EventInfoStep = ({ data, onChange }) => {
           </FormControl>
         </Card>
 
+        {/* AI Content Generator Widget */}
+        {data.title && data.category && (
+          <ContentGeneratorWidget
+            eventTitle={data.title}
+            eventCategory={data.category}
+            eventType={data.category}
+            onGenerated={(field, content) => {
+              if (field === 'description' || field === 'introduction') {
+                handleInputChange('eventIntroduction', content);
+              } else if (field === 'terms') {
+                // Handle terms if needed
+              } else if (field === 'specialExperience') {
+                // Handle special experience if needed
+              }
+            }}
+          />
+        )}
+
         {/* Thông tin sự kiện - Rich Text Editor */}
         <Card sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>

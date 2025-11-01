@@ -38,13 +38,17 @@ apiClient.interceptors.response.use(
       Object.prototype.hasOwnProperty.call(body, 'pageSize')
     );
 
-    const normalizedData = hasPagingKeys ? body : (body?.data ?? body);
+    // Handle both camelCase (data) and PascalCase (Data) from .NET serialization
+    // .NET by default uses PascalCase, but can be configured to camelCase
+    const normalizedData = hasPagingKeys 
+      ? body 
+      : (body?.data ?? body?.Data ?? body);
 
     return {
       success: true,
       data: normalizedData,
-      message: body?.message || 'Success',
-      timestamp: body?.timestamp || new Date().toISOString()
+      message: body?.message || body?.Message || 'Success',
+      timestamp: body?.timestamp || body?.Timestamp || new Date().toISOString()
     };
   },
   (error) => {
@@ -167,8 +171,21 @@ export const authAPI = {
 
 // Events API
 export const eventsAPI = {
-  getAll: async (page = 1, pageSize = 12) => {
-    return api.get(`/Event?page=${page}&pageSize=${pageSize}`);
+  getAll: async (page = 1, pageSize = 12, filters = {}) => {
+    // Build query params
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    
+    // Add filters if provided
+    if (filters.searchTerm) params.append('searchTerm', filters.searchTerm);
+    if (filters.category) params.append('category', filters.category);
+    if (filters.eventMode) params.append('eventMode', filters.eventMode);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    
+    return api.get(`/Event?${params.toString()}`);
   },
   
   getById: async (eventId) => {
@@ -249,6 +266,10 @@ export const ordersAPI = {
   
   getById: async (orderId) => {
     return api.get(`/Order/${orderId}`);
+  },
+  
+  update: async (orderId, orderData) => {
+    return api.put(`/Order/${orderId}`, orderData);
   },
   
   getMyOrders: async () => {
@@ -373,6 +394,71 @@ export const wishlistAPI = {
   
   checkout: async (itemIds) => {
     return api.post('/Wishlist/checkout', { Ids: itemIds });
+  }
+};
+
+// Notification API
+export const notificationAPI = {
+  getNotifications: async (page = 1, pageSize = 10) => {
+    return api.get(`/Notification?page=${page}&pageSize=${pageSize}`);
+  },
+  
+  getNotification: async (notificationId) => {
+    return api.get(`/Notification/${notificationId}`);
+  },
+  
+  markAsRead: async (notificationId) => {
+    return api.put(`/Notification/${notificationId}/read`);
+  },
+  
+  markAllAsRead: async () => {
+    return api.put('/Notification/read-all');
+  },
+  
+  deleteNotification: async (notificationId) => {
+    return api.delete(`/Notification/${notificationId}`);
+  },
+  
+  getStats: async () => {
+    return api.get('/Notification/stats');
+  }
+};
+
+// EventQuestion API
+export const eventQuestionsAPI = {
+  getByEventId: async (eventId) => {
+    return api.get(`/EventQuestion/by-event/${eventId}`);
+  },
+  
+  getById: async (questionId) => {
+    return api.get(`/EventQuestion/${questionId}`);
+  },
+  
+  create: async (data) => {
+    return api.post('/EventQuestion', data);
+  },
+  
+  update: async (questionId, data) => {
+    return api.put(`/EventQuestion/${questionId}`, data);
+  },
+  
+  delete: async (questionId) => {
+    return api.delete(`/EventQuestion/${questionId}`);
+  }
+};
+
+// Payment API
+export const paymentAPI = {
+  createVNPayQR: async (orderId) => {
+    return api.post('/Payment/vnpay/create', { orderId });
+  },
+  
+  getStatus: async (paymentId) => {
+    return api.get(`/Payment/status/${paymentId}`);
+  },
+  
+  cancelPayment: async (paymentId) => {
+    return api.post(`/Payment/${paymentId}/cancel`);
   }
 };
 

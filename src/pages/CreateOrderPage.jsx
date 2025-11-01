@@ -3,6 +3,38 @@
 //Import statements để import các thư viện cần thiết
 import React, {useState, useEffect} from 'react'; 
 import {useParams, useSearchParams, useLocation, useNavigate} from 'react-router-dom'; 
+import { 
+  Container, 
+  Grid, 
+  Card, 
+  CardContent, 
+  Typography, 
+  TextField, 
+  Button, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  InputLabel, 
+  Alert, 
+  CircularProgress, 
+  Box, 
+  Divider, 
+  Chip, 
+  Paper,
+  useTheme,
+  IconButton,
+  InputAdornment,
+  LinearProgress
+} from '@mui/material';
+import {
+  Event as EventIcon,
+  LocationOn as LocationIcon,
+  Description as DescriptionIcon,
+  ConfirmationNumber as TicketIcon,
+  AddCircle as AddIcon,
+  RemoveCircle as RemoveIcon,
+  CheckCircle as CheckIcon
+} from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import VoucherSelector from '../components/common/VoucherSelector';
 import StageViewer from '../components/stage/StageViewer';
@@ -275,42 +307,45 @@ const CreateOrderPage = () => {
             // Hiển thị thành công
             setOrderSuccess(true);
             
-            // 🔧 FIX: Handle different response structures
+            // 🔧 FIX: Handle different response structures (PascalCase and camelCase)
+            // Backend trả về: { message: "...", order: { OrderId: 123, ... } }
+            // apiClient normalize: response.data = { message: "...", order: { OrderId/orderId: 123 } }
             let orderId;
-            if (response.data?.order?.orderId) {
-                orderId = response.data.order.orderId;
-                console.log('Found orderId in response.data.order.orderId:', orderId);
-            } else if (response.data?.orderId) {
-                orderId = response.data.orderId;
-                console.log('Found orderId in response.data.orderId:', orderId);
-            } else if (response.order?.orderId) {
-                orderId = response.order.orderId;
-                console.log('Found orderId in response.order.orderId:', orderId);
-            } else {
+            const order = response.data?.order || response.order || response.data;
+            
+            if (order) {
+                // Check both PascalCase and camelCase
+                orderId = order.OrderId || order.orderId || order.id || order.Id;
+            }
+            
+            if (!orderId) {
                 console.error('Cannot find orderId in response:', response);
-                console.error('Response structure analysis:');
                 console.error('- response.data:', response.data);
                 console.error('- response.data?.order:', response.data?.order);
                 console.error('- response.order:', response.order);
-                setError('Không thể lấy ID đơn hàng từ phản hồi');
+                setError('Không thể lấy ID đơn hàng từ phản hồi. Vui lòng thử lại.');
                 return;
             }
+            
+            console.log('Extracted orderId:', orderId);
             
             
             // 🔧 FIX: Sử dụng React Router thay vì window.location để preserve state
             setTimeout(() => {
                 const selectedTicketForNav = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
+                const orderDataForNav = response.data?.order || response.order || response.data;
+                
                 if (selectedTicketForNav && (selectedTicketForNav.isFree || selectedTicketForNav.price === 0)) {
                     navigate(`/order-confirmation/${orderId}`, {
                         state: {
-                            order: response.data?.order || response.order,
+                            order: orderDataForNav,
                             fromOrderCreation: true
                         }
                     });
                 } else {
                     navigate(`/payment/${orderId}`, {
                         state: {
-                            order: response.data?.order || response.order,
+                            order: orderDataForNav,
                             fromOrderCreation: true,
                             orderData: orderData
                         }
@@ -412,205 +447,460 @@ const CreateOrderPage = () => {
 
     // Debug useEffect để kiểm tra pricing - REMOVED để tránh infinite loop
 
+    const theme = useTheme();
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(amount);
+    };
+
+    const selectedTicket = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
 
     //Return JSX để hiển thị form
     return (
-        <div>
+        <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
             <Header />
-            <div className="create-order-container"> 
-                <div className="create-order-card">
-                    {/* Hiển thị loading state */}
-                    {loading && (
-                        <div className="alert alert-info">
-                            <div className="spinner-border spinner-border-sm me-2" role="status">
-                                <span className="visually-hidden">Loading...</span>
-                            </div>
+            
+            {/* Loading State */}
+            {loading && (
+                <Container maxWidth="lg" sx={{ py: 4 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <CircularProgress size={60} />
+                        <Typography variant="h6" color="text.secondary">
                             Đang tải thông tin sự kiện...
-                        </div>
-                    )}
+                        </Typography>
+                    </Box>
+                </Container>
+            )}
 
-                    {/* Hiển thị error message */}
-                    {error && (
-                        <div className="alert alert-danger">
-                            <div>
-                                <strong>Lỗi:</strong> {error}
-                            </div>
-                            {error.includes('đăng nhập') ? (
-                                <button 
-                                    type="button" 
-                                    className="btn btn-primary btn-sm ms-2"
+            {/* Error State */}
+            {error && !loading && (
+                <Container maxWidth="lg" sx={{ py: 4 }}>
+                    <Alert 
+                        severity="error" 
+                        action={
+                            error.includes('đăng nhập') ? (
+                                <Button 
+                                    size="small" 
                                     onClick={() => navigate('/login')}
+                                    variant="contained"
                                 >
                                     Đăng nhập
-                                </button>
+                                </Button>
                             ) : (
-                                <button 
-                                    type="button" 
-                                    className="btn btn-outline-danger btn-sm ms-2"
+                                <Button 
+                                    size="small" 
                                     onClick={() => window.location.reload()}
+                                    variant="outlined"
                                 >
                                     Thử lại
-                                </button>
-                            )}
-                        </div>
-                    )}
+                                </Button>
+                            )
+                        }
+                    >
+                        {error}
+                    </Alert>
+                </Container>
+            )}
 
-                    {/* Hiển thị success message */}
-                    {orderSuccess && (
-                        <div className="alert alert-success">
-                            <h4>🎉 Tạo đơn hàng thành công!</h4>
-                            <p>Đơn hàng của bạn đã được tạo thành công. Đang chuyển hướng...</p>
-                        </div>
-                    )}
+            {/* Success State */}
+            {orderSuccess && !loading && !error && (
+                <Container maxWidth="lg" sx={{ py: 4 }}>
+                    <Alert 
+                        severity="success" 
+                        icon={<CheckIcon />}
+                        sx={{ fontSize: '1.1rem' }}
+                    >
+                        <Typography variant="h5" gutterBottom>
+                            🎉 Tạo đơn hàng thành công!
+                        </Typography>
+                        <Typography>
+                            Đơn hàng của bạn đã được tạo thành công. Đang chuyển hướng...
+                        </Typography>
+                    </Alert>
+                </Container>
+            )}
 
-                    {/* Hiển thị form khi không có lỗi và không loading */}
-                    {!loading && !error && !orderSuccess && (
-                        <>
-                            <h1 className="create-order-title">Create Order - {event?.title || event?.Title}</h1>
-                            
-                            <div className="event-info">
-                                <h3>📅 Thông tin sự kiện</h3>
-                                <p><strong>Sự kiện:</strong> {event?.title || event?.Title}</p>
-                                <p><strong>Địa điểm:</strong> {event?.location || event?.Location}</p>
-                                <p><strong>Mô tả:</strong> {event?.description || 'Không có mô tả'}</p>
-                            </div>
+            {/* Main Content */}
+            {!loading && !error && !orderSuccess && event && (
+                <Container maxWidth="xl" sx={{ py: 4, px: { xs: 2, md: 3 } }}>
+                    <Grid container spacing={4}>
+                        {/* Left Column - Event Info */}
+                        <Grid item xs={12} md={5}>
+                            {/* Event Header */}
+                            <Card elevation={0} sx={{ 
+                                mb: 3, 
+                                border: `1px solid ${theme.palette.divider}`,
+                                borderRadius: 3
+                            }}>
+                                <CardContent sx={{ p: 3 }}>
+                                    <Typography 
+                                        variant="h4" 
+                                        fontWeight={800} 
+                                        gutterBottom
+                                        sx={{ mb: 2 }}
+                                    >
+                                        {event?.title || event?.Title}
+                                    </Typography>
+                                    <Divider sx={{ my: 2.5 }} />
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'start', gap: 1.5 }}>
+                                            <LocationIcon color="primary" sx={{ mt: 0.5, fontSize: '1.5rem' }} />
+                                            <Box>
+                                                <Typography 
+                                                    variant="body2" 
+                                                    color="text.secondary" 
+                                                    fontWeight={700}
+                                                    sx={{ mb: 0.5 }}
+                                                >
+                                                    Địa điểm
+                                                </Typography>
+                                                <Typography 
+                                                    variant="body1" 
+                                                    sx={{ fontWeight: 500 }}
+                                                >
+                                                    {event?.location || event?.Location}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                        
+                                        {event?.description && (
+                                            <Box sx={{ display: 'flex', alignItems: 'start', gap: 1.5 }}>
+                                                <DescriptionIcon color="primary" sx={{ mt: 0.5, fontSize: '1.5rem' }} />
+                                                <Box>
+                                                    <Typography 
+                                                        variant="body2" 
+                                                        color="text.secondary" 
+                                                        fontWeight={700}
+                                                        sx={{ mb: 0.5 }}
+                                                    >
+                                                        Mô tả
+                                                    </Typography>
+                                                    <Typography 
+                                                        variant="body1"
+                                                        sx={{ fontWeight: 400 }}
+                                                    >
+                                                        {event?.description}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </CardContent>
+                            </Card>
 
                             {/* Virtual Stage Viewer */}
                             {venueLayout && venueLayout.hasVirtualStage && (
-                                <div className="venue-layout-container" style={{ marginBottom: '20px' }}>
-                                    <h3>🗺️ Chọn Khu Vực</h3>
-                                    <StageViewer 
-                                        layout={venueLayout}
-                                        ticketTypes={ticketTypes}
-                                        onAreaClick={handleAreaSelection}
-                                    />
-                                    {selectedArea && (
-                                        <div className="alert alert-success" style={{ marginTop: '10px' }}>
-                                            <p><strong>Khu vực đã chọn:</strong> {selectedArea.name}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            <form className="order-form">
-                                {/* Hiển thị thông tin vé đã chọn nếu có ticketType từ URL */}
-                                {selectedTicketType && (
-                                    <div className="selected-ticket-info">
-                                        <h3>🎫 Vé đã chọn</h3>
-                                        {(() => {
-                                            const selectedTicket = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
-                                            return selectedTicket ? (
-                                                <div className="ticket-info-card">
-                                                    <h4>{selectedTicket.typeName}</h4>
-                                                    <p><strong>Giá:</strong> {selectedTicket.price?.toLocaleString()} VND</p>
-                                                    <p><strong>Số lượng còn lại:</strong> {selectedTicket.availableQuantity}</p>
-                                                    {selectedTicket.minOrder && (
-                                                        <p><strong>Tối thiểu:</strong> {selectedTicket.minOrder} vé</p>
-                                                    )}
-                                                    {selectedTicket.maxOrder && (
-                                                        <p><strong>Tối đa:</strong> {selectedTicket.maxOrder} vé</p>
-                                                    )}
-                                                </div>
-                                            ) : null;
-                                        })()}
-                                    </div>
-                                )}
-
-                                <div className="form-group">
-                                    <label>🎫 Loại vé</label>
-                                    {selectedTicketType ? (
-                                        <div className="selected-ticket-display">
-                                            <p>Đã chọn: {ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType)?.typeName}</p>
-                                            <button 
-                                                type="button" 
-                                                className="btn btn-secondary btn-sm"
-                                                onClick={() => setSelectedTicketType('')}
+                                <Card elevation={0} sx={{ 
+                                    border: `1px solid ${theme.palette.divider}`,
+                                    borderRadius: 3
+                                }}>
+                                    <CardContent sx={{ p: 3 }}>
+                                        <Typography 
+                                            variant="h6" 
+                                            fontWeight={700} 
+                                            gutterBottom 
+                                            sx={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: 1,
+                                                mb: 2 
+                                            }}
+                                        >
+                                            🗺️ Chọn Khu Vực
+                                        </Typography>
+                                        <StageViewer 
+                                            layout={venueLayout}
+                                            ticketTypes={ticketTypes}
+                                            onAreaClick={handleAreaSelection}
+                                        />
+                                        {selectedArea && (
+                                            <Alert 
+                                                severity="success" 
+                                                sx={{ mt: 2 }}
                                             >
-                                                Chọn lại
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <select 
-                                            className="form-control"
+                                                <Typography fontWeight={600}>
+                                                    <strong>Khu vực đã chọn:</strong> {selectedArea.name}
+                                                </Typography>
+                                            </Alert>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </Grid>
+
+                        {/* Right Column - Order Form */}
+                        <Grid item xs={12} md={7}>
+                            <Paper 
+                                elevation={0} 
+                                sx={{ 
+                                    p: 4, 
+                                    border: `1px solid ${theme.palette.divider}`,
+                                    borderRadius: 3,
+                                    position: { xs: 'static', md: 'sticky' },
+                                    top: { md: 80 },
+                                    backgroundColor: theme.palette.mode === 'dark'
+                                        ? 'rgba(255, 255, 255, 0.02)'
+                                        : 'rgba(0, 0, 0, 0.01)'
+                                }}
+                            >
+                                <Typography 
+                                    variant="h5" 
+                                    fontWeight={800} 
+                                    gutterBottom 
+                                    sx={{ mb: 3.5 }}
+                                >
+                                    Đặt vé
+                                </Typography>
+
+                                <form onSubmit={handleCreateOrder}>
+                                    {/* Ticket Type Selection */}
+                                    <FormControl fullWidth sx={{ mb: 3.5 }}>
+                                        <InputLabel sx={{ fontWeight: 600 }}>Loại vé</InputLabel>
+                                        <Select
                                             value={selectedTicketType}
                                             onChange={(e) => setSelectedTicketType(e.target.value)}
+                                            label="Loại vé"
+                                            startAdornment={
+                                                <InputAdornment position="start">
+                                                    <TicketIcon color="primary" />
+                                                </InputAdornment>
+                                            }
+                                            sx={{
+                                                borderRadius: 2,
+                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                    borderWidth: '1.5px'
+                                                }
+                                            }}
                                         >
-                                            <option value="">Chọn loại vé</option>
+                                            <MenuItem value="">
+                                                <em>Chọn loại vé</em>
+                                            </MenuItem>
                                             {ticketTypes.map(ticketType => (
-                                            <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>
-                                                {ticketType.typeName} - {ticketType.price?.toLocaleString()} VND
-                                                </option>
+                                                <MenuItem key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', pr: 2 }}>
+                                                        <Typography fontWeight={500}>{ticketType.typeName}</Typography>
+                                                        <Chip 
+                                                            label={formatCurrency(ticketType.price)} 
+                                                            size="small" 
+                                                            color="primary" 
+                                                            variant="outlined"
+                                                            sx={{ fontWeight: 600 }}
+                                                        />
+                                                    </Box>
+                                                </MenuItem>
                                             ))}
-                                        </select>
+                                        </Select>
+                                    </FormControl>
+
+                                    {/* Selected Ticket Info */}
+                                    {selectedTicket && (
+                                        <Alert 
+                                            icon={<CheckIcon />} 
+                                            severity="info" 
+                                            sx={{ 
+                                                mb: 3.5,
+                                                borderRadius: 2,
+                                                border: `1px solid ${theme.palette.info.light}`
+                                            }}
+                                            action={
+                                                <Button 
+                                                    size="small" 
+                                                    onClick={() => setSelectedTicketType('')}
+                                                    sx={{ fontWeight: 600 }}
+                                                >
+                                                    Đổi
+                                                </Button>
+                                            }
+                                        >
+                                            <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>
+                                                {selectedTicket.typeName}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                                Còn lại: {selectedTicket.availableQuantity} vé
+                                                {selectedTicket.minOrder && ` • Tối thiểu: ${selectedTicket.minOrder} vé`}
+                                                {selectedTicket.maxOrder && ` • Tối đa: ${selectedTicket.maxOrder} vé`}
+                                            </Typography>
+                                        </Alert>
                                     )}
-                                </div>
 
-                                <div className="form-group">
-                                    <label>🔢 Số lượng</label>
-                                    <input type="number"
-                                           className="form-control"
-                                           value={quantity}
-                                           onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                                           min="1" 
-                                           placeholder="Nhập số lượng vé"/>
-                                </div>
-
-                                {/* Voucher Selector */}
-                                {selectedTicketType && quantity > 0 && pricing && (
-                                    <VoucherSelector
-                                        originalAmount={pricing.originalAmount}
-                                        onVoucherApplied={handleVoucherApplied}
-                                        appliedVoucher={appliedVoucher}
-                                        onRemoveVoucher={handleRemoveVoucher}
-                                    />
-                                )}
-
-                                {/* Hiển thị tổng tiền */}
-                                {selectedTicketType && quantity > 0 && pricing && (
-                                    <div className="form-group">
-                                        <div className="alert alert-info">
-                                            <h5>💰 Tổng tiền:</h5>
-                                            <p><strong>Loại vé:</strong> {pricing.ticketType.typeName}</p>
-                                            <p><strong>Đơn giá:</strong> {pricing.ticketType.price?.toLocaleString()} VND</p>
-                                            <p><strong>Số lượng:</strong> {quantity}</p>
-                                            
-                                            {appliedVoucher ? (
-                                                <>
-                                                    <p><strong>Giá gốc:</strong> <span className="text-decoration-line-through">{pricing.originalAmount.toLocaleString()} VND</span></p>
-                                                    <p><strong>Giảm giá:</strong> <span className="text-danger">-{pricing.discountAmount.toLocaleString()} VND</span></p>
-                                                    <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{pricing.finalAmount.toLocaleString()} VND</span></p>
-                                                    <p><strong>Voucher:</strong> <span className="text-primary">{appliedVoucher.voucherCode} (-{appliedVoucher.discountPercentage}%)</span></p>
-                                                </>
-                                            ) : (
-                                                <p><strong>Tổng cộng:</strong> <span className="text-success fw-bold">{pricing.originalAmount.toLocaleString()} VND</span></p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <button 
-                                    type="submit" 
-                                    className="btn-create-order" 
-                                    onClick={handleCreateOrder}
-                                    disabled={creatingOrder}
-                                >
-                                    {creatingOrder ? (
+                                    {/* Quantity Selection */}
+                                    {selectedTicketType && (
                                         <>
-                                            <div className="spinner-border spinner-border-sm me-2" role="status">
-                                                <span className="visually-hidden">Loading...</span>
-                                            </div>
-                                            Đang tạo đơn hàng...
+                                            <Typography 
+                                                variant="body2" 
+                                                fontWeight={700} 
+                                                gutterBottom
+                                                sx={{ mb: 2 }}
+                                            >
+                                                Số lượng
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 3.5 }}>
+                                                <IconButton
+                                                    disabled={quantity <= 1 || (selectedTicket?.minOrder && quantity <= selectedTicket.minOrder)}
+                                                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                                    color="primary"
+                                                    sx={{ 
+                                                        width: 44,
+                                                        height: 44,
+                                                        '&:hover': {
+                                                            transform: 'scale(1.1)'
+                                                        },
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                >
+                                                    <RemoveIcon />
+                                                </IconButton>
+                                                <TextField
+                                                    type="number"
+                                                    value={quantity}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 1;
+                                                        const max = Math.min(
+                                                            selectedTicket?.availableQuantity || 999,
+                                                            selectedTicket?.maxOrder || 999
+                                                        );
+                                                        setQuantity(Math.min(max, Math.max(1, val)));
+                                                    }}
+                                                    inputProps={{ 
+                                                        min: selectedTicket?.minOrder || 1, 
+                                                        max: Math.min(
+                                                            selectedTicket?.availableQuantity || 999,
+                                                            selectedTicket?.maxOrder || 999
+                                                        )
+                                                    }}
+                                                    sx={{ 
+                                                        width: 100,
+                                                        '& .MuiOutlinedInput-root': {
+                                                            borderRadius: 2,
+                                                            fontWeight: 600
+                                                        }
+                                                    }}
+                                                    size="small"
+                                                />
+                                                <IconButton
+                                                    disabled={
+                                                        quantity >= (selectedTicket?.availableQuantity || 0) ||
+                                                        (selectedTicket?.maxOrder && quantity >= selectedTicket.maxOrder)
+                                                    }
+                                                    onClick={() => setQuantity(q => q + 1)}
+                                                    color="primary"
+                                                    sx={{ 
+                                                        width: 44,
+                                                        height: 44,
+                                                        '&:hover': {
+                                                            transform: 'scale(1.1)'
+                                                        },
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                >
+                                                    <AddIcon />
+                                                </IconButton>
+                                            </Box>
                                         </>
-                                    ) : (
-                                        '🚀 Tạo đơn hàng'
                                     )}
-                                </button>
-                            </form>
-                        </>
-                    )}
-                </div>
-            </div>
-        </div>
+
+                                    {/* Voucher Selector */}
+                                    {selectedTicketType && quantity > 0 && pricing && (
+                                        <Box sx={{ mb: 3.5 }}>
+                                            <VoucherSelector
+                                                originalAmount={pricing.originalAmount}
+                                                onVoucherApplied={handleVoucherApplied}
+                                                appliedVoucher={appliedVoucher}
+                                                onRemoveVoucher={handleRemoveVoucher}
+                                            />
+                                        </Box>
+                                    )}
+
+                                    {/* Price Summary */}
+                                    {selectedTicketType && quantity > 0 && pricing && (
+                                        <Paper 
+                                            variant="outlined" 
+                                            sx={{ 
+                                                p: 3.5, 
+                                                mb: 3.5,
+                                                borderRadius: 2.5,
+                                                backgroundColor: theme.palette.mode === 'dark' 
+                                                    ? 'rgba(61, 190, 41, 0.08)' 
+                                                    : 'rgba(61, 190, 41, 0.04)',
+                                                border: `2px solid ${theme.palette.primary.main}30`
+                                            }}
+                                        >
+                                            <Typography variant="h6" fontWeight={800} gutterBottom sx={{ mb: 1.5 }}>
+                                                Tổng tiền
+                                            </Typography>
+                                            <Divider sx={{ mb: 2.5 }} />
+                                            
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                                                <Typography color="text.secondary" fontWeight={500}>
+                                                    {pricing.ticketType.typeName} × {quantity}
+                                                </Typography>
+                                                <Typography fontWeight={600}>{formatCurrency(pricing.ticketType.price)}</Typography>
+                                            </Box>
+
+                                            {appliedVoucher && (
+                                                <>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                                                        <Typography color="text.secondary" fontWeight={500}>
+                                                            Giảm giá ({appliedVoucher.discountPercentage}%)
+                                                        </Typography>
+                                                        <Typography color="error" fontWeight={600}>
+                                                            -{formatCurrency(pricing.discountAmount)}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                                                        <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                                                            Voucher: {appliedVoucher.voucherCode}
+                                                        </Typography>
+                                                    </Box>
+                                                </>
+                                            )}
+
+                                            <Divider sx={{ my: 2.5 }} />
+                                            
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <Typography variant="h6" fontWeight={800}>
+                                                    Tổng cộng
+                                                </Typography>
+                                                <Typography variant="h5" fontWeight={800} color="primary.main">
+                                                    {formatCurrency(pricing.finalAmount)}
+                                                </Typography>
+                                            </Box>
+                                        </Paper>
+                                    )}
+
+                                    {/* Submit Button */}
+                                    <Button
+                                        type="submit"
+                                        fullWidth
+                                        variant="contained"
+                                        size="large"
+                                        disabled={creatingOrder || !selectedTicketType || quantity <= 0}
+                                        sx={{
+                                            py: 2,
+                                            fontSize: '1.15rem',
+                                            fontWeight: 800,
+                                            borderRadius: 2.5,
+                                            boxShadow: 'none',
+                                            textTransform: 'none',
+                                            '&:hover': {
+                                                boxShadow: `0 8px 24px rgba(61, 190, 41, 0.35)`,
+                                                transform: 'translateY(-2px)'
+                                            },
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        startIcon={creatingOrder ? <CircularProgress size={20} color="inherit" /> : null}
+                                    >
+                                        {creatingOrder ? 'Đang tạo đơn hàng...' : 'Tạo đơn hàng'}
+                                    </Button>
+                                </form>
+                            </Paper>
+                        </Grid>
+                    </Grid>
+                </Container>
+            )}
+        </Box>
     );
 };
 export default CreateOrderPage;

@@ -101,6 +101,9 @@ const HomePage = () => {
 
   
   
+  // Tính tổng số trang
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  
   // Search and Filter states
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,6 +125,12 @@ const HomePage = () => {
   useMediaQuery(theme.breakpoints.down('md'));
 
 
+
+  // Debounce search term để giảm số lượng API calls
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // Trạng thái có đang dùng bộ lọc (đặt sau khi khai báo state filter)
+  const filtersActive = debouncedSearchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
 
   // Refs for horizontal scroll containers
 
@@ -285,6 +294,25 @@ const HomePage = () => {
 
   
   
+  // Fetch all categories when component mounts (without filters)
+  useEffect(() => {
+    const fetchAllCategories = async () => {
+      try {
+        // Fetch first page of all events to get unique categories
+        const response = await eventsAPI.getAll(1, 100); // Get first 100 events to get all categories
+        const payload = response.data;
+        if (payload && Array.isArray(payload.data)) {
+          const cats = [...new Set(payload.data.map(event => event.category).filter(Boolean))];
+          setAllCategories(cats);
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    
+    fetchAllCategories();
+  }, []); // Only run once on mount
+
   // FPT Campuses list
 
   const campuses = [

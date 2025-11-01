@@ -22,13 +22,19 @@ import EventDetailsPage from './pages/EventDetailsPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import CreateOrderPage from './pages/CreateOrderPage';
+import TicketSelectionPage from './pages/TicketSelectionPage';
+import OrderInformationPage from './pages/OrderInformationPage';
+import RecipientInformationPage from './pages/RecipientInformationPage';
 import PaymentPage from './pages/PaymentPage';
+import VNPayPaymentPage from './pages/VNPayPaymentPage';
+import VNPayReturnPage from './pages/VNPayReturnPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
 import MyEventsPage from './pages/MyEventsPage';
 import CreateEventPage from './pages/CreateEventPage';
 import WishlistPage from './pages/WishlistPage';
+import NotificationsPage from './pages/NotificationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 
 function AppRoutes() {
@@ -65,16 +71,49 @@ function AppRoutes() {
       <Route path="/event/:id" element={<EventDetailsPage />} />
       <Route path="/wishlist" element={<WishlistPage />} />
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
+      <Route path="/ticket-selection/:eventId" element={<TicketSelectionPage />} />
+      
+      {/* New Booking Flow Routes */}
+      <Route
+        path="/order-information/:orderId"
+        element={
+          <ProtectedRoute>
+            <OrderInformationPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/recipient-info/:orderId"
+        element={
+          <ProtectedRoute>
+            <RecipientInformationPage />
+          </ProtectedRoute>
+        }
+      />
       
       {/* Payment Routes */}
-                <Route
-                    path="/payment/:orderId"
-                    element={
-                        <ProtectedRoute>
-                            <PaymentPage />
-                        </ProtectedRoute>
-                    }
-                />
+      <Route
+        path="/payment/:orderId"
+        element={
+          <ProtectedRoute>
+            <PaymentPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/payment/vnpay/:orderId"
+        element={
+          <ProtectedRoute>
+            <VNPayPaymentPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* VNPay Return Page - Public route */}
+      <Route path="/payment/vnpay/return" element={<VNPayReturnPage />} />
+      
       <Route 
         path="/order-confirmation/:orderId" 
         element={
@@ -130,6 +169,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CreateEventPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute>
+            <NotificationsPage />
           </ProtectedRoute>
         } 
       />
