@@ -42,6 +42,7 @@ import { walletAPI, eventsAPI } from '../../services/apiClient';
 import WishlistIcon from '../common/WishlistIcon';
 import NotificationIcon from '../common/NotificationIcon';
 import ThemeToggle from '../common/ThemeToggle';
+import SearchAutocomplete from '../common/SearchAutocomplete';
 
 const Header = ({ searchTerm, onSearchChange }) => {
   const { user, logout } = useAuth();
@@ -302,17 +303,15 @@ const Header = ({ searchTerm, onSearchChange }) => {
             display: 'flex', 
             alignItems: 'center',
             mx: 2,
-            minWidth: 280,
-            maxWidth: 400,
-            flexGrow: 0
+            minWidth: 600,
+            maxWidth: 1000,
+            flex: '1 1 auto'
           }}>
-            <TextField
-              fullWidth
-              placeholder="Tìm kiếm sự kiện..."
-              value={searchTerm || ''}
-              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-              size="small"
+            <SearchAutocomplete
+              searchTerm={searchTerm}
+              onSearchChange={onSearchChange}
               sx={{
+                width: '100%',
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
                   backgroundColor: theme.palette.mode === 'dark'
@@ -344,25 +343,6 @@ const Header = ({ searchTerm, onSearchChange }) => {
                     opacity: 0.7,
                   }
                 }
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary', fontSize: '1.2rem' }} />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm && (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => onSearchChange && onSearchChange('')}
-                      edge="end"
-                      size="small"
-                      sx={{ color: 'text.secondary', ml: 0.5 }}
-                    >
-                      <Clear fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                )
               }}
             />
           </Box>
@@ -548,56 +528,12 @@ const Header = ({ searchTerm, onSearchChange }) => {
           {isMobile && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {/* Mobile Search */}
-              <TextField
-                placeholder="Tìm kiếm..."
-                value={searchTerm || ''}
-                onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-                size="small"
-                sx={{
-                  width: 120,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                      border: '1px solid rgba(255, 255, 255, 0.3)'
-                    },
-                    '&.Mui-focused': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                      border: '2px solid rgba(255, 255, 255, 0.5)'
-                    }
-                  },
-                  '& .MuiInputBase-input': {
-                    color: 'white',
-                    fontSize: '0.875rem',
-                    '&::placeholder': {
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      opacity: 1
-                    }
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchTerm && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => onSearchChange && onSearchChange('')}
-                        edge="end"
-                        size="small"
-                        sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
-                      >
-                        <Clear sx={{ fontSize: '0.875rem' }} />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
+              <Box sx={{ width: 120 }}>
+                <SearchAutocomplete
+                  searchTerm={searchTerm}
+                  onSearchChange={onSearchChange}
+                />
+              </Box>
               
               {/* Mobile Menu Button */}
               <IconButton
