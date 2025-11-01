@@ -291,28 +291,6 @@ const Header = ({ searchTerm, onSearchChange }) => {
                     )}
                   </Menu>
                 </Box>
-                <Button 
-                  component={Link} 
-                  to="/wishlist" 
-                  color="inherit"
-                  sx={{ 
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    px: 2.5,
-                    py: 1,
-                    color: 'text.primary',
-                    fontSize: '0.95rem',
-                    borderRadius: 1.5,
-                    '&:hover': {
-                      backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(255, 122, 0, 0.12)' 
-                        : 'rgba(255, 122, 0, 0.08)',
-                      color: 'primary.main',
-                    }
-                  }}
-                >
-                  Wishlist
-                </Button>
               </>
             )}
           </Box>
