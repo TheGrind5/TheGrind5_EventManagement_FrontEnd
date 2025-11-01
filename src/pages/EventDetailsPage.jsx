@@ -30,8 +30,10 @@ import {
 import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
 import StageViewer from '../components/stage/StageViewer';
+import AIChatbot from '../components/ai/AIChatbot';
 import { eventsAPI, ticketsAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
+import { decodeText } from '../utils/textDecoder';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
@@ -779,6 +781,9 @@ const EventDetailsPage = () => {
           </CardContent>
         </Card>
       </Container>
+
+      {/* AI Chatbot */}
+      <AIChatbot eventId={id} />
     </Box>
   );
 };

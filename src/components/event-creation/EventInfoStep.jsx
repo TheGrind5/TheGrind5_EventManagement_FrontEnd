@@ -23,6 +23,7 @@ import { CloudUpload, Image, Folder } from '@mui/icons-material';
 import { eventsAPI } from '../../services/apiClient';
 import DebouncedTextField from '../common/DebouncedTextField';
 import ImageDisplayLocationsModal from './ImageDisplayLocationsModal';
+import ContentGeneratorWidget from '../ai/ContentGeneratorWidget';
 
 const EventInfoStep = ({ data, onChange }) => {
   const theme = useTheme();
@@ -993,6 +994,24 @@ const EventInfoStep = ({ data, onChange }) => {
             </Select>
           </FormControl>
         </Card>
+
+        {/* AI Content Generator Widget */}
+        {data.title && data.category && (
+          <ContentGeneratorWidget
+            eventTitle={data.title}
+            eventCategory={data.category}
+            eventType={data.category}
+            onGenerated={(field, content) => {
+              if (field === 'description' || field === 'introduction') {
+                handleInputChange('eventIntroduction', content);
+              } else if (field === 'terms') {
+                // Handle terms if needed
+              } else if (field === 'specialExperience') {
+                // Handle special experience if needed
+              }
+            }}
+          />
+        )}
 
         {/* Thông tin sự kiện - Rich Text Editor */}
         <Card sx={{ p: 3 }}>
