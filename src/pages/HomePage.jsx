@@ -153,7 +153,22 @@ const HomePage = () => {
 
         setLoading(true);
 
-        const response = await eventsAPI.getAll(page, pageSize);
+        // Build filters object for backend search
+        const filters = {};
+        
+        if (debouncedSearchTerm && debouncedSearchTerm.trim() !== '') {
+          filters.searchTerm = debouncedSearchTerm;
+        }
+        
+        if (categoryFilter && categoryFilter !== 'all') {
+          filters.category = categoryFilter;
+        }
+        
+        if (campusFilter && campusFilter !== 'all') {
+          filters.city = campusFilter; // Map campusFilter to city parameter
+        }
+
+        const response = await eventsAPI.getAll(page, pageSize, filters);
 
         // response.data có thể là PagedResponse hoặc mảng
 
@@ -197,7 +212,7 @@ const HomePage = () => {
 
     fetchEvents();
 
-  }, [page, pageSize]);
+  }, [page, pageSize, debouncedSearchTerm, categoryFilter, campusFilter]);
 
 
 

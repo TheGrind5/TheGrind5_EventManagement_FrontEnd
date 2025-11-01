@@ -184,6 +184,8 @@ export const eventsAPI = {
     if (filters.status) params.append('status', filters.status);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.location) params.append('location', filters.location);
+    if (filters.city) params.append('city', filters.city);
     
     return api.get(`/Event?${params.toString()}`);
   },
