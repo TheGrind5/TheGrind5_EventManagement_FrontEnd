@@ -47,11 +47,11 @@ body {
   --color-primary-dark: #E66A00;
   --color-primary-glow: rgba(255, 122, 0, 0.5);
   
-  /* Secondary Colors - Deep Green */
-  --color-secondary: #003820;
-  --color-secondary-light: #004F34;
-  --color-secondary-dark: #002D1A;
-  --color-secondary-glow: rgba(0, 56, 32, 0.4);
+  /* Secondary Colors - Dark Navy (đổi từ green sang xanh đen) */
+  --color-secondary: #0A1128;
+  --color-secondary-light: #001F3F;
+  --color-secondary-dark: #050911;
+  --color-secondary-glow: rgba(10, 17, 40, 0.4);
   
   /* Alternative Secondary - Dark Navy */
   --color-navy: #0A1128;
@@ -83,7 +83,7 @@ body {
   /* Gradients */
   --gradient-orange: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
   --gradient-orange-hover: linear-gradient(135deg, #FF8A00 0%, #FF9A20 100%);
-  --gradient-green: linear-gradient(135deg, #003820 0%, #004F34 100%);
+  --gradient-green: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
   --gradient-dark: linear-gradient(135deg, #0D0D0D 0%, #121212 100%);
   --gradient-glow-orange: radial-gradient(circle at center, rgba(255, 122, 0, 0.15) 0%, transparent 70%);
   
@@ -110,7 +110,7 @@ body {
   
   --glow-orange: 0 0 10px rgba(255, 122, 0, 0.5), 0 0 20px rgba(255, 122, 0, 0.3);
   --glow-orange-lg: 0 0 20px rgba(255, 122, 0, 0.6), 0 0 40px rgba(255, 122, 0, 0.4);
-  --glow-green: 0 0 10px rgba(0, 56, 32, 0.5), 0 0 20px rgba(0, 56, 32, 0.3);
+  --glow-green: 0 0 10px rgba(10, 17, 40, 0.5), 0 0 20px rgba(10, 17, 40, 0.3);
   --glow-teal: 0 0 10px rgba(0, 255, 200, 0.4), 0 0 20px rgba(0, 255, 200, 0.2);
   
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -634,9 +634,9 @@ body {
 }
 
 .alert-success {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #10B981;
+  background: rgba(255, 122, 0, 0.1);
+  border-color: rgba(255, 122, 0, 0.3);
+  color: #FF7A00;
 }
 
 /* Responsive */
@@ -672,4 +672,70 @@ body {
   .auth-form {
     gap: 20px;
   }
+}
+
+/* ===== SWIPER NAVIGATION STYLES (Dark/Light Mode Sync) ===== */
+/* Default dark navigation buttons */
+.swiper-button-next,
+.swiper-button-prev {
+  color: rgba(255, 255, 255, 0.7) !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(8px);
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  transition: all 0.3s ease !important;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  background: rgba(255, 122, 0, 0.3) !important;
+  color: white !important;
+  transform: scale(1.1);
+}
+
+.swiper-button-next:after,
+.swiper-button-prev:after {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.swiper-button-next.swiper-button-disabled,
+.swiper-button-prev.swiper-button-disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+/* Light theme navigation buttons */
+.light-theme .swiper-button-next,
+.light-theme .swiper-button-prev {
+  color: rgba(0, 0, 0, 0.7) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(8px);
+}
+
+.light-theme .swiper-button-next:hover,
+.light-theme .swiper-button-prev:hover {
+  background: rgba(255, 122, 0, 0.2) !important;
+  color: #FF7A00 !important;
+}
+
+/* Swiper pagination bullets */
+.swiper-pagination-bullet {
+  background: rgba(255, 255, 255, 0.4) !important;
+  opacity: 1 !important;
+  transition: all 0.3s ease !important;
+}
+
+.swiper-pagination-bullet-active {
+  background: var(--color-primary, #FF7A00) !important;
+  transform: scale(1.2);
+}
+
+.light-theme .swiper-pagination-bullet {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+.light-theme .swiper-pagination-bullet-active {
+  background: var(--color-primary, #FF7A00) !important;
 }

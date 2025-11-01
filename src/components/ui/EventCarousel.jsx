@@ -50,7 +50,7 @@ const EventCarousel = ({
       case 'New':
         return { bg: 'bg-blue-500', text: 'text-white' };
       case 'Free':
-        return { bg: 'bg-green-500', text: 'text-white' };
+        return { bg: 'bg-orange-500', text: 'text-white' };  // Đổi từ green sang orange
       case 'Sắp diễn ra':
         return { bg: 'bg-orange-500', text: 'text-white' };
       default:
@@ -228,27 +228,25 @@ const EventCarousel = ({
                       </span>
                     </div>
 
-                    {/* Price Badge - Bottom Right với hover state rõ ràng */}
-                    <div className="absolute bottom-3 right-3 z-10">
-                      <span 
-                        className={`px-3 py-1.5 text-white rounded-lg text-sm font-bold shadow-lg transition-all duration-200 cursor-default ${
-                          event.price === 0 
-                            ? 'bg-green-500 hover:bg-green-600 active:bg-green-700' 
-                            : 'bg-orange-500 hover:bg-orange-600 active:bg-orange-700'
-                        }`}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Giá vé: ${formatPrice(event.price)}`}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                      >
-                        {formatPrice(event.price)}
-                      </span>
-                    </div>
+                    {/* Price Badge - Bottom Right - Only show if price is 0 (all free) */}
+                    {event.price === 0 && (
+                      <div className="absolute bottom-3 right-3 z-10">
+                        <span 
+                          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white rounded-lg text-sm font-bold shadow-lg transition-all duration-200 cursor-default"
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Giá vé: Miễn phí"
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                          }}
+                        >
+                          Miễn phí
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Content - Cải thiện padding và spacing */}

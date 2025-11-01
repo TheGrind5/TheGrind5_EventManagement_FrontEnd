@@ -20,7 +20,10 @@ import {
   Avatar,
   IconButton,
   Skeleton,
-  Pagination
+  Pagination,
+  Tooltip,
+  Fade,
+  Zoom
 } from '@mui/material';
 import {
   Event as EventIcon,
@@ -35,7 +38,8 @@ import {
   TrendingUp,
   Visibility,
   Star,
-  Add
+  Add,
+  School as CampusIcon
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import { useAuth } from '../contexts/AuthContext';
@@ -178,6 +182,31 @@ const DashboardPage = () => {
       style: 'currency',
       currency: 'VND'
     }).format(amount);
+  };
+
+  // Format short title for FPT Play style cards
+  const getShortTitle = (fullTitle) => {
+    if (!fullTitle) return '';
+    
+    // Remove common prefixes that make titles long
+    const prefixes = ['Mơ Thay Em - ', 'Đêm Nhạc Thiện Nguyện Vì ', 'BẢN HÒA CA – ', 'Cùng Đồng Bào '];
+    let shortTitle = fullTitle;
+    
+    for (const prefix of prefixes) {
+      if (fullTitle.startsWith(prefix)) {
+        shortTitle = fullTitle.replace(prefix, '');
+        break;
+      }
+    }
+    
+    // If still too long, take first meaningful part
+    const parts = shortTitle.split('–').map(p => p.trim());
+    if (parts[0].length <= 30) {
+      return parts[0];
+    }
+    
+    // Truncate if still too long
+    return shortTitle.length > 30 ? shortTitle.substring(0, 27) + '...' : shortTitle;
   };
 
   // Calculate total pages for pagination
@@ -623,9 +652,10 @@ const DashboardPage = () => {
             <>
               <Grid 
                 container 
-                spacing={3} 
+                spacing={2}
+                justifyContent="center"
                 sx={{ 
-                  mb: 4,
+                  mb: 6,
                   '& > .MuiGrid-item': {
                     display: 'flex'
                   }
@@ -633,215 +663,211 @@ const DashboardPage = () => {
                 alignItems="stretch"
               >
                 {events.map((event) => {
-                const eventImage = event.eventDetails?.eventImage || event.eventImage || null;
+                // Dashboard sử dụng eventImage (720x958) để hiển thị ban đầu
+                const eventImage = event.eventImage || null;
                 const imageUrl = eventImage ? 
                   (eventImage.startsWith('http') ? eventImage : `http://localhost:5000${eventImage.startsWith('/') ? '' : '/'}${eventImage}`) : 
                   null;
+                
+                // BackgroundImage (1280x720) để hiển thị trong hover popup
+                const backgroundImage = event.backgroundImage || null;
+                const hoverImageUrl = backgroundImage ? 
+                  (backgroundImage.startsWith('http') ? backgroundImage : `http://localhost:5000${backgroundImage.startsWith('/') ? '' : '/'}${backgroundImage}`) : 
+                  imageUrl;
+
+                const shortTitle = getShortTitle(decodeText(event.title));
 
                 return (
                   <Grid 
                     item 
-                    xs={12} 
-                    sm={6} 
-                    md={3}
-                    lg={3}
-                    xl={3}
+                    xs={6}
+                    sm={4}
+                    md={2}
                     key={event.eventId}
                     sx={{
                       display: 'flex',
-                      height: '520px',
                       minWidth: 0,
-                      flexBasis: { xs: '100%', sm: '50%', md: '25%' },
-                      maxWidth: { xs: '100%', sm: '50%', md: '25%' },
-                      width: { xs: '100%', sm: '50%', md: '25%' }
+                      position: 'relative'
                     }}
                   >
-                    <Card
-                      elevation={0}
-                      sx={{
-                        width: '100%',
-                        height: '520px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        border: `1px solid ${theme.palette.divider}`,
-                        borderRadius: 3,
-                        overflow: 'hidden',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: `0 12px 40px ${theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.15)'}`
+                    <Tooltip
+                      title={
+                        <Box sx={{ p: 2, maxWidth: 400 }}>
+                          <Box 
+                            sx={{ 
+                              mb: 2,
+                              height: 200,
+                              borderRadius: 2,
+                              overflow: 'hidden',
+                              position: 'relative'
+                            }}
+                          >
+                            {hoverImageUrl ? (
+                              <CardMedia
+                                component="img"
+                                image={hoverImageUrl}
+                                alt={decodeText(event.title)}
+                                sx={{ 
+                                  objectFit: 'cover',
+                                  width: '100%',
+                                  height: '100%'
+                                }}
+                              />
+                            ) : (
+                              <Box
+                                sx={{
+                                  height: '100%',
+                                  width: '100%',
+                                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <EventIcon sx={{ fontSize: 48, color: 'white', opacity: 0.8 }} />
+                              </Box>
+                            )}
+                          </Box>
+                          <Typography variant="h6" fontWeight={700} sx={{ color: 'white', mb: 1.5 }}>
+                            {decodeText(event.title)}
+                          </Typography>
+                          <Stack spacing={1}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <AccessTimeIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }} />
+                              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                                {formatDate(event.startTime)}
+                              </Typography>
+                            </Box>
+                            {event.campus && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <CampusIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }} />
+                                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                                  {event.campus}
+                                </Typography>
+                              </Box>
+                            )}
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                              <LocationIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.7)', mt: 0.25 }} />
+                              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.5 }}>
+                                {decodeText(event.location)}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Box>
+                      }
+                      placement="top"
+                      arrow
+                      TransitionComponent={Zoom}
+                      PopperProps={{
+                        sx: {
+                          '& .MuiTooltip-tooltip': {
+                            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#2a2a2a',
+                            borderRadius: 3,
+                            maxWidth: 450,
+                            border: `1px solid rgba(255, 122, 0, 0.3)`,
+                            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)'
+                          },
+                          '& .MuiTooltip-arrow': {
+                            color: theme.palette.mode === 'dark' ? '#1a1a1a' : '#2a2a2a'
+                          }
                         }
                       }}
                     >
-                      {/* Image Section - Fixed Height */}
-                      <Box 
-                        sx={{ 
-                          height: 200, 
-                          minHeight: 200,
-                          maxHeight: 200,
-                          flexShrink: 0, 
-                          overflow: 'hidden', 
+                      <Card
+                        component={Link}
+                        to={`/event/${event.eventId}`}
+                        elevation={0}
+                        sx={{
+                          width: '100%',
+                          height: '280px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          cursor: 'pointer',
+                          border: 'none',
+                          borderRadius: 2,
+                          overflow: 'hidden',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                           position: 'relative',
-                          backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5'
+                          '&:hover': {
+                            transform: 'scale(1.05) translateY(-8px)',
+                            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                            '& .event-image': {
+                              transform: 'scale(1.1)'
+                            }
+                          }
                         }}
                       >
-                        {imageUrl ? (
-                          <CardMedia
-                            component="img"
-                            image={imageUrl}
-                            alt={decodeText(event.title)}
-                            sx={{ 
-                              objectFit: 'cover', 
-                              width: '100%', 
-                              height: '100%',
-                              display: 'block'
-                            }}
-                          />
-                        ) : (
-                          <Box
+                        {/* Image Section - FPT Play Style */}
+                        <Box 
+                          className="event-image"
+                          sx={{ 
+                            height: 240,
+                            minHeight: 240,
+                            maxHeight: 240,
+                            flexShrink: 0, 
+                            overflow: 'hidden', 
+                            position: 'relative',
+                            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                          }}
+                        >
+                          {imageUrl ? (
+                            <CardMedia
+                              component="img"
+                              image={imageUrl}
+                              alt={shortTitle}
+                              sx={{ 
+                                objectFit: 'cover', 
+                                width: '100%', 
+                                height: '100%',
+                                display: 'block'
+                              }}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                height: '100%',
+                                width: '100%',
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <EventIcon sx={{ fontSize: 64, color: 'white', opacity: 0.8 }} />
+                            </Box>
+                          )}
+                        </Box>
+                        
+                        {/* Short Title at Bottom - FPT Play Style */}
+                        <Box 
+                          sx={{ 
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.4) 80%, transparent 100%)',
+                            p: 2.5,
+                            pb: 3.5
+                          }}
+                        >
+                          <Typography
+                            variant="body1"
+                            fontWeight={700}
                             sx={{
-                              height: '100%',
-                              width: '100%',
-                              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
+                              color: 'white',
+                              fontSize: '0.95rem',
+                              lineHeight: 1.4,
+                              textAlign: 'center',
+                              textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.8)',
+                              letterSpacing: '0.01em'
                             }}
                           >
-                            <EventIcon sx={{ fontSize: 64, color: 'white', opacity: 0.8 }} />
-                          </Box>
-                        )}
-                        {/* Category Tag Overlay */}
-                        <Box sx={{ position: 'absolute', top: 12, left: 12 }}>
-                          <Chip
-                            label={decodeText(event.category)}
-                            size="small"
-                            sx={{
-                              bgcolor: 'rgba(255, 255, 255, 0.95)',
-                              color: 'text.primary',
-                              fontWeight: 600,
-                              fontSize: '0.75rem'
-                            }}
-                          />
+                            {shortTitle}
+                          </Typography>
                         </Box>
-                      </Box>
-                      
-                      {/* Content Section - Fixed Height - Căn theo thẻ */}
-                      <CardContent 
-                        sx={{ 
-                          flex: '1 1 auto',
-                          display: 'flex', 
-                          flexDirection: 'column',
-                          p: 2.5,
-                          height: '260px',
-                          minHeight: '260px',
-                          maxHeight: '260px',
-                          overflow: 'hidden',
-                          '&:last-child': { pb: 2.5 }
-                        }}
-                      >
-                        {/* Title - Fixed Height - Căn theo thẻ */}
-                        <Typography
-                          variant="h6"
-                          component="h3"
-                          fontWeight={700}
-                          sx={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.4,
-                            mb: 1.5,
-                            fontSize: '1rem',
-                            height: '3.92em',
-                            minHeight: '3.92em',
-                            maxHeight: '3.92em',
-                            flexShrink: 0
-                          }}
-                        >
-                          {decodeText(event.title)}
-                        </Typography>
-                        
-                        <Divider sx={{ my: 1.5, flexShrink: 0 }} />
-                        
-                        {/* Event Info - Fixed Height - Căn theo thẻ */}
-                        <Stack 
-                          spacing={1.5} 
-                          sx={{ 
-                            flex: '1 1 auto',
-                            height: '100%',
-                            minHeight: 0,
-                            justifyContent: 'flex-start',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, flexShrink: 0 }}>
-                            <AccessTimeIcon 
-                              fontSize="small" 
-                              color="action" 
-                              sx={{ mt: 0.25, flexShrink: 0, fontSize: '1rem' }} 
-                            />
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary" 
-                              sx={{ 
-                                flex: 1,
-                                lineHeight: 1.5,
-                                fontSize: '0.8125rem',
-                                minHeight: '1.5em',
-                                overflow: 'hidden'
-                              }}
-                            >
-                              {formatDate(event.startTime)}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, flexShrink: 0 }}>
-                            <LocationIcon 
-                              fontSize="small" 
-                              color="action" 
-                              sx={{ mt: 0.25, flexShrink: 0, fontSize: '1rem' }} 
-                            />
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{
-                                flex: 1,
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                lineHeight: 1.5,
-                                fontSize: '0.8125rem',
-                                height: '3em',
-                                minHeight: '3em',
-                                maxHeight: '3em'
-                              }}
-                            >
-                              {decodeText(event.location)}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </CardContent>
-                      
-                      {/* Button Section - Fixed at Bottom */}
-                      <Box sx={{ p: 2.5, pt: 0, flexShrink: 0, height: '60px', minHeight: '60px' }}>
-                        <Button
-                          component={Link}
-                          to={`/event/${event.eventId}`}
-                          variant="contained"
-                          fullWidth
-                          endIcon={<ArrowForward />}
-                          sx={{
-                            fontWeight: 600,
-                            textTransform: 'none',
-                            borderRadius: 2,
-                            py: 1.25
-                          }}
-                        >
-                          Xem chi tiết
-                        </Button>
-                      </Box>
-                    </Card>
+                      </Card>
+                    </Tooltip>
                   </Grid>
                 );
                 })}

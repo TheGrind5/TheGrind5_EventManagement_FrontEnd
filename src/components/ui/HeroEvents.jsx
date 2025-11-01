@@ -15,7 +15,11 @@ import 'swiper/css/navigation';
 // Material-UI Icons
 import { LocationOn, AccessTime, ChevronLeft, ChevronRight } from '@mui/icons-material';
 
+// Material-UI Theme
+import { useTheme } from '@mui/material/styles';
+
 const HeroEvents = ({ events = [] }) => {
+  const theme = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -103,7 +107,7 @@ const HeroEvents = ({ events = [] }) => {
       case 'New':
         return 'bg-blue-500';
       case 'Free':
-        return 'bg-green-500';
+        return 'bg-orange-500';  // Đổi từ green sang orange
       case 'Sắp diễn ra':
         return 'bg-orange-500';
       default:
@@ -338,7 +342,7 @@ const HeroEvents = ({ events = [] }) => {
                                   color: 'rgba(255, 255, 255, 1)'
                                 }}
                               >
-                                {currentEvent.campus || currentEvent.location || 'Chưa có campus'}
+                                {currentEvent.campus || 'Chưa có campus'}
                               </span>
                             </div>
 

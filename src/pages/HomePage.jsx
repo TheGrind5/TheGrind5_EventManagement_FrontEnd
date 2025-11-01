@@ -81,6 +81,7 @@ import EventCard from '../components/ui/EventCard';
 import HeroEvents from '../components/ui/HeroEvents';
 import EventCarousel from '../components/ui/EventCarousel';
 import { eventsAPI } from '../services/apiClient';
+import { useDebounce } from '../hooks/useDebounce';
 
 
 const HomePage = () => {
@@ -291,8 +292,8 @@ const HomePage = () => {
   // Get unique categories for filter dropdown
 
   const categories = [...new Set(validEvents.map(event => event.category).filter(Boolean))];
+  const [allCategories, setAllCategories] = useState([]);
 
-  
   
   // Fetch all categories when component mounts (without filters)
   useEffect(() => {
@@ -1530,6 +1531,54 @@ const HomePage = () => {
       }
     }
     
+    // Calculate price from ticketTypes - Only show "Miễn phí" if ALL tickets are free
+    // If any ticket is paid, don't show price badge at all
+    let displayPrice = null;
+    if (event.ticketTypes && event.ticketTypes.length > 0) {
+      // Check if ALL tickets are free
+      const allTicketsFree = event.ticketTypes.every(t => 
+        (t.price === 0 || t.price === null || t.isFree === true)
+      );
+      
+      if (allTicketsFree) {
+        // Only set price to 0 if ALL tickets are free
+        displayPrice = 0;
+      } else {
+        // Has paid tickets, don't show price badge (set to null)
+        displayPrice = null;
+      }
+    } else if (event.price !== undefined && event.price !== null) {
+      // Fallback to event.price if ticketTypes is not available
+      // Only show "Miễn phí" if price is exactly 0
+      if (event.price === 0) {
+        displayPrice = 0;
+      } else {
+        // Has price, don't show badge
+        displayPrice = null;
+      }
+    }
+    
+    // Get campus from event - check multiple possible locations
+    // Match logic with EventDetailsPage: event.campus || event.eventDetails?.province
+    const eventCampus = event.campus || 
+                       event.eventDetails?.campus || 
+                       event.eventDetails?.province || 
+                       event.locationDetails?.campus || 
+                       null;
+    
+    // Debug: Log campus detection for troubleshooting
+    if (!eventCampus && event.eventId) {
+      console.log('HomePage - Campus not found for event:', {
+        eventId: event.eventId,
+        title: event.title,
+        hasCampus: !!event.campus,
+        hasEventDetails: !!event.eventDetails,
+        eventDetailsCampus: event.eventDetails?.campus,
+        eventDetailsProvince: event.eventDetails?.province,
+        fullEvent: event
+      });
+    }
+    
     return {
       id: event.eventId || event.id,
       title: event.title,
@@ -1541,8 +1590,8 @@ const HomePage = () => {
       hostName: event.hostName,
       image: imageUrl, // Use properly built URL - can be null if no image
       badge: badgeValue, // Only set if exists, prevent duplicates
-      price: event.price || 0,
-      campus: event.campus
+      price: displayPrice, // Only 0 if all free, null otherwise (don't show badge)
+      campus: eventCampus // Use campus from database, not location
     };
   };
 
@@ -1551,7 +1600,7 @@ const HomePage = () => {
 
   return (
 
-    <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#000000' : '#0A0A0A' }}>
+    <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF' }}>
       <Header 
 
         searchTerm={searchTerm}
@@ -1564,7 +1613,7 @@ const HomePage = () => {
 
       {/* Hero Featured Events Section - FPT Play Style */}
       {featuredEventsForHero.length > 0 && (
-        <Box sx={{ backgroundColor: '#000000' }}>
+        <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF' }}>
           <HeroEvents 
             events={featuredEventsForHero.map(event => {
               const converted = convertEventForDisplay(event);
@@ -1582,7 +1631,7 @@ const HomePage = () => {
       )}
 
       {/* Event Carousels Section - FPT Play Style - Cải thiện spacing */}
-      <Box sx={{ backgroundColor: '#0A0A0A', py: { xs: 4, md: 8 }, px: { xs: 2, md: 4 } }}>
+      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 4, md: 8 }, px: { xs: 2, md: 4 } }}>
         <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
           {/* Sự kiện nổi bật */}
           {featuredEventsForHero.length > 0 && (
@@ -1660,7 +1709,7 @@ const HomePage = () => {
 
 
       {/* Filter Bar Section - Positioned between "Sự kiện sắp diễn ra" and "Kết quả tìm kiếm" */}
-      <Box sx={{ backgroundColor: '#0A0A0A', py: { xs: 3, md: 4 }, px: { xs: 2, md: 4 }, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 3, md: 4 }, px: { xs: 2, md: 4 }, borderTop: `1px solid ${theme.palette.divider}` }}>
         <Container maxWidth="xl">
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>

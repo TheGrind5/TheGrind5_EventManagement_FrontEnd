@@ -261,7 +261,7 @@ const OrderConfirmationPage = () => {
           elevation={0}
           sx={{
             mb: 4,
-            background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%)',
+            background: 'linear-gradient(135deg, rgba(255, 122, 0, 0.1) 0%, rgba(255, 138, 0, 0.1) 100%)',
             border: `2px solid ${theme.palette.success.main}`,
             borderRadius: 3
           }}

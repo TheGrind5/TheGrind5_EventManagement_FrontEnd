@@ -24,6 +24,7 @@ import { eventsAPI } from '../../services/apiClient';
 import DebouncedTextField from '../common/DebouncedTextField';
 import ImageDisplayLocationsModal from './ImageDisplayLocationsModal';
 import ImageCropModal from '../common/ImageCropModal';
+import ContentGeneratorWidget from '../ai/ContentGeneratorWidget';
 
 const EventInfoStep = ({ data, onChange }) => {
   const theme = useTheme();

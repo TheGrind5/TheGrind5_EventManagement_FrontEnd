@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/apiClient';
 import Header from '../components/layout/Header';
 import AIHistory from '../components/ai/AIHistory';
 import config from '../config/environment';
+import Cropper from 'react-easy-crop';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -23,6 +24,13 @@ const ProfilePage = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [avatarKey, setAvatarKey] = useState(0); // Key để force re-render avatar
+  
+  // Crop states
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   useEffect(() => {
     loadProfile();
@@ -39,6 +47,12 @@ const ProfilePage = () => {
 
       const response = await authAPI.getCurrentUserProfile();
       const profileData = response.data;
+      
+      // Fix avatar URL nếu cần
+      if (profileData.avatar && profileData.avatar.startsWith("/")) {
+        profileData.avatar = `${config.BASE_URL}${profileData.avatar}`;
+      }
+      
       setProfile(profileData);
       setFormData({
         fullName: profileData.fullName || '',
@@ -77,15 +91,18 @@ const ProfilePage = () => {
         return;
       }
 
-      setAvatarFile(file);
       setError('');
       
-      // Tạo preview
+      // Hiển thị modal crop
       const reader = new FileReader();
       reader.onload = (e) => {
-        setAvatarPreview(e.target.result);
+        setCropImageSrc(e.target.result);
+        setShowCropModal(true);
       };
       reader.readAsDataURL(file);
+      
+      // Reset input
+      e.target.value = '';
     }
   };
 
@@ -182,6 +199,98 @@ const ProfilePage = () => {
     setEditing(false);
     setMessage('');
     setError('');
+  };
+
+  // Crop functions
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const createImage = (url) =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', (error) => reject(error));
+      image.src = url;
+    });
+
+  const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('No 2d context');
+    }
+
+    const maxSize = Math.max(image.width, image.height);
+    const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+    canvas.width = safeArea;
+    canvas.height = safeArea;
+
+    ctx.translate(safeArea / 2, safeArea / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.translate(-safeArea / 2, -safeArea / 2);
+
+    ctx.drawImage(
+      image,
+      safeArea / 2 - image.width * 0.5,
+      safeArea / 2 - image.height * 0.5
+    );
+    const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.putImageData(
+      data,
+      Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+      Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error('Canvas is empty');
+          return;
+        }
+        const fileUrl = window.URL.createObjectURL(blob);
+        resolve({ blob, url: fileUrl });
+      }, 'image/jpeg', 0.9);
+    });
+  };
+
+  const handleCropComplete = async () => {
+    try {
+      const croppedImage = await getCroppedImg(
+        cropImageSrc,
+        croppedAreaPixels
+      );
+      
+      // Tạo File từ blob
+      const file = new File([croppedImage.blob], 'avatar.jpg', { type: 'image/jpeg' });
+      
+      // Lưu file và preview
+      setAvatarFile(file);
+      setAvatarPreview(croppedImage.url);
+      
+      // Đóng modal
+      setShowCropModal(false);
+      setCropImageSrc(null);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+    } catch (error) {
+      console.error('Error cropping image:', error);
+      setError('Có lỗi xảy ra khi cắt ảnh');
+    }
+  };
+
+  const handleCancelCrop = () => {
+    setShowCropModal(false);
+    setCropImageSrc(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
   };
 
 
@@ -491,6 +600,61 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Crop Modal */}
+      {showCropModal && cropImageSrc && (
+        <div className="crop-modal-overlay" onClick={handleCancelCrop}>
+          <div className="crop-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="crop-modal-header">
+              <h3>Cắt ảnh đại diện</h3>
+              <button className="crop-modal-close" onClick={handleCancelCrop}>
+                ✕
+              </button>
+            </div>
+            <div className="crop-modal-body">
+              <div className="crop-container">
+                <Cropper
+                  image={cropImageSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              </div>
+              <div className="crop-controls">
+                <label className="crop-zoom-label">
+                  Phóng to/thu nhỏ:
+                  <input
+                    type="range"
+                    value={zoom}
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="crop-zoom-slider"
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="crop-modal-footer">
+              <button
+                className="profile-btn profile-btn-secondary"
+                onClick={handleCancelCrop}
+              >
+                Hủy
+              </button>
+              <button
+                className="profile-btn profile-btn-primary"
+                onClick={handleCropComplete}
+              >
+                Áp dụng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

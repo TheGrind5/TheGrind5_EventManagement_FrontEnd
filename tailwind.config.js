@@ -13,11 +13,11 @@ module.exports = {
         'orange-primary-dark': '#E66A00',
         'orange-glow': 'rgba(255, 122, 0, 0.5)',
         
-        // Secondary: Deep Green
-        'green-secondary': '#003820',
-        'green-secondary-light': '#004F34',
-        'green-secondary-dark': '#002D1A',
-        'green-glow': 'rgba(0, 56, 32, 0.4)',
+        // Secondary: Dark Navy (đổi từ green sang xanh đen)
+        'green-secondary': '#0A1128',
+        'green-secondary-light': '#001F3F',
+        'green-secondary-dark': '#050911',
+        'green-glow': 'rgba(10, 17, 40, 0.4)',
         
         // Alternative Secondary: Dark Navy (for variety)
         'navy-secondary': '#0A1128',
@@ -45,14 +45,14 @@ module.exports = {
       backgroundImage: {
         'gradient-orange': 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
         'gradient-orange-hover': 'linear-gradient(135deg, #FF8A00 0%, #FF9A20 100%)',
-        'gradient-green': 'linear-gradient(135deg, #003820 0%, #004F34 100%)',
+        'gradient-green': 'linear-gradient(135deg, #0A1128 0%, #001F3F 100%)',
         'gradient-dark': 'linear-gradient(135deg, #0D0D0D 0%, #121212 100%)',
         'gradient-glow-orange': 'radial-gradient(circle at center, rgba(255, 122, 0, 0.15) 0%, transparent 70%)',
       },
       boxShadow: {
         'neon-orange': '0 0 10px rgba(255, 122, 0, 0.5), 0 0 20px rgba(255, 122, 0, 0.3)',
         'neon-orange-lg': '0 0 20px rgba(255, 122, 0, 0.6), 0 0 40px rgba(255, 122, 0, 0.4)',
-        'neon-green': '0 0 10px rgba(0, 56, 32, 0.5), 0 0 20px rgba(0, 56, 32, 0.3)',
+        'neon-green': '0 0 10px rgba(10, 17, 40, 0.5), 0 0 20px rgba(10, 17, 40, 0.3)',
         'neon-teal': '0 0 10px rgba(0, 255, 200, 0.4), 0 0 20px rgba(0, 255, 200, 0.2)',
         'glass': '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
       },

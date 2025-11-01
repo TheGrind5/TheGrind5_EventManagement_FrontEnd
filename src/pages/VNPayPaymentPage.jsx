@@ -378,7 +378,7 @@ const VNPayPaymentPage = () => {
                       width: '100%',
                       maxWidth: '300px',
                       height: '300px',
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                       borderRadius: 2,
                       display: 'flex',
                       alignItems: 'center',

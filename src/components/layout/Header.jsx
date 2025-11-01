@@ -201,8 +201,8 @@ const Header = ({ searchTerm, onSearchChange }) => {
                 borderRadius: 1.5,
                 '&:hover': {
                   backgroundColor: theme.palette.mode === 'dark' 
-                    ? 'rgba(61, 190, 41, 0.12)' 
-                    : 'rgba(61, 190, 41, 0.08)',
+                    ? 'rgba(255, 122, 0, 0.12)' 
+                    : 'rgba(255, 122, 0, 0.08)',
                   color: 'primary.main',
                 }
               }}
@@ -225,8 +225,8 @@ const Header = ({ searchTerm, onSearchChange }) => {
                     borderRadius: 1.5,
                     '&:hover': {
                       backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(61, 190, 41, 0.12)' 
-                        : 'rgba(61, 190, 41, 0.08)',
+                        ? 'rgba(255, 122, 0, 0.12)' 
+                        : 'rgba(255, 122, 0, 0.08)',
                       color: 'primary.main',
                     }
                   }}
@@ -247,8 +247,8 @@ const Header = ({ searchTerm, onSearchChange }) => {
                       borderRadius: 1.5,
                       '&:hover': {
                         backgroundColor: theme.palette.mode === 'dark' 
-                          ? 'rgba(61, 190, 41, 0.12)' 
-                          : 'rgba(61, 190, 41, 0.08)',
+                          ? 'rgba(255, 122, 0, 0.12)' 
+                          : 'rgba(255, 122, 0, 0.08)',
                         color: 'primary.main',
                       }
                     }}
@@ -305,8 +305,8 @@ const Header = ({ searchTerm, onSearchChange }) => {
                     borderRadius: 1.5,
                     '&:hover': {
                       backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(61, 190, 41, 0.12)' 
-                        : 'rgba(61, 190, 41, 0.08)',
+                        ? 'rgba(255, 122, 0, 0.12)' 
+                        : 'rgba(255, 122, 0, 0.08)',
                       color: 'primary.main',
                     }
                   }}
@@ -423,7 +423,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   boxShadow: 'none',
                   whiteSpace: 'nowrap',
                   '&:hover': {
-                    boxShadow: '0 6px 20px rgba(61, 190, 41, 0.3)',
+                    boxShadow: '0 6px 20px rgba(255, 122, 0, 0.3)',
                     transform: 'translateY(-2px)'
                   },
                   transition: 'all 0.2s ease'
@@ -449,14 +449,14 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   height: 40,
                   borderWidth: 2,
                   borderColor: theme.palette.mode === 'dark' 
-                    ? 'rgba(61, 190, 41, 0.4)' 
-                    : 'rgba(61, 190, 41, 0.6)',
+                    ? 'rgba(255, 122, 0, 0.4)' 
+                    : 'rgba(255, 122, 0, 0.6)',
                   '&:hover': {
                     backgroundColor: 'primary.main',
                     color: 'white',
                     borderColor: 'primary.main',
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 12px rgba(61, 190, 41, 0.25)',
+                    boxShadow: '0 6px 12px rgba(255, 122, 0, 0.25)',
                   },
                   transition: 'all 0.2s ease'
                 }}
@@ -557,7 +557,7 @@ const Header = ({ searchTerm, onSearchChange }) => {
                   px: 3,
                   boxShadow: 'none',
                   '&:hover': {
-                    boxShadow: '0 4px 12px rgba(61, 190, 41, 0.25)',
+                    boxShadow: '0 4px 12px rgba(255, 122, 0, 0.25)',
                   }
                 }}
               >

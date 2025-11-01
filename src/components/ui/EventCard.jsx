@@ -199,7 +199,7 @@ const EventCard = ({ event }) => {
               fontSize: '0.7rem',
               height: 24,
               fontWeight: 500,
-              backgroundColor: currentStatus === 'Active' ? '#10B981' :
+              backgroundColor: currentStatus === 'Active' ? '#FF7A00' :
                              currentStatus === 'Upcoming' ? '#F59E0B' : '#9CA3AF',
               color: 'white',
               '& .MuiChip-label': {

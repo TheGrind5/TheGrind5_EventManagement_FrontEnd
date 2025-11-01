@@ -33,9 +33,9 @@ export const CustomThemeProvider = ({ children }) => {
         contrastText: '#FFFFFF',
       },
       secondary: {
-        main: '#003820',        // Deep green secondary
-        light: '#004F34',
-        dark: '#002D1A',
+        main: '#0A1128',        // Dark Navy secondary (đổi từ green)
+        light: '#001F3F',
+        dark: '#050911',
         contrastText: '#FFFFFF',
       },
       error: {
@@ -48,7 +48,7 @@ export const CustomThemeProvider = ({ children }) => {
         main: '#3B82F6',
       },
       success: {
-        main: '#10B981',
+        main: '#FF7A00',  // Orange để đồng bộ với theme chính
       },
       background: {
         default: themeMode === 'dark' ? '#0D0D0D' : '#FFFFFF',
@@ -213,13 +213,22 @@ export const CustomThemeProvider = ({ children }) => {
   // Cập nhật CSS variables khi theme thay đổi
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     
     if (themeMode === 'dark') {
       root.classList.add('dark-theme');
       root.classList.remove('light-theme');
+      body.classList.add('dark-theme');
+      body.classList.remove('light-theme');
+      body.style.background = '#0D0D0D';
+      body.style.color = '#FFFFFF';
     } else {
       root.classList.add('light-theme');
       root.classList.remove('dark-theme');
+      body.classList.add('light-theme');
+      body.classList.remove('dark-theme');
+      body.style.background = '#FFFFFF';
+      body.style.color = '#0D0D0D';
     }
 
     // Lưu theme vào localStorage

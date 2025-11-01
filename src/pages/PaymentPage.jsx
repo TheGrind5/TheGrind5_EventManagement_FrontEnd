@@ -326,7 +326,7 @@ const PaymentPage = () => {
             <Container maxWidth="md" sx={{ py: 4 }}>
                 <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
                     <Typography variant="h3" component="h1" textAlign="center" gutterBottom sx={{ 
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
                         backgroundClip: 'text',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
@@ -409,7 +409,7 @@ const PaymentPage = () => {
                                     sx={{ 
                                         p: 2, 
                                         borderRadius: 2,
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        background: 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
                                         color: 'white'
                                     }}
                                 >
