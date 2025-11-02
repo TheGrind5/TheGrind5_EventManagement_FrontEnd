@@ -1,6 +1,6 @@
 // React & Router
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 import { Link } from 'react-router-dom';
 
@@ -216,9 +216,9 @@ const HomePage = () => {
 
 
 
-  //Hàm constants để format date
+  //Hàm constants để format date - Memoized để tránh tạo function mới mỗi render
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
 
     return new Date(dateString).toLocaleDateString('en-US', {
 
@@ -234,13 +234,13 @@ const HomePage = () => {
 
     });
 
-  };
+  }, []);
 
 
 
-  // Determine event status based on time (align with EventCard)
+  // Determine event status based on time (align with EventCard) - Memoized
 
-  const getEventStatus = (startTime, endTime) => {
+  const getEventStatus = useCallback((startTime, endTime) => {
 
     const now = new Date();
 
@@ -260,24 +260,27 @@ const HomePage = () => {
 
     return now < start ? 'Upcoming' : 'Completed';
 
-  };
+  }, []);
 
 
 
-  // Build absolute image URL from relative path
+  // Build absolute image URL from relative path - Memoized
 
-  const buildImageUrl = (imagePath) => {
+  const buildImageUrl = useCallback((imagePath) => {
 
     if (!imagePath) return null;
 
     return imagePath.startsWith('http') ? imagePath : `http://localhost:5000${imagePath}`;
 
-  };
+  }, []);
 
 
 
-  // Filter valid events (eventId > 0) - ONLY FROM DATABASE, NO MOCK DATA
-  const validEvents = events.filter(event => event.eventId && event.eventId > 0);
+  // Filter valid events (eventId > 0) - ONLY FROM DATABASE, NO MOCK DATA - Memoized để tránh tính toán lại
+  const validEvents = useMemo(() => 
+    events.filter(event => event.eventId && event.eventId > 0),
+    [events]
+  );
 
   // DEBUG: Log database connection status
   useEffect(() => {
@@ -304,9 +307,11 @@ const HomePage = () => {
 
 
 
-  // Get unique categories for filter dropdown
-
-  const categories = [...new Set(validEvents.map(event => event.category).filter(Boolean))];
+  // Get unique categories for filter dropdown - Memoized để tránh tính toán lại
+  const categories = useMemo(() => 
+    [...new Set(validEvents.map(event => event.category).filter(Boolean))],
+    [validEvents]
+  );
   const [allCategories, setAllCategories] = useState([]);
 
   
@@ -349,15 +354,11 @@ const HomePage = () => {
 
 
 
-  // Tạo lại categoryOptions chỉ chứa danh mục
-
-  const categoryOptions = [
-
+  // Tạo lại categoryOptions chỉ chứa danh mục - Memoized để tránh tạo array mới mỗi render
+  const categoryOptions = useMemo(() => [
     { value: 'all', label: 'Tất cả' },
-
     ...categories.map(c => ({ value: c, label: c }))
-
-  ];
+  ], [categories]);
 
   // Tạo lại priceOptions riêng cho dropdown Giá Tiền
 
@@ -377,9 +378,8 @@ const HomePage = () => {
 
 
 
-  // Filter events based on search and filter criteria
-
-  const filteredEvents = validEvents.filter(event => {
+  // Filter events based on search and filter criteria - Memoized để tránh filter lại mỗi render
+  const filteredEvents = useMemo(() => validEvents.filter(event => {
 
     // Search filter
 
@@ -461,13 +461,12 @@ const HomePage = () => {
 
     return matchesSearch && matchesStatus && matchesDate && matchesCampus && matchesCategory && matchesPrice;
 
-  });
+  }), [validEvents, searchTerm, statusFilter, dateFilter, campusFilter, categoryFilter, priceFilter, getEventStatus]);
 
 
 
-  // Render individual event card using EventCard component
-
-  const renderEventCard = (event, fixedWidth = false) => (
+  // Render individual event card using EventCard component - Memoized để tránh tạo function mới
+  const renderEventCard = useCallback((event, fixedWidth = false) => (
 
     <Grid 
 
@@ -487,13 +486,30 @@ const HomePage = () => {
 
         display: 'flex',
 
-        justifyContent: 'center'
+        justifyContent: 'center',
+
+        alignItems: 'stretch',
+
+        height: '100%'
 
       }}
 
     >
 
-      <Box sx={{ width: fixedWidth ? 300 : '100%', maxWidth: 320 }}>
+      <Box sx={{ 
+        width: fixedWidth ? 300 : '100%', 
+        maxWidth: 320,
+        height: '100%',
+        display: 'flex',
+        position: 'relative',
+        '&:hover': {
+          zIndex: 10,
+          '& > *': {
+            position: 'relative',
+            zIndex: 10
+          }
+        }
+      }}>
 
         <EventCard event={event} />
 
@@ -501,13 +517,13 @@ const HomePage = () => {
 
     </Grid>
 
-  );
+  ), []);
 
 
 
   // Use ONLY database events - NO MOCK DATA FALLBACK
-  // Process database events to ensure image paths are preserved
-  const processedEvents = validEvents.map(event => ({
+  // Process database events to ensure image paths are preserved - Memoized để tránh tính toán lại
+  const processedEvents = useMemo(() => validEvents.map(event => ({
     // Preserve original event structure and ensure image paths are maintained
     ...event,
     // Keep backgroundImage (1280x720) as main display image
@@ -515,77 +531,80 @@ const HomePage = () => {
     backgroundImage: event.eventDetails?.backgroundImage || event.backgroundImage || null,
     // Preserve eventDetails structure
     eventDetails: event.eventDetails || { backgroundImage: event.backgroundImage || null },
-  }));
+  })), [validEvents]);
 
-  // Use ONLY database events for carousels - NO FALLBACK
+  // Use ONLY database events for carousels - NO FALLBACK - Memoized
   const baseEventsForCarousel = processedEvents;
 
-  // Hero events - Use validEvents (from database) if available for proper images
-  const featuredEventsForHero = baseEventsForCarousel
+  // Hero events - Use validEvents (from database) if available for proper images - Memoized
+  const featuredEventsForHero = useMemo(() => baseEventsForCarousel
     .filter(event => {
       const start = new Date(event.startTime);
       return start > new Date();
     })
-    .slice(0, 5); // Lấy 5 sự kiện cho Hero
+    .slice(0, 5), // Lấy 5 sự kiện cho Hero
+    [baseEventsForCarousel]
+  );
 
-  const featuredEvents = filteredEvents
-
+  const featuredEvents = useMemo(() => filteredEvents
     .filter(event => {
-
       const start = new Date(event.startTime);
-
       return start > new Date();
-
     })
+    .slice(0, 6),
+    [filteredEvents]
+  );
 
-    .slice(0, 6);
 
 
-
-  // Get trending events - Use validEvents (from database) if available
-  const trendingEvents = baseEventsForCarousel
+  // Get trending events - Use validEvents (from database) if available - Memoized
+  const trendingEvents = useMemo(() => baseEventsForCarousel
     .filter(event => {
-
       const start = new Date(event.startTime);
-
       return start > new Date();
-
     })
-
     .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-    .slice(0, 8);
+    .slice(0, 8),
+    [baseEventsForCarousel]
+  );
 
 
-  // Get recommended events (random selection for now)
+  // Get recommended events (random selection for now) - Memoized (với seed để tránh random mỗi render)
+  const recommendedEvents = useMemo(() => {
+    // Sử dụng length làm seed để random ổn định
+    const sorted = [...baseEventsForCarousel].sort((a, b) => (a.eventId || 0) - (b.eventId || 0));
+    return sorted.slice(0, 8);
+  }, [baseEventsForCarousel]);
 
-  const recommendedEvents = baseEventsForCarousel
-    .sort(() => 0.5 - Math.random())
-
-    .slice(0, 8);
 
 
+  // Get upcoming events (sorted by start time) - Memoized
 
-  // Get upcoming events (sorted by start time)
-
-  const upcomingEvents = baseEventsForCarousel
+  const upcomingEvents = useMemo(() => baseEventsForCarousel
     .filter(event => {
-
       const start = new Date(event.startTime);
-
       return start > new Date();
-
     })
-
     .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    .slice(0, 8),
+    [baseEventsForCarousel]
+  );
 
-    .slice(0, 8);
 
 
-
-  // Get events by category for carousel sections
-  const workshopEvents = baseEventsForCarousel.filter(e => e.category === 'Workshop').slice(0, 10);
-  const musicEvents = baseEventsForCarousel.filter(e => e.category === 'Music').slice(0, 10);
-  const campusEvents = baseEventsForCarousel.filter(e => e.category === 'Campus Event').slice(0, 10);
+  // Get events by category for carousel sections - Memoized
+  const workshopEvents = useMemo(() => 
+    baseEventsForCarousel.filter(e => e.category === 'Workshop').slice(0, 10),
+    [baseEventsForCarousel]
+  );
+  const musicEvents = useMemo(() => 
+    baseEventsForCarousel.filter(e => e.category === 'Music').slice(0, 10),
+    [baseEventsForCarousel]
+  );
+  const campusEvents = useMemo(() => 
+    baseEventsForCarousel.filter(e => e.category === 'Campus Event').slice(0, 10),
+    [baseEventsForCarousel]
+  );
 
   // Render filter UI with TicketBox styling
 
@@ -1058,13 +1077,17 @@ const HomePage = () => {
 
             overflowX: 'auto',
 
-            overflowY: 'hidden',
+            overflowY: 'visible',
 
             scrollBehavior: 'smooth',
 
-            pb: 2,
+            pb: 4,
+
+            pt: 2,
 
             px: { xs: 0, md: 0 },
+
+            position: 'relative',
 
             // Hide scrollbar for cleaner look
 
@@ -1113,6 +1136,26 @@ const HomePage = () => {
                 maxWidth: { xs: 280, sm: 320 },
 
                 flexShrink: 0,
+
+                height: '100%',
+
+                display: 'flex',
+
+                position: 'relative',
+
+                '&:hover': {
+
+                  zIndex: 10,
+
+                  '& > *': {
+
+                    position: 'relative',
+
+                    zIndex: 10
+
+                  }
+
+                }
 
               }}
 
@@ -1232,6 +1275,18 @@ const HomePage = () => {
 
             alignItems: 'stretch',
 
+            position: 'relative',
+
+            overflow: 'visible',
+
+            '& > .MuiGrid-item': {
+
+              display: 'flex',
+
+              height: 'auto'
+
+            }
+
           }}
 
         >
@@ -1256,13 +1311,28 @@ const HomePage = () => {
 
                 justifyContent: 'center',
 
+                alignItems: 'stretch',
+
                 maxWidth: { md: '33.333%' }, // Đảm bảo đúng 3 cột
 
               }}
 
             >
 
-              <Box sx={{ width: '100%', maxWidth: 380 }}>
+              <Box sx={{ 
+                width: '100%', 
+                maxWidth: 380,
+                height: '100%',
+                display: 'flex',
+                position: 'relative',
+                '&:hover': {
+                  zIndex: 10,
+                  '& > *': {
+                    position: 'relative',
+                    zIndex: 10
+                  }
+                }
+              }}>
 
                 <EventCard event={event} />
 
@@ -1444,7 +1514,19 @@ const HomePage = () => {
 
               justifyContent: 'flex-start',
 
-              alignItems: 'stretch'
+              alignItems: 'stretch',
+
+              position: 'relative',
+
+              overflow: 'visible',
+
+              '& > .MuiGrid-item': {
+
+                display: 'flex',
+
+                height: 'auto'
+
+              }
 
             }}
 
@@ -1468,50 +1550,11 @@ const HomePage = () => {
 
   };
 
-
-
-  // Hàm constants để render loading state
-
-  if (loading) {
-
-    return (
-
-      <Box>
-
-        <Header />
-
-        <Box sx={{ 
-
-          display: 'flex', 
-
-          justifyContent: 'center', 
-
-          alignItems: 'center', 
-
-          minHeight: '50vh' 
-
-        }}>
-
-          <Stack alignItems="center" spacing={2}>
-
-            <CircularProgress />
-
-            <Typography>Loading events...</Typography>
-
-          </Stack>
-
-        </Box>
-
-      </Box>
-
-    );
-
-  }
-
-
   // Helper để convert event format cho HeroEvents và EventCarousel
   // FIXED: Use backgroundImage (1280x720) as main display image everywhere
-  const convertEventForDisplay = (event) => {
+  // Memoized để tránh tạo function mới mỗi render
+  // MUST be defined before early return to comply with React Hooks rules
+  const convertEventForDisplay = useCallback((event) => {
     // Get backgroundImage (1280x720) - main display image for all pages
     // eventImage (720x958) is saved but not displayed
     const rawImage = event.eventDetails?.backgroundImage || 
@@ -1608,14 +1651,57 @@ const HomePage = () => {
       price: displayPrice, // Only 0 if all free, null otherwise (don't show badge)
       campus: eventCampus // Use campus from database, not location
     };
-  };
+  }, [buildImageUrl]);
 
+  // Hàm constants để render loading state
+
+  if (loading) {
+
+    return (
+
+      <Box>
+
+        <Header />
+
+        <Box sx={{ 
+
+          display: 'flex', 
+
+          justifyContent: 'center', 
+
+          alignItems: 'center', 
+
+          minHeight: '50vh' 
+
+        }}>
+
+          <Stack alignItems="center" spacing={2}>
+
+            <CircularProgress />
+
+            <Typography>Loading events...</Typography>
+
+          </Stack>
+
+        </Box>
+
+      </Box>
+
+    );
+
+  }
 
   // Hàm constants để render home page
 
   return (
 
-    <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF' }}>
+    <Box sx={{ 
+      backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+      width: '100%',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      position: 'relative'
+    }}>
       <Header 
 
         searchTerm={searchTerm}
@@ -1628,7 +1714,12 @@ const HomePage = () => {
 
       {/* Hero Featured Events Section - FPT Play Style */}
       {featuredEventsForHero.length > 0 && (
-        <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF' }}>
+        <Box sx={{ 
+          backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+          width: '100%',
+          maxWidth: '100vw',
+          overflowX: 'hidden'
+        }}>
           <HeroEvents 
             events={featuredEventsForHero.map(event => {
               const converted = convertEventForDisplay(event);
@@ -1646,8 +1737,15 @@ const HomePage = () => {
       )}
 
       {/* Event Carousels Section - FPT Play Style - Cải thiện spacing */}
-      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 4, md: 8 }, px: { xs: 2, md: 4 } }}>
-        <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
+      <Box sx={{ 
+        backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', 
+        py: { xs: 4, md: 8 }, 
+        px: { xs: 2, md: 4 },
+        width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden'
+      }}>
+        <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 }, width: '100%', maxWidth: '100%' }}>
           {/* Sự kiện nổi bật */}
           {featuredEventsForHero.length > 0 && (
             <EventCarousel
@@ -1724,7 +1822,15 @@ const HomePage = () => {
 
 
       {/* Filter Bar Section - Positioned between "Sự kiện sắp diễn ra" and "Kết quả tìm kiếm" */}
-      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 3, md: 4 }, px: { xs: 2, md: 4 }, borderTop: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ 
+        backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', 
+        py: { xs: 3, md: 4 }, 
+        px: { xs: 2, md: 4 }, 
+        borderTop: `1px solid ${theme.palette.divider}`,
+        width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden'
+      }}>
         <Container maxWidth="xl">
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
@@ -1749,12 +1855,15 @@ const HomePage = () => {
           sx={{
 
             backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+            width: '100%',
+            maxWidth: '100vw',
+            overflowX: 'hidden'
 
           }}
 
         >
 
-          <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
+          <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 }, width: '100%', maxWidth: '100%' }}>
         
             {/* Events Grid - Only shows filtered results or "not found" message */}
             {renderEventsGrid()}

@@ -1,25 +1,31 @@
 /**
  * EventCarousel Component - Carousel hiển thị danh sách sự kiện theo chủ đề
  * Style giống FPT Play: card 16:9, hover zoom, gradient overlay, badge
+ * Memoized để tránh re-render không cần thiết và cải thiện performance
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
+// Material-UI
+import { useTheme } from '@mui/material/styles';
+
 // Material-UI Icons
 import { LocationOn, AccessTime, ChevronLeft, ChevronRight } from '@mui/icons-material';
 
-const EventCarousel = ({ 
+const EventCarousel = memo(({ 
   title = "Sự kiện", 
   events = [], 
   icon = null,
   showAutoPlay = true 
 }) => {
   const swiperRef = useRef(null);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   // Format date helper
   const formatDate = (dateString) => {
@@ -68,8 +74,19 @@ const EventCarousel = ({
       <div className="flex items-center justify-between mb-8 px-4 md:px-0">
         <div className="flex items-center gap-3">
           {icon && <span className="text-orange-500">{icon}</span>}
-          <h2 className="text-2xl md:text-3xl font-bold text-white">{title}</h2>
-          <span className="px-3 py-1 bg-gray-800 rounded-full text-sm text-gray-300">
+          <h2 
+            className="text-2xl md:text-3xl font-bold"
+            style={{ color: isDark ? '#FFFFFF' : '#0D0D0D' }}
+          >
+            {title}
+          </h2>
+          <span 
+            className="px-3 py-1 rounded-full text-sm"
+            style={{
+              backgroundColor: isDark ? '#262626' : '#F3F4F6',
+              color: isDark ? '#D1D5DB' : '#6B7280'
+            }}
+          >
             {events.length}
           </span>
         </div>
@@ -78,14 +95,24 @@ const EventCarousel = ({
         <div className="hidden md:flex gap-2">
           <button
             onClick={() => swiperRef.current?.slidePrev()}
-            className="w-10 h-10 rounded-full bg-gray-800 hover:bg-orange-500 border border-gray-700 flex items-center justify-center text-white transition-all duration-300"
+            className="w-10 h-10 rounded-full hover:bg-orange-500 border flex items-center justify-center transition-all duration-300"
+            style={{
+              backgroundColor: isDark ? '#262626' : '#F3F4F6',
+              borderColor: isDark ? '#404040' : '#E5E7EB',
+              color: isDark ? '#FFFFFF' : '#0D0D0D'
+            }}
             aria-label="Previous"
           >
             <ChevronLeft />
           </button>
           <button
             onClick={() => swiperRef.current?.slideNext()}
-            className="w-10 h-10 rounded-full bg-gray-800 hover:bg-orange-500 border border-gray-700 flex items-center justify-center text-white transition-all duration-300"
+            className="w-10 h-10 rounded-full hover:bg-orange-500 border flex items-center justify-center transition-all duration-300"
+            style={{
+              backgroundColor: isDark ? '#262626' : '#F3F4F6',
+              borderColor: isDark ? '#404040' : '#E5E7EB',
+              color: isDark ? '#FFFFFF' : '#0D0D0D'
+            }}
             aria-label="Next"
           >
             <ChevronRight />
@@ -94,7 +121,7 @@ const EventCarousel = ({
       </div>
 
       {/* Carousel */}
-      <div className="relative">
+      <div className="relative" style={{ overflow: 'visible', paddingBottom: '24px' }}>
         <Swiper
           modules={[Navigation, Autoplay]}
           spaceBetween={24}
@@ -107,6 +134,7 @@ const EventCarousel = ({
           onSwiper={(swiper) => {
             swiperRef.current = swiper;
           }}
+          style={{ overflow: 'visible', paddingBottom: '24px' }}
           breakpoints={{
             320: {
               slidesPerView: 1.2,
@@ -138,31 +166,86 @@ const EventCarousel = ({
             },
           }}
           className="event-carousel"
+          wrapperClass="event-carousel-wrapper"
         >
           {events.map((event) => (
-            <SwiperSlide key={event.id} className="!w-auto min-w-0">
+            <SwiperSlide 
+              key={event.id} 
+              className="!w-auto min-w-0"
+              style={{ 
+                height: 'auto',
+                display: 'flex',
+                alignItems: 'stretch'
+              }}
+            >
               <Link
                 to={`/event/${event.id}`}
                 className="block group h-full"
+                style={{ 
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex'
+                }}
               >
                 {/* Event Card - Responsive và không bị cắt */}
-                <div className="relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] rounded-lg overflow-hidden bg-gray-900 border border-gray-800 hover:border-orange-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl mb-2 flex flex-col h-full">
+                <div 
+                  className="relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] rounded-lg overflow-hidden border transition-all duration-300 mb-2 flex flex-col h-full"
+                  style={{
+                    backgroundColor: isDark ? '#1A1A1A' : '#FAFAFA',
+                    borderColor: isDark ? '#2A2A2A' : '#E5E7EB',
+                    minHeight: '480px',
+                    position: 'relative',
+                    zIndex: 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-8px)';
+                    e.currentTarget.style.borderColor = '#FF7A00';
+                    e.currentTarget.style.boxShadow = isDark 
+                      ? '0 12px 40px rgba(0, 0, 0, 0.3)' 
+                      : '0 12px 40px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.zIndex = '10';
+                    e.currentTarget.style.transition = 'all 0.2s ease';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = isDark ? '#2A2A2A' : '#E5E7EB';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.zIndex = '1';
+                    e.currentTarget.style.transition = 'all 0.2s ease';
+                  }}
+                >
                   {/* Image Container - 16:9 Aspect Ratio */}
-                  <div className="relative w-full aspect-video overflow-hidden bg-gray-800">
+                  <div 
+                    className="relative w-full aspect-video overflow-hidden"
+                    style={{
+                      backgroundColor: isDark ? '#262626' : '#E5E5E5'
+                    }}
+                  >
                     {/* Skeleton Loading State */}
                     {!event.image && (
-                      <div className="absolute inset-0 animate-pulse bg-gray-700 flex items-center justify-center">
-                        <div className="w-16 h-16 text-gray-600">📅</div>
+                      <div 
+                        className="absolute inset-0 animate-pulse flex items-center justify-center"
+                        style={{
+                          backgroundColor: isDark ? '#404040' : '#D1D5DB',
+                          color: isDark ? '#9CA3AF' : '#6B7280'
+                        }}
+                      >
+                        <div className="w-16 h-16">📅</div>
                       </div>
                     )}
 
-                    {/* Event Image với Lazy Load, Alt Text và Fallback */}
+                    {/* Event Image với Lazy Load, Alt Text và Fallback - Optimized */}
                     {event.image ? (
                       <img
                         src={event.image}
                         alt={event.title ? `Ảnh sự kiện: ${event.title}` : 'Ảnh sự kiện'}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         loading="lazy"
+                        decoding="async"
+                        style={{
+                          willChange: 'transform',
+                          imageRendering: 'crisp-edges'
+                        }}
                         onError={(e) => {
                           // Fallback to placeholder if image fails to load
                           const placeholderUrl = 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=Event+Image';
@@ -173,19 +256,32 @@ const EventCarousel = ({
                             e.target.style.display = 'none';
                             const parent = e.target.parentElement;
                             if (parent && !parent.querySelector('.error-placeholder')) {
-                              const placeholder = document.createElement('div');
-                              placeholder.className = 'error-placeholder absolute inset-0 bg-gray-700 flex items-center justify-center text-gray-500';
-                              placeholder.setAttribute('aria-label', `Không thể tải ảnh cho sự kiện: ${event.title || 'N/A'}`);
-                              placeholder.innerHTML = '<span class="text-4xl">📅</span>';
-                              parent.appendChild(placeholder);
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center';
+                            placeholder.style.backgroundColor = isDark ? '#404040' : '#D1D5DB';
+                            placeholder.style.color = isDark ? '#9CA3AF' : '#6B7280';
+                            placeholder.setAttribute('aria-label', `Không thể tải ảnh cho sự kiện: ${event.title || 'N/A'}`);
+                            placeholder.innerHTML = '<span class="text-4xl">📅</span>';
+                            parent.appendChild(placeholder);
                             }
                           }
                         }}
                       />
                     ) : (
                       // Show placeholder immediately if no image URL
-                      <div className="absolute inset-0 bg-gray-700 flex items-center justify-center">
-                        <span className="text-4xl text-gray-500" aria-label={`Sự kiện: ${event.title || 'N/A'}`}>📅</span>
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center"
+                        style={{
+                          backgroundColor: isDark ? '#404040' : '#D1D5DB'
+                        }}
+                      >
+                        <span 
+                          className="text-4xl" 
+                          style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}
+                          aria-label={`Sự kiện: ${event.title || 'N/A'}`}
+                        >
+                          📅
+                        </span>
                       </div>
                     )}
 
@@ -250,16 +346,22 @@ const EventCarousel = ({
                   </div>
 
                   {/* Card Content - Cải thiện padding và spacing */}
-                  <div className="p-5 bg-gray-900 flex-1 flex flex-col">
+                  <div 
+                    className="p-5 flex-1 flex flex-col"
+                    style={{
+                      backgroundColor: isDark ? '#1A1A1A' : '#FAFAFA'
+                    }}
+                  >
                     {/* Title - Bold hơn để nổi bật */}
                     <h3
-                      className="text-lg md:text-xl font-extrabold text-white mb-4 line-clamp-2 group-hover:text-orange-400 transition-colors duration-300 leading-tight"
+                      className="text-lg md:text-xl font-extrabold mb-4 line-clamp-2 group-hover:text-orange-400 transition-colors duration-300 leading-tight"
                       style={{
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                         fontWeight: 800,
+                        color: isDark ? '#FFFFFF' : '#0D0D0D'
                       }}
                     >
                       {event.title}
@@ -274,7 +376,10 @@ const EventCarousel = ({
                           style={{ fontSize: 18 }}
                           aria-label="Địa điểm"
                         />
-                        <span className="line-clamp-2 text-gray-100 font-semibold leading-relaxed flex-1">
+                        <span 
+                          className="line-clamp-2 font-semibold leading-relaxed flex-1"
+                          style={{ color: isDark ? '#E5E7EB' : '#374151' }}
+                        >
                           {event.location || 'Chưa có địa điểm'}
                         </span>
                       </div>
@@ -286,7 +391,10 @@ const EventCarousel = ({
                           style={{ fontSize: 18 }}
                           aria-label="Thời gian"
                         />
-                        <span className="text-gray-100 font-semibold leading-relaxed">
+                        <span 
+                          className="font-semibold leading-relaxed"
+                          style={{ color: isDark ? '#E5E7EB' : '#374151' }}
+                        >
                           {formatDate(event.startTime)}
                         </span>
                       </div>
@@ -294,9 +402,20 @@ const EventCarousel = ({
 
                     {/* Host (optional) */}
                     {event.hostName && (
-                      <div className="mt-3 pt-3 border-t border-gray-700">
-                        <span className="text-xs text-gray-300">
-                          Host: <span className="text-gray-100 font-medium">{event.hostName}</span>
+                      <div 
+                        className="mt-3 pt-3 border-t"
+                        style={{ borderColor: isDark ? '#404040' : '#E5E7EB' }}
+                      >
+                        <span 
+                          className="text-xs"
+                          style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}
+                        >
+                          Host: <span 
+                            className="font-medium"
+                            style={{ color: isDark ? '#E5E7EB' : '#374151' }}
+                          >
+                            {event.hostName}
+                          </span>
                         </span>
                       </div>
                     )}
@@ -307,9 +426,37 @@ const EventCarousel = ({
           ))}
         </Swiper>
       </div>
+      
+      {/* Custom Styles for overflow handling */}
+      <style>{`
+        .event-carousel {
+          overflow: visible !important;
+        }
+        .event-carousel-wrapper {
+          overflow: visible !important;
+        }
+        .event-carousel .swiper-wrapper {
+          overflow: visible !important;
+        }
+        .event-carousel .swiper-slide {
+          overflow: visible !important;
+          height: auto !important;
+        }
+      `}</style>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison để chỉ re-render khi props thực sự thay đổi
+  return prevProps.title === nextProps.title &&
+         prevProps.showAutoPlay === nextProps.showAutoPlay &&
+         prevProps.events?.length === nextProps.events?.length &&
+         prevProps.events?.every((event, index) => 
+           event.id === nextProps.events?.[index]?.id &&
+           event.image === nextProps.events?.[index]?.image
+         );
+});
+
+EventCarousel.displayName = 'EventCarousel';
 
 export default EventCarousel;
 
