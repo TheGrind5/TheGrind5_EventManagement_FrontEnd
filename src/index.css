@@ -17,10 +17,19 @@
 
 html, body, #root {
   height: 100%;
+  width: 100%;
   font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'liga' 1, 'kern' 1;
+  overflow-x: hidden;
+  max-width: 100vw;
+  position: relative;
+}
+
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -29,6 +38,9 @@ body {
   line-height: 1.6;
   transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
   min-height: 100vh;
+  overflow-x: hidden;
+  max-width: 100vw;
+  position: relative;
 }
 
 /* Dark mode support (default dark theme) */
@@ -157,6 +169,63 @@ body {
 }
 
 /* ===== UTILITY CLASSES ===== */
+
+/* Prevent horizontal overflow */
+.App {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Prevent horizontal overflow for all main containers */
+main,
+section,
+article,
+[role="main"] {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Ensure all Material-UI Containers don't overflow */
+.MuiContainer-root {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+/* Prevent images and media from causing overflow */
+img,
+video,
+iframe,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent tables and other wide elements from overflowing */
+table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: auto;
+}
+
+/* Prevent wide content from overflowing */
+div,
+section,
+article,
+main {
+  box-sizing: border-box;
+}
+
+/* Ensure flex containers don't overflow */
+.flex,
+[class*="flex"],
+[class*="grid"] {
+  max-width: 100%;
+}
 
 /* Spacing utilities */
 .mb-4 { margin-bottom: var(--spacing-md); }

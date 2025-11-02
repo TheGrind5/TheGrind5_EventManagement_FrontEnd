@@ -219,9 +219,16 @@ const DashboardPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Box sx={{ 
+        minHeight: '100vh', 
+        bgcolor: 'background.default',
+        width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden',
+        position: 'relative'
+      }}>
         <Header />
-        <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 } }}>
+        <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 }, width: '100%', maxWidth: '100%' }}>
           <Stack spacing={4}>
             <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 3 }} />
             <Grid container spacing={3}>
@@ -239,7 +246,14 @@ const DashboardPage = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      bgcolor: 'background.default',
+      width: '100%',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      position: 'relative'
+    }}>
       <Header />
       
       <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 } }}>
