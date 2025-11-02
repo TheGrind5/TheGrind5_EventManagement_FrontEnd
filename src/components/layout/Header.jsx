@@ -31,7 +31,8 @@ import {
   Search,
   Clear,
   Favorite,
-  Event as EventIcon
+  Event as EventIcon,
+  Dashboard as DashboardIcon
 } from '@mui/icons-material';
 
 // Contexts & Services
@@ -44,13 +45,13 @@ import NotificationIcon from '../common/NotificationIcon';
 import ThemeToggle from '../common/ThemeToggle';
 import SearchAutocomplete from '../common/SearchAutocomplete';
 
-const Header = ({ searchTerm, onSearchChange }) => {
+const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
   const { user, logout } = useAuth();
   const [walletBalance, setWalletBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
-  const [ticketsMenuAnchor, setTicketsMenuAnchor] = useState(null);
+  const [dashboardMenuAnchor, setDashboardMenuAnchor] = useState(null);
   const [hasEvents, setHasEvents] = useState(false);
   const [checkingEvents, setCheckingEvents] = useState(true);
   
@@ -114,12 +115,12 @@ const Header = ({ searchTerm, onSearchChange }) => {
     setUserMenuAnchor(null);
   };
 
-  const handleTicketsMenuOpen = (event) => {
-    setTicketsMenuAnchor(event.currentTarget);
+  const handleDashboardMenuOpen = (event) => {
+    setDashboardMenuAnchor(event.currentTarget);
   };
 
-  const handleTicketsMenuClose = () => {
-    setTicketsMenuAnchor(null);
+  const handleDashboardMenuClose = () => {
+    setDashboardMenuAnchor(null);
   };
 
   return (
@@ -212,31 +213,68 @@ const Header = ({ searchTerm, onSearchChange }) => {
             </Button>
             {user && (
               <>
-                <Button 
-                  component={Link} 
-                  to="/dashboard" 
-                  color="inherit"
-                  sx={{ 
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    px: 2.5,
-                    py: 1,
-                    color: 'text.primary',
-                    fontSize: '0.95rem',
-                    borderRadius: 1.5,
-                    '&:hover': {
-                      backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(255, 122, 0, 0.12)' 
-                        : 'rgba(255, 122, 0, 0.08)',
-                      color: 'primary.main',
-                    }
-                  }}
-                >
-                  Dashboard
-                </Button>
-                <Box>
+                {/* Dashboard Button - Dropdown chỉ khi có sự kiện, nút thường khi chưa có sự kiện */}
+                {!checkingEvents && hasEvents ? (
+                  <Box>
+                    <Button 
+                      onClick={handleDashboardMenuOpen}
+                      color="inherit"
+                      sx={{ 
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        px: 2.5,
+                        py: 1,
+                        color: 'text.primary',
+                        fontSize: '0.95rem',
+                        borderRadius: 1.5,
+                        '&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark' 
+                            ? 'rgba(255, 122, 0, 0.12)' 
+                            : 'rgba(255, 122, 0, 0.08)',
+                          color: 'primary.main',
+                        }
+                      }}
+                    >
+                      Dashboard
+                    </Button>
+                    <Menu
+                      anchorEl={dashboardMenuAnchor}
+                      open={Boolean(dashboardMenuAnchor)}
+                      onClose={handleDashboardMenuClose}
+                      MenuListProps={{
+                        'aria-labelledby': 'dashboard-button',
+                        onMouseLeave: handleDashboardMenuClose
+                      }}
+                      PaperProps={{
+                        sx: {
+                          mt: 1,
+                          minWidth: 200,
+                          borderRadius: 2
+                        }
+                      }}
+                    >
+                      <MenuItem 
+                        onClick={() => { handleDashboardMenuClose(); }} 
+                        component={Link} 
+                        to="/dashboard"
+                      >
+                        <DashboardIcon sx={{ mr: 1 }} />
+                        Dashboard
+                      </MenuItem>
+                      <MenuItem 
+                        onClick={() => { handleDashboardMenuClose(); }} 
+                        component={Link} 
+                        to="/host-dashboard"
+                      >
+                        <EventIcon sx={{ mr: 1 }} />
+                        Host Dashboard
+                      </MenuItem>
+                    </Menu>
+                  </Box>
+                ) : (
                   <Button 
-                    onClick={handleTicketsMenuOpen}
+                    component={Link}
+                    to="/dashboard"
                     color="inherit"
                     sx={{ 
                       fontWeight: 600,
@@ -254,44 +292,31 @@ const Header = ({ searchTerm, onSearchChange }) => {
                       }
                     }}
                   >
-                    My Tickets
+                    Dashboard
                   </Button>
-                  <Menu
-                    anchorEl={ticketsMenuAnchor}
-                    open={Boolean(ticketsMenuAnchor)}
-                    onClose={handleTicketsMenuClose}
-                    MenuListProps={{
-                      'aria-labelledby': 'tickets-button',
-                      onMouseLeave: handleTicketsMenuClose
-                    }}
-                    PaperProps={{
-                      sx: {
-                        mt: 1,
-                        minWidth: 200,
-                        borderRadius: 2
-                      }
-                    }}
-                  >
-                    <MenuItem 
-                      onClick={() => { handleTicketsMenuClose(); }} 
-                      component={Link} 
-                      to="/my-tickets"
-                    >
-                      <Ticket sx={{ mr: 1 }} />
-                      My Tickets
-                    </MenuItem>
-                    {!checkingEvents && hasEvents && (
-                      <MenuItem 
-                        onClick={() => { handleTicketsMenuClose(); }} 
-                        component={Link} 
-                        to="/my-events"
-                      >
-                        <EventIcon sx={{ mr: 1 }} />
-                        My Events
-                      </MenuItem>
-                    )}
-                  </Menu>
-                </Box>
+                )}
+                <Button 
+                  component={Link} 
+                  to="/my-tickets" 
+                  color="inherit"
+                  sx={{ 
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    px: 2.5,
+                    py: 1,
+                    color: 'text.primary',
+                    fontSize: '0.95rem',
+                    borderRadius: 1.5,
+                    '&:hover': {
+                      backgroundColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 122, 0, 0.12)' 
+                        : 'rgba(255, 122, 0, 0.08)',
+                      color: 'primary.main',
+                    }
+                  }}
+                >
+                  My Tickets
+                </Button>
               </>
             )}
           </Box>
@@ -303,13 +328,15 @@ const Header = ({ searchTerm, onSearchChange }) => {
             display: 'flex', 
             alignItems: 'center',
             mx: 2,
-            minWidth: 600,
-            maxWidth: 1000,
-            flex: '1 1 auto'
+            minWidth: 300,
+            maxWidth: 400,
+            flex: '0 1 auto',
+            flexShrink: 1
           }}>
             <SearchAutocomplete
               searchTerm={searchTerm}
               onSearchChange={onSearchChange}
+              onDropdownOpenChange={onDropdownOpenChange}
               sx={{
                 width: '100%',
                 '& .MuiOutlinedInput-root': {
@@ -353,7 +380,8 @@ const Header = ({ searchTerm, onSearchChange }) => {
           display: 'flex', 
           alignItems: 'center', 
           gap: 1.5,
-          ml: 'auto'
+          ml: 'auto',
+          flexShrink: 0
         }}>
           {/* Theme Toggle */}
           <ThemeToggle />

@@ -36,6 +36,7 @@ import CreateEventPage from './pages/CreateEventPage';
 import WishlistPage from './pages/WishlistPage';
 import NotificationsPage from './pages/NotificationsPage';
 import AdminDashboard from './pages/AdminDashboard';
+import HostDashboard from './pages/HostDashboard';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -177,6 +178,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <NotificationsPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Host Dashboard Route */}
+      <Route 
+        path="/host-dashboard" 
+        element={
+          <ProtectedRoute>
+            <HostDashboard />
           </ProtectedRoute>
         } 
       />

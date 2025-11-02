@@ -108,6 +108,7 @@ const HomePage = () => {
   // Search and Filter states
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
 
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -465,9 +466,9 @@ const HomePage = () => {
 
 
 
-  // Render individual event card using EventCard component
+  // Render individual event card using EventCard component with animation
 
-  const renderEventCard = (event, fixedWidth = false) => (
+  const renderEventCard = (event, fixedWidth = false, index = 0) => (
 
     <Grid 
 
@@ -487,8 +488,21 @@ const HomePage = () => {
 
         display: 'flex',
 
-        justifyContent: 'center'
+        justifyContent: 'center',
 
+        animation: 'fadeInUp 0.5s ease-out',
+        animationDelay: `${index * 0.1}s`,
+        animationFillMode: 'both',
+        '@keyframes fadeInUp': {
+          '0%': {
+            opacity: 0,
+            transform: 'translateY(20px)',
+          },
+          '100%': {
+            opacity: 1,
+            transform: 'translateY(0)',
+          },
+        },
       }}
 
     >
@@ -1100,7 +1114,7 @@ const HomePage = () => {
 
         >
 
-          {events.map((event) => (
+          {events.map((event, index) => (
 
             <Box
 
@@ -1118,7 +1132,7 @@ const HomePage = () => {
 
             >
 
-              {renderEventCard(event)}
+              {renderEventCard(event, false, index)}
 
             </Box>
 
@@ -1399,8 +1413,13 @@ const HomePage = () => {
 
 
     // Check if filters are active
-
+    // Don't show results in main content if search dropdown is open
     const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
+    
+    // Hide results in main content when search dropdown is open
+    if (isSearchDropdownOpen && searchTerm) {
+      return null;
+    }
 
 
 
@@ -1410,7 +1429,18 @@ const HomePage = () => {
 
       return (
 
-        <Box sx={{ mb: 6 }}>
+        <Box sx={{ 
+          mb: 6,
+          animation: 'fadeIn 0.4s ease-in',
+          '@keyframes fadeIn': {
+            '0%': {
+              opacity: 0,
+            },
+            '100%': {
+              opacity: 1,
+            },
+          },
+        }}>
 
           <Typography 
 
@@ -1424,7 +1454,18 @@ const HomePage = () => {
 
               fontSize: { xs: '1.25rem', md: '1.5rem' },
 
-              mb: 3
+              mb: 3,
+              animation: 'slideInLeft 0.5s ease-out',
+              '@keyframes slideInLeft': {
+                '0%': {
+                  opacity: 0,
+                  transform: 'translateX(-20px)',
+                },
+                '100%': {
+                  opacity: 1,
+                  transform: 'translateX(0)',
+                },
+              },
 
             }}
 
@@ -1450,7 +1491,7 @@ const HomePage = () => {
 
           >
 
-            {filteredEvents.map(renderEventCard)}
+            {filteredEvents.map((event, index) => renderEventCard(event, false, index))}
 
           </Grid>
 
@@ -1621,6 +1662,8 @@ const HomePage = () => {
         searchTerm={searchTerm}
 
         onSearchChange={setSearchTerm}
+        
+        onDropdownOpenChange={setIsSearchDropdownOpen}
 
       />
 
