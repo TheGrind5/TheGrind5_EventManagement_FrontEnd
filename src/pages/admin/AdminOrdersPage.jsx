@@ -72,6 +72,7 @@ const AdminOrdersPage = () => {
       
       console.log('📦 Orders found:', ordersData.length);
       console.log('📦 First order sample:', ordersData[0]);
+      console.log('📦 First order status:', ordersData[0]?.status || ordersData[0]?.Status || 'NOT FOUND');
       console.log('📦 Total count:', totalCount, 'Total pages:', totalPages);
       
       setOrders(ordersData);
@@ -129,6 +130,28 @@ const AdminOrdersPage = () => {
     });
   };
 
+  const getStatusText = (status) => {
+    const statusMap = {
+      'Pending': 'Đang giữ vé',
+      'Paid': 'Đã thanh toán',
+      'Cancelled': 'Đã hủy',
+      'Refunded': 'Đã hoàn tiền',
+      'Failed': 'Thất bại'
+    };
+    return statusMap[status] || status;
+  };
+
+  const getStatusBadgeClass = (status) => {
+    const statusMap = {
+      'Pending': 'badge-pending',
+      'Paid': 'badge-paid',
+      'Cancelled': 'badge-cancelled',
+      'Refunded': 'badge-refunded',
+      'Failed': 'badge-failed'
+    };
+    return statusMap[status] || 'badge-default';
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
@@ -143,6 +166,20 @@ const AdminOrdersPage = () => {
       setSortOrder('asc');
     }
     setCurrentPage(1);
+  };
+
+  const handleRefund = async (orderId, status) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hoàn tiền cho đơn hàng này?')) {
+      return;
+    }
+
+    try {
+      await adminService.refundOrder(orderId);
+      alert('Hoàn tiền thành công!');
+      await fetchOrders();
+    } catch (err) {
+      alert(`Lỗi hoàn tiền: ${err.message}`);
+    }
   };
 
   if (loading && orders.length === 0) {
@@ -256,9 +293,13 @@ const AdminOrdersPage = () => {
                   <th onClick={() => handleSort('Amount')} className="sortable">
                     Số tiền mua {sortBy === 'Amount' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
+                  <th onClick={() => handleSort('Status')} className="sortable">
+                    Trạng thái {sortBy === 'Status' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th onClick={() => handleSort('CreatedAt')} className="sortable">
                     Thời gian mua {sortBy === 'CreatedAt' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
+                  <th>Hoàn tiền</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,7 +314,36 @@ const AdminOrdersPage = () => {
                     <td>{order.ticketInfo}</td>
                     <td className="quantity">{order.quantity || order.Quantity || 0}</td>
                     <td className="wallet-amount">{formatCurrency(order.amount)}</td>
+                    <td>
+                      <span className={`role-badge ${getStatusBadgeClass(order.status || order.Status || 'Pending')}`}>
+                        {getStatusText(order.status || order.Status || 'Pending')}
+                      </span>
+                    </td>
                     <td>{formatDate(order.createdAt)}</td>
+                    <td>
+                      {(() => {
+                        const status = (order.status || order.Status || 'Pending').toLowerCase();
+                        return status === 'cancelled' ? (
+                          <button
+                            onClick={() => handleRefund(order.orderId, order.status || order.Status)}
+                            className="btn-refund"
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#389e0d',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            Hoàn tiền
+                          </button>
+                        ) : (
+                          <span style={{ color: '#999' }}>—</span>
+                        );
+                      })()}
+                    </td>
                   </tr>
                 ))}
               </tbody>
