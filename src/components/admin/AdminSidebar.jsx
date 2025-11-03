@@ -9,10 +9,14 @@ import {
   Logout,
   AdminPanelSettings
 } from '@mui/icons-material';
+import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
+import { useTheme as useMuiTheme } from '@mui/material/styles';
 import './AdminSidebar.css';
 
 const AdminSidebar = ({ onLogout }) => {
   const location = useLocation();
+  const { isDark } = useCustomTheme();
+  const muiTheme = useMuiTheme();
 
   const menuItems = [
     { path: '/admin/dashboard', icon: <Dashboard />, label: 'Dashboard', },
@@ -25,7 +29,7 @@ const AdminSidebar = ({ onLogout }) => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="admin-sidebar">
+    <div className={`admin-sidebar ${isDark ? 'dark-mode' : 'light-mode'}`}>
       <div className="sidebar-header">
         <AdminPanelSettings className="admin-icon" />
         <h3>Admin Panel</h3>
