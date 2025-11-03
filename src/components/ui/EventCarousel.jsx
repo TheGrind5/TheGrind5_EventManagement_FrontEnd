@@ -1,14 +1,18 @@
 /**
  * EventCarousel Component - Carousel hiển thị danh sách sự kiện theo chủ đề
  * Style giống FPT Play: card 16:9, hover zoom, gradient overlay, badge
+ * Memoized để tránh re-render không cần thiết và cải thiện performance
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
+
+// Material-UI
+import { useTheme } from '@mui/material/styles';
 
 // Material-UI Icons
 import { LocationOn, AccessTime, ChevronLeft, ChevronRight } from '@mui/icons-material';
@@ -106,7 +110,7 @@ const EventCarousel = ({
       </div>
 
       {/* Carousel */}
-      <div className="relative">
+      <div className="relative" style={{ overflow: 'visible', paddingBottom: '24px' }}>
         <Swiper
           modules={[Navigation, Autoplay]}
           spaceBetween={24}
@@ -119,6 +123,7 @@ const EventCarousel = ({
           onSwiper={(swiper) => {
             swiperRef.current = swiper;
           }}
+          style={{ overflow: 'visible', paddingBottom: '24px' }}
           breakpoints={{
             320: {
               slidesPerView: 1.2,
@@ -150,12 +155,26 @@ const EventCarousel = ({
             },
           }}
           className="event-carousel"
+          wrapperClass="event-carousel-wrapper"
         >
           {events.map((event) => (
-            <SwiperSlide key={event.id} className="!w-auto min-w-0">
+            <SwiperSlide 
+              key={event.id} 
+              className="!w-auto min-w-0"
+              style={{ 
+                height: 'auto',
+                display: 'flex',
+                alignItems: 'stretch'
+              }}
+            >
               <Link
                 to={`/event/${event.id}`}
                 className="block group h-full"
+                style={{ 
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex'
+                }}
               >
                 {/* Event Card - Responsive và không bị cắt - Fixed height để đồng đều */}
                 <div className={`relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] h-[520px] rounded-lg overflow-hidden border hover:border-orange-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl mb-2 flex flex-col ${
@@ -174,13 +193,18 @@ const EventCarousel = ({
                       </div>
                     )}
 
-                    {/* Event Image với Lazy Load, Alt Text và Fallback */}
+                    {/* Event Image với Lazy Load, Alt Text và Fallback - Optimized */}
                     {event.image ? (
                       <img
                         src={event.image}
                         alt={event.title ? `Ảnh sự kiện: ${event.title}` : 'Ảnh sự kiện'}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         loading="lazy"
+                        decoding="async"
+                        style={{
+                          willChange: 'transform',
+                          imageRendering: 'crisp-edges'
+                        }}
                         onError={(e) => {
                           // Fallback to placeholder if image fails to load
                           const placeholderUrl = 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=Event+Image';
@@ -191,11 +215,13 @@ const EventCarousel = ({
                             e.target.style.display = 'none';
                             const parent = e.target.parentElement;
                             if (parent && !parent.querySelector('.error-placeholder')) {
-                              const placeholder = document.createElement('div');
-                              placeholder.className = 'error-placeholder absolute inset-0 bg-gray-700 flex items-center justify-center text-gray-500';
-                              placeholder.setAttribute('aria-label', `Không thể tải ảnh cho sự kiện: ${event.title || 'N/A'}`);
-                              placeholder.innerHTML = '<span class="text-4xl">📅</span>';
-                              parent.appendChild(placeholder);
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center';
+                            placeholder.style.backgroundColor = isDark ? '#404040' : '#D1D5DB';
+                            placeholder.style.color = isDark ? '#9CA3AF' : '#6B7280';
+                            placeholder.setAttribute('aria-label', `Không thể tải ảnh cho sự kiện: ${event.title || 'N/A'}`);
+                            placeholder.innerHTML = '<span class="text-4xl">📅</span>';
+                            parent.appendChild(placeholder);
                             }
                           }
                         }}
@@ -351,9 +377,37 @@ const EventCarousel = ({
           ))}
         </Swiper>
       </div>
+      
+      {/* Custom Styles for overflow handling */}
+      <style>{`
+        .event-carousel {
+          overflow: visible !important;
+        }
+        .event-carousel-wrapper {
+          overflow: visible !important;
+        }
+        .event-carousel .swiper-wrapper {
+          overflow: visible !important;
+        }
+        .event-carousel .swiper-slide {
+          overflow: visible !important;
+          height: auto !important;
+        }
+      `}</style>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison để chỉ re-render khi props thực sự thay đổi
+  return prevProps.title === nextProps.title &&
+         prevProps.showAutoPlay === nextProps.showAutoPlay &&
+         prevProps.events?.length === nextProps.events?.length &&
+         prevProps.events?.every((event, index) => 
+           event.id === nextProps.events?.[index]?.id &&
+           event.image === nextProps.events?.[index]?.image
+         );
+});
+
+EventCarousel.displayName = 'EventCarousel';
 
 export default EventCarousel;
 

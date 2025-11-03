@@ -1,9 +1,9 @@
 // React & Router
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // Material-UI
-import { CssBaseline, StyledEngineProvider } from '@mui/material';
+import { CssBaseline, StyledEngineProvider, CircularProgress, Box } from '@mui/material';
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -194,29 +194,30 @@ function AppRoutes() {
         }
       />
 
-      {/* Host Dashboard Route */}
-      <Route 
-        path="/host-dashboard" 
-        element={
-          <ProtectedRoute>
-            <HostDashboard />
-          </ProtectedRoute>
-        } 
-      />
+        {/* Host Dashboard Route */}
+        <Route 
+          path="/host-dashboard" 
+          element={
+            <ProtectedRoute>
+              <HostDashboard />
+            </ProtectedRoute>
+          } 
+        />
 
-      {/* Admin Routes */}
-      <Route 
-        path="/admin/*" 
-        element={
-          <ProtectedRoute requiredRole="Admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Fallback Route */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Admin Routes */}
+        <Route 
+          path="/admin/*" 
+          element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Fallback Route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

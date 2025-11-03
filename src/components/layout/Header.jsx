@@ -135,13 +135,20 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
       borderBottom: `1px solid ${theme.palette.divider}`,
       color: 'text.primary',
       boxShadow: 'none',
-      zIndex: theme.zIndex.appBar
+      zIndex: theme.zIndex.appBar,
+      width: '100%',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      left: 0,
+      right: 0
     }}>
       <Toolbar sx={{ 
         minHeight: { xs: 70, md: 72 }, 
         height: { xs: 70, md: 72 },
         px: { xs: 2, md: 4 },
-        justifyContent: 'space-between'
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2
       }}>
         {/* Logo */}
         <Box
@@ -186,12 +193,10 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
         {/* Desktop Navigation */}
         {!isMobile && (
           <Box sx={{ 
-            flexGrow: 1, 
             display: 'flex', 
             gap: 1,
-            justifyContent: 'center',
             alignItems: 'center',
-            mx: 2
+            flexShrink: 0
           }}>
             <Button 
               component={Link} 
@@ -332,10 +337,10 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
             display: 'flex', 
             alignItems: 'center',
             mx: 2,
-            minWidth: 300,
+            width: { md: 300, lg: 350 },
             maxWidth: 400,
             flex: '0 1 auto',
-            flexShrink: 1
+            flexShrink: 0
           }}>
             <SearchAutocomplete
               searchTerm={searchTerm}
