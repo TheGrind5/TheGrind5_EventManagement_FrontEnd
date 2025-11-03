@@ -11,9 +11,6 @@ import { Navigation, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
-// Material-UI
-import { useTheme } from '@mui/material/styles';
-
 // Material-UI Icons
 import { LocationOn, AccessTime, ChevronLeft, ChevronRight } from '@mui/icons-material';
 
@@ -396,8 +393,10 @@ const EventCarousel = ({
       `}</style>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Custom comparison để chỉ re-render khi props thực sự thay đổi
+};
+
+// Custom comparison để chỉ re-render khi props thực sự thay đổi
+const areEqual = (prevProps, nextProps) => {
   return prevProps.title === nextProps.title &&
          prevProps.showAutoPlay === nextProps.showAutoPlay &&
          prevProps.events?.length === nextProps.events?.length &&
@@ -405,9 +404,10 @@ const EventCarousel = ({
            event.id === nextProps.events?.[index]?.id &&
            event.image === nextProps.events?.[index]?.image
          );
-});
+};
 
-EventCarousel.displayName = 'EventCarousel';
+const MemoizedEventCarousel = memo(EventCarousel, areEqual);
+MemoizedEventCarousel.displayName = 'EventCarousel';
 
-export default EventCarousel;
+export default MemoizedEventCarousel;
 
