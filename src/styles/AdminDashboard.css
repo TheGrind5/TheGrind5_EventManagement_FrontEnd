@@ -4,12 +4,17 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #f5f5f5;
+  background-color: #F5F5F5;
   min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme .admin-dashboard {
+  background-color: #0D0D0D;
 }
 
 .admin-header {
-  background: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
+  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
   color: white;
   padding: 30px;
   border-radius: 12px;
@@ -18,6 +23,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.3s ease;
 }
 
 .admin-header h1 {
@@ -47,7 +53,7 @@
 
 .btn-logout:hover {
   background: white;
-  color: #0A1128;
+  color: #FF7A00;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -61,14 +67,20 @@
 }
 
 .stat-card {
-  background: white;
+  background: #FFFFFF;
   border-radius: 12px;
   padding: 25px;
   display: flex;
   align-items: center;
   gap: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #E0E0E0;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s ease;
+}
+
+.dark-theme .stat-card {
+  background: #1A1A1A;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .stat-card:hover {
@@ -98,43 +110,70 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .stat-content h3 {
+  color: #A5A5A5;
 }
 
 .stat-number {
   margin: 0;
   font-size: 36px;
   font-weight: 700;
-  color: #333;
+  color: #2D3748;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .stat-number {
+  color: #FFFFFF;
 }
 
 .stat-number-small {
   margin: 0;
   font-size: 24px;
   font-weight: 700;
-  color: #333;
+  color: #2D3748;
+  transition: color 0.3s ease;
 }
 
-/* Stat Card Colors */
-.stat-card-primary { border-left: 4px solid #0A1128; }
+.dark-theme .stat-number-small {
+  color: #FFFFFF;
+}
+
+/* Stat Card Colors - Changed to orange theme */
+.stat-card-primary { border-left: 4px solid #FF7A00; }
 .stat-card-success { border-left: 4px solid #FF7A00; }
 .stat-card-info { border-left: 4px solid #FF7A00; }
-.stat-card-warning { border-left: 4px solid #ed8936; }
-.stat-card-purple { border-left: 4px solid #9f7aea; }
-.stat-card-gold { border-left: 4px solid #ecc94b; }
+.stat-card-warning { border-left: 4px solid #FF8A00; }
+.stat-card-purple { border-left: 4px solid #FF7A00; }
+.stat-card-gold { border-left: 4px solid #FF8A00; }
 
 /* Quick Actions */
 .quick-actions {
-  background: white;
+  background: #FFFFFF;
   border-radius: 12px;
   padding: 30px;
   margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #E0E0E0;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme .quick-actions {
+  background: #1A1A1A;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .quick-actions h2 {
   margin: 0 0 20px 0;
   font-size: 24px;
-  color: #333;
+  color: #2D3748;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .quick-actions h2 {
+  color: #FFFFFF;
 }
 
 .action-buttons {
@@ -176,9 +215,9 @@
 }
 
 .action-btn-primary {
-  background: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
+  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
   color: white;
-  border-color: #0A1128;
+  border-color: #FF7A00;
 }
 
 .action-btn-success {
@@ -188,9 +227,9 @@
 }
 
 .action-btn-info {
-  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
   color: white;
-  border-color: #4299e1;
+  border-color: #FF7A00;
 }
 
 .action-btn-warning {
@@ -201,16 +240,28 @@
 
 /* Activity Summary */
 .activity-summary {
-  background: white;
+  background: #FFFFFF;
   border-radius: 12px;
   padding: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #E0E0E0;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme .activity-summary {
+  background: #1A1A1A;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .activity-summary h2 {
   margin: 0 0 20px 0;
   font-size: 24px;
-  color: #333;
+  color: #2D3748;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .activity-summary h2 {
+  color: #FFFFFF;
 }
 
 .summary-content {
@@ -224,24 +275,39 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px;
-  background: #f8f9fa;
+  background: #FAFAFA;
   border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme .summary-item {
+  background: #2A2A2A;
 }
 
 .summary-label {
   font-size: 16px;
-  color: #666;
+  color: #4A5568;
   font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .summary-label {
+  color: #A5A5A5;
 }
 
 .summary-value {
   font-size: 18px;
-  color: #333;
+  color: #2D3748;
   font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .summary-value {
+  color: #FFFFFF;
 }
 
 .summary-value.highlight {
-  color: #48bb78;
+  color: #FF7A00;
   font-size: 20px;
 }
 
@@ -259,9 +325,14 @@
   width: 50px;
   height: 50px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #0A1128;
+  border-top: 4px solid #FF7A00;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+.dark-theme .spinner {
+  border: 4px solid #2A2A2A;
+  border-top: 4px solid #FF7A00;
 }
 
 @keyframes spin {
@@ -284,7 +355,7 @@
 }
 
 .btn-retry {
-  background: #0A1128;
+  background: #FF7A00;
   color: white;
   border: none;
   padding: 10px 24px;
@@ -295,7 +366,7 @@
 }
 
 .btn-retry:hover {
-  background: #001F3F;
+  background: #FF8A00;
 }
 
 /* Responsive */
