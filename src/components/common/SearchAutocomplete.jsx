@@ -1,19 +1,19 @@
 // React & Router
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Material-UI Components
 import { 
   Autocomplete, 
   TextField, 
-  Popper, 
   Paper,
   Box,
   Typography,
   Avatar,
   CircularProgress,
   IconButton,
-  ListSubheader
+  ListSubheader,
+  useTheme
 } from '@mui/material';
 
 // Material-UI Icons
@@ -22,8 +22,9 @@ import { Event as EventIcon, LocationOn, AccessTime, Close as CloseIcon, History
 // Services
 import { eventsAPI } from '../../services/apiClient';
 
-const SearchAutocomplete = ({ searchTerm, onSearchChange, onEventSelect, sx }) => {
+const SearchAutocomplete = ({ searchTerm, onSearchChange, onEventSelect, onDropdownOpenChange, sx }) => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -168,29 +169,60 @@ const SearchAutocomplete = ({ searchTerm, onSearchChange, onEventSelect, sx }) =
       }
     }
   }, []);
-  
-  // Memoize customPopper to prevent re-renders
-  const customPopper = useCallback((props) => {
-    // Get the anchor width to match the search input
-    const anchorWidth = props.anchorEl?.offsetWidth;
-    
-    return (
-      <Popper 
-        {...props} 
-        placement="bottom-start"
-        style={{ 
-          width: anchorWidth ? `${anchorWidth}px` : '100%',
-          minWidth: 600
-        }}
-      />
-    );
-  }, []);
 
   // Handler to clear search history
   const handleClearHistory = useCallback(() => {
     setSearchHistory([]);
     localStorage.removeItem('eventSearchHistory');
   }, []);
+
+  // Custom Paper Component for larger dropdown
+  const CustomPaper = React.useCallback((props) => {
+    return (
+      <Paper
+        {...props}
+        sx={{
+          mt: 1,
+          minWidth: '100%',
+          width: 'max-content',
+          maxWidth: '1200px',
+          maxHeight: '70vh',
+          overflow: 'auto',
+          backgroundColor: theme.palette.mode === 'dark' ? '#1A1A1A' : '#FFFFFF',
+          border: `1px solid ${theme.palette.divider}`,
+          boxShadow: theme.palette.mode === 'dark' 
+            ? '0 8px 32px rgba(0, 0, 0, 0.4)' 
+            : '0 8px 32px rgba(0, 0, 0, 0.12)',
+          borderRadius: 2,
+          animation: 'slideDown 0.3s ease-out',
+          '@keyframes slideDown': {
+            '0%': {
+              opacity: 0,
+              transform: 'translateY(-10px)',
+            },
+            '100%': {
+              opacity: 1,
+              transform: 'translateY(0)',
+            },
+          },
+          '&::-webkit-scrollbar': {
+            width: 8,
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: theme.palette.mode === 'dark' ? '#1C1C1C' : '#F5F5F5',
+            borderRadius: 4,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: theme.palette.mode === 'dark' ? '#404040' : '#D4D4D4',
+            borderRadius: 4,
+            '&:hover': {
+              backgroundColor: theme.palette.mode === 'dark' ? '#525252' : '#A3A3A3',
+            },
+          },
+        }}
+      />
+    );
+  }, [theme]);
 
   // Custom ListboxComponent with header for search history
   const CustomListboxComponent = React.useMemo(() => {
@@ -231,23 +263,42 @@ const SearchAutocomplete = ({ searchTerm, onSearchChange, onEventSelect, sx }) =
   }, [searchHistory, inputValue]);
 
   return (
-    <Autocomplete
-      freeSolo
-      open={open}
-      onOpen={() => setOpen(true)}
-      onClose={() => setOpen(false)}
-      loading={loading}
-      options={filteredEvents}
-      getOptionLabel={(option) => {
-        if (typeof option === 'string') return option;
-        return option.title || '';
+    <Box sx={{ width: '100%' }}>
+      <Autocomplete
+        freeSolo
+        open={open}
+        onOpen={() => {
+          setOpen(true);
+          if (onDropdownOpenChange) {
+            onDropdownOpenChange(true);
+          }
+        }}
+        onClose={() => {
+          setOpen(false);
+          if (onDropdownOpenChange) {
+            onDropdownOpenChange(false);
+          }
+        }}
+        loading={loading}
+        options={filteredEvents}
+        getOptionLabel={(option) => {
+          if (typeof option === 'string') return option;
+          return option.title || '';
+        }}
+        onInputChange={handleInputChange}
+        onChange={handleEventSelect}
+        inputValue={inputValue}
+        value={searchTerm}
+        PaperComponent={CustomPaper}
+        ListboxComponent={CustomListboxComponent}
+      ListboxProps={{
+        sx: {
+          maxHeight: '70vh',
+          '& .MuiAutocomplete-option': {
+            minHeight: 80,
+          }
+        }
       }}
-      onInputChange={handleInputChange}
-      onChange={handleEventSelect}
-      inputValue={inputValue}
-      value={searchTerm}
-      PopperComponent={customPopper}
-      ListboxComponent={CustomListboxComponent}
       renderInput={(params) => (
         <TextField
           {...params}
@@ -282,6 +333,15 @@ const SearchAutocomplete = ({ searchTerm, onSearchChange, onEventSelect, sx }) =
         const rawImage = option.eventDetails?.backgroundImage || option.backgroundImage;
         const imageUrl = buildImageUrl(rawImage);
         
+        // Get index for staggered animation
+        const optionId = option.eventId || option.id;
+        const animationIndex = filteredEvents.findIndex(e => {
+          const eventId = e.eventId || e.id;
+          return optionId && eventId && optionId === eventId;
+        });
+        // Use index if found, otherwise default to 0
+        const delayIndex = animationIndex >= 0 ? animationIndex : 0;
+        
         return (
           <Box 
             component="li" 
@@ -292,8 +352,23 @@ const SearchAutocomplete = ({ searchTerm, onSearchChange, onEventSelect, sx }) =
               gap: 2, 
               py: 1.5,
               cursor: 'pointer',
+              animation: 'fadeInSlide 0.3s ease-out',
+              animationDelay: `${delayIndex * 0.05}s`,
+              animationFillMode: 'both',
+              '@keyframes fadeInSlide': {
+                '0%': {
+                  opacity: 0,
+                  transform: 'translateX(-10px)',
+                },
+                '100%': {
+                  opacity: 1,
+                  transform: 'translateX(0)',
+                },
+              },
               '&:hover': {
-                backgroundColor: 'action.hover'
+                backgroundColor: 'action.hover',
+                transform: 'translateX(4px)',
+                transition: 'all 0.2s ease',
               }
             }}
           >
@@ -349,15 +424,47 @@ const SearchAutocomplete = ({ searchTerm, onSearchChange, onEventSelect, sx }) =
         '& .MuiOutlinedInput-root': {
           borderRadius: 2,
           backgroundColor: 'background.paper',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
             backgroundColor: 'action.hover',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
           },
           '&.Mui-focused': {
             backgroundColor: 'background.paper',
+            transform: 'scale(1.02)',
+            boxShadow: '0 8px 24px rgba(255, 122, 0, 0.25)',
+            borderColor: 'primary.main',
+            animation: 'pulse 0.6s ease-in-out',
+            '@keyframes pulse': {
+              '0%': {
+                boxShadow: '0 0 0 0 rgba(255, 122, 0, 0.4)',
+              },
+              '50%': {
+                boxShadow: '0 0 0 8px rgba(255, 122, 0, 0)',
+              },
+              '100%': {
+                boxShadow: '0 8px 24px rgba(255, 122, 0, 0.25)',
+              },
+            },
           }
+        },
+        '& .MuiAutocomplete-paper': {
+          animation: 'slideDown 0.3s ease-out',
+          '@keyframes slideDown': {
+            '0%': {
+              opacity: 0,
+              transform: 'translateY(-10px)',
+            },
+            '100%': {
+              opacity: 1,
+              transform: 'translateY(0)',
+            },
+          },
         }
       }}
-    />
+      />
+    </Box>
   );
 };
 

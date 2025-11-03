@@ -36,6 +36,7 @@ const CreateEventPage = lazy(() => import('./pages/CreateEventPage'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const HostDashboard = lazy(() => import('./pages/HostDashboard'));
 
 // Loading component để hiển thị khi lazy load
 const LoadingFallback = () => (
@@ -185,6 +186,16 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <NotificationsPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Host Dashboard Route */}
+        <Route 
+          path="/host-dashboard" 
+          element={
+            <ProtectedRoute>
+              <HostDashboard />
             </ProtectedRoute>
           } 
         />
