@@ -2,9 +2,10 @@
  * HeroEvents Component - Full-width Hero Banner với Carousel
  * Style giống FPT Play với Framer Motion animations
  * FIXED: No overlapping content, smooth transitions, proper image loading
+ * Memoized để tránh re-render không cần thiết và cải thiện performance
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -18,7 +19,7 @@ import { LocationOn, AccessTime, ChevronLeft, ChevronRight } from '@mui/icons-ma
 // Material-UI Theme
 import { useTheme } from '@mui/material/styles';
 
-const HeroEvents = ({ events = [] }) => {
+const HeroEvents = memo(({ events = [] }) => {
   const theme = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -160,13 +161,13 @@ const HeroEvents = ({ events = [] }) => {
     }
   }, [currentIndex, isTransitioning, events.length, changeSlide]);
   
-  // Auto-advance slides
+  // Auto-advance slides - Tăng delay để giảm CPU usage
   useEffect(() => {
     if (events.length <= 1 || isTransitioning) return;
     
     const interval = setInterval(() => {
       handleNext();
-    }, 5000);
+    }, 6000); // Tăng từ 5000ms lên 6000ms để giảm tải
     
     return () => clearInterval(interval);
   }, [events.length, isTransitioning, handleNext]);
@@ -186,7 +187,7 @@ const HeroEvents = ({ events = [] }) => {
   const imageUrl = getImageUrl(currentEvent);
 
   return (
-    <div className="relative w-full h-[85vh] min-h-[600px] max-h-[900px] overflow-hidden">
+    <div className="relative w-full h-[85vh] min-h-[600px] max-h-[900px] overflow-hidden" style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
       {/* Background Image Layer - Changes with currentEvent */}
       <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
         {/* Loading Skeleton */}
@@ -216,7 +217,7 @@ const HeroEvents = ({ events = [] }) => {
               scale: imageLoading || isTransitioning ? 1.1 : 1,
             }}
             exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="eager"
@@ -366,7 +367,7 @@ const HeroEvents = ({ events = [] }) => {
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3, duration: 0.4 }}
+                            transition={{ delay: 0.2, duration: 0.3 }}
                             className="flex flex-wrap items-center justify-center gap-4 md:gap-6 px-4"
                           >
                             <Link
@@ -450,6 +451,16 @@ const HeroEvents = ({ events = [] }) => {
       `}</style>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison để chỉ re-render khi events thực sự thay đổi
+  return prevProps.events?.length === nextProps.events?.length &&
+         prevProps.events?.every((event, index) => 
+           event.id === nextProps.events?.[index]?.id &&
+           event.image === nextProps.events?.[index]?.image &&
+           event.title === nextProps.events?.[index]?.title
+         );
+});
+
+HeroEvents.displayName = 'HeroEvents';
 
 export default HeroEvents;

@@ -171,10 +171,10 @@ const EventDetailsPage = () => {
     null;
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden', position: 'relative' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: 4, width: '100%', maxWidth: '100%' }}>
         <Card>
           {/* Event Image Header */}
           <Box sx={{ 

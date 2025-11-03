@@ -1,5 +1,5 @@
 // React & Router
-import React from 'react';
+import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 
 // Material-UI Components
@@ -28,8 +28,9 @@ import { decodeText } from '../../utils/textDecoder';
  * EventCard Component - TicketBox Style
  * Displays event information in a clean, professional card
  * Consumes existing event objects without prop changes
+ * Memoized để tránh re-render không cần thiết và cải thiện performance
  */
-const EventCard = ({ event }) => {
+const EventCard = memo(({ event }) => {
   const theme = useTheme();
 
   // Format date helper
@@ -91,22 +92,34 @@ const EventCard = ({ event }) => {
       to={`/event/${event.eventId}`}
       sx={{
         width: '100%',
-        height: 420,
+        height: '100%',
+        minHeight: 420,
         display: 'flex',
         flexDirection: 'column',
         borderRadius: 2,
-        transition: 'all 0.2s ease',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         textDecoration: 'none',
         color: 'inherit',
         cursor: 'pointer',
         overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: theme.palette.mode === 'dark' 
+          ? theme.palette.background.paper 
+          : '#FAFAFA',
         border: `1px solid ${theme.palette.divider}`,
-        boxShadow: 'none',
+        boxShadow: theme.palette.mode === 'dark' 
+          ? 'none' 
+          : '0 1px 3px rgba(0, 0, 0, 0.08)',
         '&:hover': {
+          transform: 'translateY(-8px)',
           boxShadow: theme.palette.mode === 'dark'
-            ? '0 4px 12px rgba(0, 0, 0, 0.3)'
-            : '0 4px 12px rgba(0, 0, 0, 0.08)',
+            ? '0 12px 24px rgba(0, 0, 0, 0.4)'
+            : '0 12px 24px rgba(0, 0, 0, 0.15)',
           borderColor: 'primary.main',
+          backgroundColor: theme.palette.mode === 'dark' 
+            ? theme.palette.background.paper 
+            : '#F5F5F5',
+          zIndex: 10,
         }
       }}
     >
@@ -132,28 +145,31 @@ const EventCard = ({ event }) => {
               justifyContent: 'center',
               height: '100%',
               width: '100%',
-              backgroundColor: theme.palette.mode === 'dark' ? '#262626' : '#F5F5F5',
-              color: theme.palette.mode === 'dark' ? '#525252' : '#A3A3A3'
+              backgroundColor: theme.palette.mode === 'dark' ? '#262626' : '#E5E5E5',
+              color: theme.palette.mode === 'dark' ? '#525252' : '#9CA3AF'
             }}
           >
             <EventIcon sx={{ fontSize: 40, opacity: 0.5 }} />
           </Box>
         )}
 
-        {/* Event Image - 1280x720 with hover zoom effect */}
+        {/* Event Image - 1280x720 with hover zoom effect - Optimized với lazy loading */}
         {imageUrl && (
           <Box
             component="img"
             className="event-image"
             src={imageUrl}
             alt={decodeText(event.title)}
+            loading="lazy"
+            decoding="async"
             sx={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              transition: 'transform 0.5s ease',
+              transition: 'transform 0.3s ease',
+              willChange: 'transform',
               '&:hover': {
-                transform: 'scale(1.1)',
+                transform: 'scale(1.05)',
               }
             }}
             onError={(e) => {
@@ -348,7 +364,15 @@ const EventCard = ({ event }) => {
       </CardContent>
     </Card>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison để chỉ re-render khi event thực sự thay đổi
+  return prevProps.event?.eventId === nextProps.event?.eventId &&
+         prevProps.event?.title === nextProps.event?.title &&
+         prevProps.event?.backgroundImage === nextProps.event?.backgroundImage &&
+         prevProps.event?.startTime === nextProps.event?.startTime;
+});
+
+EventCard.displayName = 'EventCard';
 
 export default EventCard;
 
