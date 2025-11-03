@@ -1688,19 +1688,53 @@ const HomePage = () => {
         </Box>
       )}
 
-      {/* Event Carousels Section - FPT Play Style - Cải thiện spacing */}
-      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 4, md: 8 }, px: { xs: 2, md: 4 } }}>
-        <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
-          {/* Sự kiện nổi bật */}
-          {featuredEventsForHero.length > 0 && (
+      {/* Filter Bar Section - Positioned between Hero and "Sự kiện nổi bật" */}
+      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 3, md: 4 }, px: { xs: 2, md: 4 }, borderTop: `1px solid ${theme.palette.divider}` }}>
+        <Container maxWidth="xl">
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+          {/* Filter Section */}
+          {renderFilterControls()}
+        </Container>
+      </Box>
+
+      {/* Events Grid Section - Kết quả tìm kiếm - Positioned right below filter bar */}
+      {filteredEvents.length > 0 || (() => {
+        const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
+        return hasFilters && filteredEvents.length === 0; // Show "Không tìm thấy" message when filters are active but no results
+      })() ? (
+        <Box
+          sx={{
+            backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+          }}
+        >
+          <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
+            {/* Events Grid - Only shows filtered results or "not found" message */}
+            {renderEventsGrid()}
+          </Container>
+        </Box>
+      ) : null}
+
+      {/* Sự kiện nổi bật - Hiển thị sau filter bar */}
+      {featuredEventsForHero.length > 0 && (
+        <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 4, md: 8 }, px: { xs: 2, md: 4 } }}>
+          <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
             <EventCarousel
               title="🔥 Sự kiện nổi bật"
               events={featuredEventsForHero.map(convertEventForDisplay)}
               icon={<TrendingUp sx={{ fontSize: 32 }} />}
               showAutoPlay={true}
             />
-          )}
+          </Container>
+        </Box>
+      )}
 
+      {/* Event Carousels Section - FPT Play Style - Cải thiện spacing */}
+      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 4, md: 8 }, px: { xs: 2, md: 4 } }}>
+        <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
           {/* Sự kiện xu hướng */}
           {trendingEvents.length > 0 && (
             <EventCarousel
@@ -1763,49 +1797,6 @@ const HomePage = () => {
             </Container>
 
           </Box>
-
-
-
-      {/* Filter Bar Section - Positioned between "Sự kiện sắp diễn ra" and "Kết quả tìm kiếm" */}
-      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 3, md: 4 }, px: { xs: 2, md: 4 }, borderTop: `1px solid ${theme.palette.divider}` }}>
-        <Container maxWidth="xl">
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-          {/* Filter Section */}
-          {renderFilterControls()}
-        </Container>
-
-      </Box>
-
-
-
-      {/* Events Grid Section - Only shows when there are filtered events */}
-      {filteredEvents.length > 0 || (() => {
-        const hasFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
-        return hasFilters && filteredEvents.length === 0; // Show "Không tìm thấy" message when filters are active but no results
-      })() ? (
-        <Box
-
-          sx={{
-
-            backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
-
-          }}
-
-        >
-
-          <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
-        
-            {/* Events Grid - Only shows filtered results or "not found" message */}
-            {renderEventsGrid()}
-
-          </Container>
-
-        </Box>
-      ) : null}
 
 
 

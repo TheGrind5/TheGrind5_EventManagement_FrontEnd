@@ -91,7 +91,7 @@ const EventCard = ({ event }) => {
       to={`/event/${event.eventId}`}
       sx={{
         width: '100%',
-        height: 420,
+        height: 440,
         display: 'flex',
         flexDirection: 'column',
         borderRadius: 2,
@@ -102,6 +102,7 @@ const EventCard = ({ event }) => {
         overflow: 'hidden',
         border: `1px solid ${theme.palette.divider}`,
         boxShadow: 'none',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1A1A1A' : '#FFFFFF',
         '&:hover': {
           boxShadow: theme.palette.mode === 'dark'
             ? '0 4px 12px rgba(0, 0, 0, 0.3)'
@@ -162,7 +163,7 @@ const EventCard = ({ event }) => {
           />
         )}
 
-        {/* Overlay with chips */}
+        {/* Overlay with chips - Increased z-index to ensure they're above any image text */}
         <Box
           sx={{
             position: 'absolute',
@@ -172,25 +173,27 @@ const EventCard = ({ event }) => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            zIndex: 2,
+            zIndex: 20,
           }}
         >
-          <Chip
-            label={decodeText(event.category)}
-            size="small"
-            sx={{
-              fontWeight: 500,
-              borderRadius: 1,
-              fontSize: '0.7rem',
-              height: 24,
-              backgroundColor: 'white',
-              color: 'text.primary',
-              '& .MuiChip-label': {
-                textRendering: 'optimizeLegibility',
-                WebkitFontSmoothing: 'antialiased',
-              }
-            }}
-          />
+          {event.category && (
+            <Chip
+              label={decodeText(event.category)}
+              size="small"
+              sx={{
+                fontWeight: 500,
+                borderRadius: 1,
+                fontSize: '0.7rem',
+                height: 24,
+                backgroundColor: 'white',
+                color: 'text.primary',
+                '& .MuiChip-label': {
+                  textRendering: 'optimizeLegibility',
+                  WebkitFontSmoothing: 'antialiased',
+                }
+              }}
+            />
+          )}
           <Chip
             label={getStatusText(currentStatus)}
             size="small"
@@ -223,7 +226,7 @@ const EventCard = ({ event }) => {
           }
         }}
       >
-        {/* Title */}
+        {/* Title - Increased to 3 lines to show full title */}
         <Typography
           variant="h6"
           component="h3"
@@ -231,9 +234,9 @@ const EventCard = ({ event }) => {
             fontWeight: 700,
             lineHeight: 1.3,
             mb: 1.5,
-            minHeight: 44,
+            minHeight: 60,
             display: '-webkit-box',
-            WebkitLineClamp: 2,
+            WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             fontSize: '1rem',
@@ -273,12 +276,13 @@ const EventCard = ({ event }) => {
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
           <Stack spacing={1}>
             {/* Time */}
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minHeight: 24 }}>
               <AccessTime 
                 sx={{ 
                   fontSize: '1rem', 
                   mt: 0.2,
-                  color: 'text.secondary'
+                  color: 'text.secondary',
+                  flexShrink: 0
                 }} 
               />
               <Typography
@@ -288,6 +292,7 @@ const EventCard = ({ event }) => {
                   lineHeight: 1.4,
                   fontSize: '0.8125rem',
                   flex: 1,
+                  minHeight: 20,
                   textRendering: 'optimizeLegibility',
                   WebkitFontSmoothing: 'antialiased',
                 }}
@@ -297,12 +302,13 @@ const EventCard = ({ event }) => {
             </Box>
 
             {/* Location */}
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minHeight: 40 }}>
               <LocationOn 
                 sx={{ 
                   fontSize: '1rem', 
                   mt: 0.2,
-                  color: 'text.secondary'
+                  color: 'text.secondary',
+                  flexShrink: 0
                 }} 
               />
               <Typography
@@ -312,6 +318,11 @@ const EventCard = ({ event }) => {
                   lineHeight: 1.4,
                   fontSize: '0.8125rem',
                   flex: 1,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  minHeight: 36,
                   textRendering: 'optimizeLegibility',
                   WebkitFontSmoothing: 'antialiased',
                 }}
@@ -320,13 +331,14 @@ const EventCard = ({ event }) => {
               </Typography>
             </Box>
 
-            {/* Host */}
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+            {/* Host - Always visible with fixed height */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minHeight: 24 }}>
               <Person 
                 sx={{ 
                   fontSize: '1rem', 
                   mt: 0.2,
-                  color: 'text.secondary'
+                  color: 'text.secondary',
+                  flexShrink: 0
                 }} 
               />
               <Typography
@@ -336,6 +348,7 @@ const EventCard = ({ event }) => {
                   lineHeight: 1.4,
                   fontSize: '0.8125rem',
                   flex: 1,
+                  minHeight: 20,
                   textRendering: 'optimizeLegibility',
                   WebkitFontSmoothing: 'antialiased',
                 }}

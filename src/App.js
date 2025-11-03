@@ -9,10 +9,13 @@ import { CssBaseline, StyledEngineProvider } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WishlistProvider } from './contexts/WishlistContext';
 import { CustomThemeProvider } from './contexts/ThemeContext';
+import { ModalProvider } from './contexts/ModalContext';
 
 // Components
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import LoginModal from './components/common/LoginModal';
+import RegisterModal from './components/common/RegisterModal';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -37,6 +40,7 @@ import WishlistPage from './pages/WishlistPage';
 import NotificationsPage from './pages/NotificationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import HostDashboard from './pages/HostDashboard';
+import SubscriptionPlansPage from './pages/SubscriptionPlansPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -171,7 +175,15 @@ function AppRoutes() {
           <ProtectedRoute>
             <CreateEventPage />
           </ProtectedRoute>
-        } 
+        }
+      />
+      <Route 
+        path="/subscriptions/plans" 
+        element={
+          <ProtectedRoute>
+            <SubscriptionPlansPage />
+          </ProtectedRoute>
+        }
       />
       <Route 
         path="/notifications" 
@@ -179,7 +191,7 @@ function AppRoutes() {
           <ProtectedRoute>
             <NotificationsPage />
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Host Dashboard Route */}
@@ -215,13 +227,17 @@ export default function App() {
         <CssBaseline />
         <ErrorBoundary>
           <AuthProvider>
-            <WishlistProvider>
-              <Router>
-                <div className="App">
-                  <AppRoutes />
-                </div>
-              </Router>
-            </WishlistProvider>
+            <ModalProvider>
+              <WishlistProvider>
+                <Router>
+                  <div className="App">
+                    <AppRoutes />
+                    <LoginModal />
+                    <RegisterModal />
+                  </div>
+                </Router>
+              </WishlistProvider>
+            </ModalProvider>
           </AuthProvider>
         </ErrorBoundary>
       </CustomThemeProvider>
