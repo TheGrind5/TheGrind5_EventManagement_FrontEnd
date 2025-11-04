@@ -359,16 +359,53 @@ export const ticketsAPI = {
 
 // Voucher API
 export const voucherAPI = {
-  validate: async (voucherCode, originalAmount) => {
-    return api.post('/Voucher/validate', { voucherCode, originalAmount });
+  validate: async (voucherCode, originalAmount, userId = null) => {
+    return api.post('/Voucher/validate', { 
+      voucherCode, 
+      originalAmount,
+      userId 
+    });
   },
   
   getByCode: async (voucherCode) => {
     return api.get(`/Voucher/code/${voucherCode}`);
   },
   
-  getAll: async () => {
-    return api.get('/Voucher');
+  getById: async (voucherId) => {
+    return api.get(`/Voucher/${voucherId}`);
+  },
+  
+  getAll: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.isActive !== undefined) params.append('IsActive', filters.isActive);
+    if (filters.validFrom) params.append('ValidFrom', filters.validFrom);
+    if (filters.validTo) params.append('ValidTo', filters.validTo);
+    if (filters.searchCode) params.append('SearchCode', filters.searchCode);
+    if (filters.page) params.append('Page', filters.page);
+    if (filters.pageSize) params.append('PageSize', filters.pageSize);
+    
+    const queryString = params.toString();
+    return api.get(`/Voucher${queryString ? '?' + queryString : ''}`);
+  },
+  
+  create: async (voucherData) => {
+    return api.post('/Voucher', voucherData);
+  },
+  
+  update: async (voucherId, voucherData) => {
+    return api.put(`/Voucher/${voucherId}`, voucherData);
+  },
+  
+  delete: async (voucherId) => {
+    return api.delete(`/Voucher/${voucherId}`);
+  },
+  
+  getUsageHistory: async (voucherId) => {
+    return api.get(`/Voucher/${voucherId}/usage`);
+  },
+  
+  getUsageCount: async (voucherId) => {
+    return api.get(`/Voucher/${voucherId}/usage-count`);
   }
 };
 
