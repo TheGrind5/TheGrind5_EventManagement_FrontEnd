@@ -126,10 +126,16 @@ const TicketSelectionPage = () => {
       }
     };
 
+    // Skip if already loaded - prevent reload on state changes
+    if (event && ticketTypes.length > 0) {
+      return;
+    }
+
     if (eventId && user) {
       fetchEventData();
     }
-  }, [eventId, user, authLoading, searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, user, authLoading, searchParams]); // Only depend on these to prevent reload
 
   const handleCreateOrder = async (e) => {
     e.preventDefault();
@@ -485,22 +491,88 @@ const TicketSelectionPage = () => {
                   </CardContent>
                 </Card>
 
+                {/* Voucher Selector */}
+                {selectedTicketType && quantity > 0 && pricing && (
+                  <Box sx={{ mt: 2 }} className="voucher-form">
+                    <VoucherSelector
+                      originalAmount={pricing.originalAmount}
+                      onVoucherApplied={handleVoucherApplied}
+                      appliedVoucher={appliedVoucher}
+                      onRemoveVoucher={handleRemoveVoucher}
+                    />
+                  </Box>
+                )}
+
+                {/* Pricing Summary with Voucher */}
+                {selectedTicketType && quantity > 0 && pricing && (
+                  <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3, mt: 2 }}>
+                    <CardContent sx={{ p: 2.5 }}>
+                      <Typography variant="body2" fontWeight={700} gutterBottom sx={{ mb: 2 }}>
+                        Tổng tiền
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {pricing.ticketType.typeName} × {quantity}
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {formatCurrency(pricing.originalAmount)}
+                        </Typography>
+                      </Box>
+                      {appliedVoucher && (
+                        <>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Giảm giá ({appliedVoucher.discountPercentage}%)
+                            </Typography>
+                            <Typography variant="body2" fontWeight={600} color="error">
+                              -{formatCurrency(pricing.discountAmount)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Voucher: {appliedVoucher.voucherCode}
+                            </Typography>
+                          </Box>
+                        </>
+                      )}
+                      <Divider sx={{ my: 1.5 }} />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="h6" fontWeight={800}>
+                          Tổng cộng
+                        </Typography>
+                        <Typography variant="h6" fontWeight={800} color="primary.main">
+                          {formatCurrency(pricing.finalAmount)}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Continue Button */}
                 <Button
                   fullWidth
                   variant="contained"
                   size="large"
-                  disabled={!selectedTicketType || quantity <= 0}
+                  disabled={!selectedTicketType || quantity <= 0 || creatingOrder}
                   onClick={handleCreateOrder}
                   sx={{
                     mt: 2,
                     py: 2,
                     fontSize: '1.1rem',
                     fontWeight: 700,
-                    borderRadius: 2
+                    borderRadius: 2,
+                    boxShadow: 'none',
+                    '&:hover': {
+                      boxShadow: `0 8px 24px rgba(61, 190, 41, 0.35)`,
+                      transform: 'translateY(-2px)'
+                    },
+                    transition: 'all 0.3s ease'
                   }}
+                  startIcon={creatingOrder ? <CircularProgress size={20} color="inherit" /> : <CheckIcon />}
                 >
-                  {selectedTicketType && quantity > 0
+                  {creatingOrder
+                    ? 'Đang tạo đơn hàng...'
+                    : selectedTicketType && quantity > 0
                     ? `Tiếp tục - ${formatCurrency(pricing?.finalAmount || 0)} ›`
                     : 'Vui lòng chọn vé ›'}
                 </Button>
@@ -682,11 +754,55 @@ const TicketSelectionPage = () => {
                         </Alert>
                       )}
 
+                      {/* Voucher Selector */}
+                      {selectedTicketType && quantity > 0 && pricing && (
+                        <Box sx={{ mb: 2 }} className="voucher-form">
+                          <VoucherSelector
+                            originalAmount={pricing.originalAmount}
+                            onVoucherApplied={handleVoucherApplied}
+                            appliedVoucher={appliedVoucher}
+                            onRemoveVoucher={handleRemoveVoucher}
+                          />
+                        </Box>
+                      )}
+
                       <Divider sx={{ my: 2 }} />
 
                       <Typography variant="body2" fontWeight={700} gutterBottom sx={{ mb: 2 }}>
                         Tổng tiền
                       </Typography>
+                      
+                      {selectedTicket && pricing && (
+                        <>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Tạm tính
+                            </Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              {formatCurrency(pricing.originalAmount)}
+                            </Typography>
+                          </Box>
+                          {appliedVoucher && (
+                            <>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  Giảm giá ({appliedVoucher.discountPercentage}%)
+                                </Typography>
+                                <Typography variant="body2" fontWeight={600} color="error">
+                                  -{formatCurrency(pricing.discountAmount)}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                  Voucher: {appliedVoucher.voucherCode}
+                                </Typography>
+                              </Box>
+                              <Divider sx={{ my: 1 }} />
+                            </>
+                          )}
+                        </>
+                      )}
+                      
                       <Typography variant="h5" fontWeight={800} color="primary.main">
                         {formatCurrency(pricing?.finalAmount || 0)}
                       </Typography>
