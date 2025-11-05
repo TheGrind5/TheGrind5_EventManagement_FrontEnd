@@ -37,7 +37,9 @@ import {
 
 // Contexts & Services
 import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import { walletAPI, eventsAPI } from '../../services/apiClient';
+import { useNavigate } from 'react-router-dom';
 
 // Components
 import WishlistIcon from '../common/WishlistIcon';
@@ -47,6 +49,8 @@ import SearchAutocomplete from '../common/SearchAutocomplete';
 
 const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
   const { user, logout } = useAuth();
+  const { openLoginModal, openRegisterModal } = useModal();
+  const navigate = useNavigate();
   const [walletBalance, setWalletBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -401,9 +405,29 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
               
               {/* Create Event Button */}
               <Button
-                component={Link}
-                to="/create-event"
                 variant="contained"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  // Only check subscription for Host users
+                  if (user && user.role === 'Host') {
+                    try {
+                      // Import subscription service dynamically
+                      const { subscriptionAPI } = await import('../../services/subscriptionService');
+                      const response = await subscriptionAPI.checkStatus();
+                      
+                      if (!response.data.canCreateEvent) {
+                        // Redirect to subscription plans
+                        navigate('/subscriptions/plans');
+                        return;
+                      }
+                    } catch (err) {
+                      console.error('Error checking subscription:', err);
+                      // If error, still allow navigation (don't block user)
+                    }
+                  }
+                  // Navigate to create event
+                  navigate('/create-event');
+                }}
                 sx={{
                   borderRadius: 2,
                   fontWeight: 700,
@@ -522,8 +546,7 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
           ) : (
             <>
               <Button 
-                component={Link} 
-                to="/login" 
+                onClick={openLoginModal}
                 color="inherit"
                 sx={{
                   fontWeight: 500,
@@ -536,11 +559,10 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
                   }
                 }}
               >
-                Login
+                Đăng nhập
               </Button>
               <Button 
-                component={Link} 
-                to="/register" 
+                onClick={openRegisterModal}
                 variant="contained" 
                 sx={{ 
                   ml: 1,
@@ -552,7 +574,7 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
                   }
                 }}
               >
-                Register
+                Đăng ký
               </Button>
             </>
           )}

@@ -22,12 +22,15 @@ import VirtualStageStep from '../components/stage/VirtualStageStep';
 import SettingsStep from '../components/event-creation/SettingsStep';
 import PaymentStep from '../components/event-creation/PaymentStep';
 import { eventsAPI } from '../services/apiClient';
+import { subscriptionAPI, subscriptionHelpers } from '../services/subscriptionService';
+import { useAuth } from '../contexts/AuthContext';
 
 const CreateEventPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { user } = useAuth();
   
   // Check if in edit mode
   const searchParams = new URLSearchParams(location.search);
@@ -42,6 +45,7 @@ const CreateEventPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEventBeingCreated, setIsEventBeingCreated] = useState(false);
   const [shouldBlockNavigation, setShouldBlockNavigation] = useState(false);
+  const [subscriptionCheckLoading, setSubscriptionCheckLoading] = useState(!isEditMode);
 
   // Helper function để check xem có đang trong quá trình tạo event không
   const isInCreationProcess = () => {
@@ -218,6 +222,44 @@ const CreateEventPage = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [step5Data]);
+
+  // Check subscription before allowing event creation (not edit mode)
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (isEditMode) {
+        setSubscriptionCheckLoading(false);
+        return; // Skip check for edit mode
+      }
+
+      // Only check for Host users
+      if (!user || user.role !== 'Host') {
+        setSubscriptionCheckLoading(false);
+        return;
+      }
+
+      try {
+        setSubscriptionCheckLoading(true);
+        const response = await subscriptionAPI.checkStatus();
+        const canCreate = response.data.canCreateEvent;
+        
+        if (!canCreate) {
+          // Redirect to subscription plans page
+          navigate('/subscriptions/plans', { 
+            replace: true,
+            state: { message: 'Bạn cần đăng ký gói subscription để tạo sự kiện' }
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Error checking subscription:', err);
+        // If error, still allow access (don't block user)
+      } finally {
+        setSubscriptionCheckLoading(false);
+      }
+    };
+
+    checkSubscription();
+  }, [isEditMode, user, navigate]);
 
   // Clear localStorage when creating new event (not edit mode)
   useEffect(() => {
@@ -1364,6 +1406,21 @@ const CreateEventPage = () => {
         return null;
     }
   };
+
+  // Show loading while checking subscription
+  if (subscriptionCheckLoading) {
+    return (
+      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+        <Header />
+        <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
+          <CircularProgress />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Đang kiểm tra subscription...
+          </Typography>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>

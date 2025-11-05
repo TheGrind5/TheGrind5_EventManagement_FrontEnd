@@ -89,6 +89,11 @@ const CreateOrderPage = () => {
             return;
         }
 
+        // Skip if already loaded - prevent reload on state changes
+        if (event && ticketTypes.length > 0) {
+            return;
+        }
+
         const fetchEventData = async () => {
             try{
                 setLoading(true); 
@@ -197,7 +202,8 @@ const CreateOrderPage = () => {
         if(id && user){
             fetchEventData();
         }
-    }, [id, user, authLoading])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id, user, authLoading]) // Only depend on id, user, authLoading - not event/ticketTypes to prevent reload
 
         // Debug useEffect để kiểm tra event state - REMOVED để tránh infinite loop
 
@@ -654,7 +660,13 @@ const CreateOrderPage = () => {
                                     Đặt vé
                                 </Typography>
 
-                                <form onSubmit={handleCreateOrder}>
+                                <form onSubmit={handleCreateOrder} onKeyDown={(e) => {
+                                    // Prevent form submit when pressing Enter in voucher form
+                                    if (e.key === 'Enter' && e.target.closest('.voucher-form')) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }
+                                }}>
                                     {/* Ticket Type Selection */}
                                     <FormControl fullWidth sx={{ mb: 3.5 }}>
                                         <InputLabel sx={{ fontWeight: 600 }}>Loại vé</InputLabel>
@@ -803,7 +815,7 @@ const CreateOrderPage = () => {
 
                                     {/* Voucher Selector */}
                                     {selectedTicketType && quantity > 0 && pricing && (
-                                        <Box sx={{ mb: 3.5 }}>
+                                        <Box sx={{ mb: 3.5 }} className="voucher-form">
                                             <VoucherSelector
                                                 originalAmount={pricing.originalAmount}
                                                 onVoucherApplied={handleVoucherApplied}

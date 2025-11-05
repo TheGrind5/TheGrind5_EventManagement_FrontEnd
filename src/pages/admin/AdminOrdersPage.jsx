@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import adminService from '../../services/adminService';
 import { runDiagnostics } from '../../utils/debugHelper';
 import '../../styles/AdminUsers.css';
@@ -11,6 +12,7 @@ const AdminOrdersPage = () => {
   const [error, setError] = useState(null);
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -184,7 +186,7 @@ const AdminOrdersPage = () => {
 
   if (loading && orders.length === 0) {
     return (
-      <div className="admin-users-page">
+      <div className={`admin-users-page ${isDark ? 'dark-theme' : ''}`}>
         <div className="page-header">
           <h1>📦 Quản lý Order</h1>
         </div>
@@ -197,7 +199,7 @@ const AdminOrdersPage = () => {
   }
 
   return (
-    <div className="admin-users-page">
+    <div className={`admin-users-page ${isDark ? 'dark-theme' : ''}`}>
       {/* Header */}
       <div className="page-header">
         <div>
@@ -253,7 +255,7 @@ const AdminOrdersPage = () => {
                 window.location.href = '/login';
               }} 
               className="btn-retry"
-              style={{ background: '#e53e3e' }}
+              style={{ background: '#FF7A00' }}
             >
               🔐 Đăng nhập lại
             </button>
@@ -329,7 +331,7 @@ const AdminOrdersPage = () => {
                             className="btn-refund"
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#389e0d',
+                              backgroundColor: '#FF7A00',
                               color: 'white',
                               border: 'none',
                               borderRadius: '4px',
@@ -340,7 +342,7 @@ const AdminOrdersPage = () => {
                             Hoàn tiền
                           </button>
                         ) : (
-                          <span style={{ color: '#999' }}>—</span>
+                          <span style={{ color: isDark ? '#666' : '#A0AEC0' }}>—</span>
                         );
                       })()}
                     </td>

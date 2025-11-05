@@ -11,21 +11,20 @@ import { Navigation, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
-// Material-UI
-import { useTheme } from '@mui/material/styles';
-
 // Material-UI Icons
 import { LocationOn, AccessTime, ChevronLeft, ChevronRight } from '@mui/icons-material';
 
-const EventCarousel = memo(({ 
+// Theme Context
+import { useTheme } from '../../contexts/ThemeContext';
+
+const EventCarousel = ({ 
   title = "Sự kiện", 
   events = [], 
   icon = null,
   showAutoPlay = true 
 }) => {
   const swiperRef = useRef(null);
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useTheme();
 
   // Format date helper
   const formatDate = (dateString) => {
@@ -74,19 +73,8 @@ const EventCarousel = memo(({
       <div className="flex items-center justify-between mb-8 px-4 md:px-0">
         <div className="flex items-center gap-3">
           {icon && <span className="text-orange-500">{icon}</span>}
-          <h2 
-            className="text-2xl md:text-3xl font-bold"
-            style={{ color: isDark ? '#FFFFFF' : '#0D0D0D' }}
-          >
-            {title}
-          </h2>
-          <span 
-            className="px-3 py-1 rounded-full text-sm"
-            style={{
-              backgroundColor: isDark ? '#262626' : '#F3F4F6',
-              color: isDark ? '#D1D5DB' : '#6B7280'
-            }}
-          >
+          <h2 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h2>
+          <span className={`px-3 py-1 rounded-full text-sm ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
             {events.length}
           </span>
         </div>
@@ -95,24 +83,22 @@ const EventCarousel = memo(({
         <div className="hidden md:flex gap-2">
           <button
             onClick={() => swiperRef.current?.slidePrev()}
-            className="w-10 h-10 rounded-full hover:bg-orange-500 border flex items-center justify-center transition-all duration-300"
-            style={{
-              backgroundColor: isDark ? '#262626' : '#F3F4F6',
-              borderColor: isDark ? '#404040' : '#E5E7EB',
-              color: isDark ? '#FFFFFF' : '#0D0D0D'
-            }}
+            className={`w-10 h-10 rounded-full hover:bg-orange-500 border flex items-center justify-center transition-all duration-300 ${
+              isDark 
+                ? 'bg-gray-800 border-gray-700 text-white' 
+                : 'bg-white border-gray-300 text-gray-900 hover:text-white'
+            }`}
             aria-label="Previous"
           >
             <ChevronLeft />
           </button>
           <button
             onClick={() => swiperRef.current?.slideNext()}
-            className="w-10 h-10 rounded-full hover:bg-orange-500 border flex items-center justify-center transition-all duration-300"
-            style={{
-              backgroundColor: isDark ? '#262626' : '#F3F4F6',
-              borderColor: isDark ? '#404040' : '#E5E7EB',
-              color: isDark ? '#FFFFFF' : '#0D0D0D'
-            }}
+            className={`w-10 h-10 rounded-full hover:bg-orange-500 border flex items-center justify-center transition-all duration-300 ${
+              isDark 
+                ? 'bg-gray-800 border-gray-700 text-white' 
+                : 'bg-white border-gray-300 text-gray-900 hover:text-white'
+            }`}
             aria-label="Next"
           >
             <ChevronRight />
@@ -187,50 +173,20 @@ const EventCarousel = memo(({
                   display: 'flex'
                 }}
               >
-                {/* Event Card - Responsive và không bị cắt */}
-                <div 
-                  className="relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] rounded-lg overflow-hidden border transition-all duration-300 mb-2 flex flex-col h-full"
-                  style={{
-                    backgroundColor: isDark ? '#1A1A1A' : '#FAFAFA',
-                    borderColor: isDark ? '#2A2A2A' : '#E5E7EB',
-                    minHeight: '480px',
-                    position: 'relative',
-                    zIndex: 1,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-8px)';
-                    e.currentTarget.style.borderColor = '#FF7A00';
-                    e.currentTarget.style.boxShadow = isDark 
-                      ? '0 12px 40px rgba(0, 0, 0, 0.3)' 
-                      : '0 12px 40px rgba(0, 0, 0, 0.15)';
-                    e.currentTarget.style.zIndex = '10';
-                    e.currentTarget.style.transition = 'all 0.2s ease';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.borderColor = isDark ? '#2A2A2A' : '#E5E7EB';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.zIndex = '1';
-                    e.currentTarget.style.transition = 'all 0.2s ease';
-                  }}
-                >
+                {/* Event Card - Responsive và không bị cắt - Fixed height để đồng đều */}
+                <div className={`relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] h-[520px] rounded-lg overflow-hidden border hover:border-orange-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl mb-2 flex flex-col ${
+                  isDark 
+                    ? 'bg-gray-900 border-gray-800' 
+                    : 'bg-white border-gray-200'
+                }`}>
                   {/* Image Container - 16:9 Aspect Ratio */}
-                  <div 
-                    className="relative w-full aspect-video overflow-hidden"
-                    style={{
-                      backgroundColor: isDark ? '#262626' : '#E5E5E5'
-                    }}
-                  >
+                  <div className={`relative w-full aspect-video overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
                     {/* Skeleton Loading State */}
                     {!event.image && (
-                      <div 
-                        className="absolute inset-0 animate-pulse flex items-center justify-center"
-                        style={{
-                          backgroundColor: isDark ? '#404040' : '#D1D5DB',
-                          color: isDark ? '#9CA3AF' : '#6B7280'
-                        }}
-                      >
-                        <div className="w-16 h-16">📅</div>
+                      <div className={`absolute inset-0 animate-pulse flex items-center justify-center ${
+                        isDark ? 'bg-gray-700' : 'bg-gray-200'
+                      }`}>
+                        <div className={`w-16 h-16 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>📅</div>
                       </div>
                     )}
 
@@ -269,24 +225,19 @@ const EventCarousel = memo(({
                       />
                     ) : (
                       // Show placeholder immediately if no image URL
-                      <div 
-                        className="absolute inset-0 flex items-center justify-center"
-                        style={{
-                          backgroundColor: isDark ? '#404040' : '#D1D5DB'
-                        }}
-                      >
-                        <span 
-                          className="text-4xl" 
-                          style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}
-                          aria-label={`Sự kiện: ${event.title || 'N/A'}`}
-                        >
-                          📅
-                        </span>
+                      <div className={`absolute inset-0 flex items-center justify-center ${
+                        isDark ? 'bg-gray-700' : 'bg-gray-200'
+                      }`}>
+                        <span className={`text-4xl ${isDark ? 'text-gray-500' : 'text-gray-400'}`} aria-label={`Sự kiện: ${event.title || 'N/A'}`}>📅</span>
                       </div>
                     )}
 
                     {/* Gradient Overlay with Event Info on Hover */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 ${
+                      isDark 
+                        ? 'bg-gradient-to-t from-black/90 via-black/60 to-transparent' 
+                        : 'bg-gradient-to-t from-black/80 via-black/50 to-transparent'
+                    }`}>
                       {/* Event Info Overlay - Shows on hover */}
                       <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                         <h4 className="text-white font-bold text-lg mb-2 line-clamp-2">{event.title}</h4>
@@ -308,25 +259,29 @@ const EventCarousel = memo(({
                       </div>
                     </div>
 
-                    {/* Badge - Top Left */}
-                    <div className="absolute top-3 left-3 z-10">
-                      <span
-                        className={`${getBadgeStyle(event.badge).bg} ${getBadgeStyle(event.badge).text} px-3 py-1 rounded-full text-xs font-bold uppercase shadow-lg`}
-                      >
-                        {event.badge}
-                      </span>
-                    </div>
+                    {/* Badge - Top Left - Increased z-index */}
+                    {event.badge && (
+                      <div className="absolute top-3 left-3 z-20">
+                        <span
+                          className={`${getBadgeStyle(event.badge).bg} ${getBadgeStyle(event.badge).text} px-3 py-1 rounded-full text-xs font-bold uppercase shadow-lg`}
+                        >
+                          {event.badge}
+                        </span>
+                      </div>
+                    )}
 
-                    {/* Category Badge - Top Right */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <span className="px-3 py-1 bg-black/70 backdrop-blur-sm text-white rounded-full text-xs font-medium">
-                        {event.category}
-                      </span>
-                    </div>
+                    {/* Category Badge - Top Right - Increased z-index */}
+                    {event.category && (
+                      <div className="absolute top-3 right-3 z-20">
+                        <span className="px-3 py-1 bg-black/70 backdrop-blur-sm text-white rounded-full text-xs font-medium">
+                          {event.category}
+                        </span>
+                      </div>
+                    )}
 
-                    {/* Price Badge - Bottom Right - Only show if price is 0 (all free) */}
+                    {/* Price Badge - Bottom Right - Only show if price is 0 (all free) - Increased z-index */}
                     {event.price === 0 && (
-                      <div className="absolute bottom-3 right-3 z-10">
+                      <div className="absolute bottom-3 right-3 z-20">
                         <span 
                           className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white rounded-lg text-sm font-bold shadow-lg transition-all duration-200 cursor-default"
                           role="button"
@@ -346,22 +301,20 @@ const EventCarousel = memo(({
                   </div>
 
                   {/* Card Content - Cải thiện padding và spacing */}
-                  <div 
-                    className="p-5 flex-1 flex flex-col"
-                    style={{
-                      backgroundColor: isDark ? '#1A1A1A' : '#FAFAFA'
-                    }}
-                  >
-                    {/* Title - Bold hơn để nổi bật */}
+                  <div className={`p-5 flex-1 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+                    {/* Title - Bold hơn để nổi bật - Increased to 3 lines to show full title */}
                     <h3
-                      className="text-lg md:text-xl font-extrabold mb-4 line-clamp-2 group-hover:text-orange-400 transition-colors duration-300 leading-tight"
+                      className={`text-lg md:text-xl font-extrabold mb-4 line-clamp-3 group-hover:text-orange-400 transition-colors duration-300 leading-tight ${
+                        isDark ? 'text-white' : 'text-gray-900'
+                      }`}
                       style={{
                         display: '-webkit-box',
-                        WebkitLineClamp: 2,
+                        WebkitLineClamp: 3,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                         fontWeight: 800,
-                        color: isDark ? '#FFFFFF' : '#0D0D0D'
+                        minHeight: '80px', // Fixed height for 3 lines
+                        lineHeight: '1.3',
                       }}
                     >
                       {event.title}
@@ -369,56 +322,51 @@ const EventCarousel = memo(({
 
                     {/* Event Details - Icons rõ ràng hơn và contrast tốt hơn */}
                     <div className="space-y-3 text-sm flex-1">
-                      {/* Location - Icon lớn hơn và rõ ràng */}
-                      <div className="flex items-start gap-2.5">
+                      {/* Location - Icon lớn hơn và rõ ràng - Fixed height */}
+                      <div className="flex items-start gap-2.5 min-h-[48px]">
                         <LocationOn 
                           className="text-orange-500 flex-shrink-0 mt-0.5" 
                           style={{ fontSize: 18 }}
                           aria-label="Địa điểm"
                         />
                         <span 
-                          className="line-clamp-2 font-semibold leading-relaxed flex-1"
-                          style={{ color: isDark ? '#E5E7EB' : '#374151' }}
+                          className={`line-clamp-2 font-semibold leading-relaxed flex-1 min-h-[40px] ${
+                            isDark ? 'text-gray-100' : 'text-gray-700'
+                          }`}
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
                         >
                           {event.location || 'Chưa có địa điểm'}
                         </span>
                       </div>
 
-                      {/* Time - Icon lớn hơn và rõ ràng */}
-                      <div className="flex items-start gap-2.5">
+                      {/* Time - Icon lớn hơn và rõ ràng - Fixed height */}
+                      <div className="flex items-start gap-2.5 min-h-[24px]">
                         <AccessTime 
                           className="text-orange-500 flex-shrink-0 mt-0.5" 
                           style={{ fontSize: 18 }}
                           aria-label="Thời gian"
                         />
-                        <span 
-                          className="font-semibold leading-relaxed"
-                          style={{ color: isDark ? '#E5E7EB' : '#374151' }}
-                        >
+                        <span className={`font-semibold leading-relaxed min-h-[20px] ${
+                          isDark ? 'text-gray-100' : 'text-gray-700'
+                        }`}>
                           {formatDate(event.startTime)}
                         </span>
                       </div>
                     </div>
 
-                    {/* Host (optional) */}
-                    {event.hostName && (
-                      <div 
-                        className="mt-3 pt-3 border-t"
-                        style={{ borderColor: isDark ? '#404040' : '#E5E7EB' }}
-                      >
-                        <span 
-                          className="text-xs"
-                          style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}
-                        >
-                          Host: <span 
-                            className="font-medium"
-                            style={{ color: isDark ? '#E5E7EB' : '#374151' }}
-                          >
-                            {event.hostName}
-                          </span>
+                    {/* Host - Always visible with fixed height for uniformity */}
+                    <div className={`mt-auto pt-3 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} min-h-[32px]`}>
+                      <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                        Host: <span className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                          {event.hostName || 'N/A'}
                         </span>
-                      </div>
-                    )}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -445,8 +393,10 @@ const EventCarousel = memo(({
       `}</style>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Custom comparison để chỉ re-render khi props thực sự thay đổi
+};
+
+// Custom comparison để chỉ re-render khi props thực sự thay đổi
+const areEqual = (prevProps, nextProps) => {
   return prevProps.title === nextProps.title &&
          prevProps.showAutoPlay === nextProps.showAutoPlay &&
          prevProps.events?.length === nextProps.events?.length &&
@@ -454,9 +404,10 @@ const EventCarousel = memo(({
            event.id === nextProps.events?.[index]?.id &&
            event.image === nextProps.events?.[index]?.image
          );
-});
+};
 
-EventCarousel.displayName = 'EventCarousel';
+const MemoizedEventCarousel = memo(EventCarousel, areEqual);
+MemoizedEventCarousel.displayName = 'EventCarousel';
 
-export default EventCarousel;
+export default MemoizedEventCarousel;
 

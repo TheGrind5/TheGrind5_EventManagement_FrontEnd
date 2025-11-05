@@ -278,7 +278,7 @@ const AdminUsersPage = () => {
                 window.location.href = '/login';
               }} 
               className="btn-retry"
-              style={{ background: '#e53e3e' }}
+              style={{ background: '#FF7A00' }}
             >
               🔐 Đăng nhập lại
             </button>

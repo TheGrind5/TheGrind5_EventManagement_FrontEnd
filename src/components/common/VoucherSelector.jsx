@@ -30,8 +30,10 @@ const VoucherSelector = ({
   const [showVoucherForm, setShowVoucherForm] = useState(false);
 
   const handleApplyVoucher = async (e) => {
-    e.preventDefault();
-    e.stopPropagation(); // Ngăn submit form cha
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation(); // Ngăn submit form cha
+    }
     
     if (!voucherCode.trim()) {
       setError('Vui lòng nhập mã voucher');
@@ -50,17 +52,21 @@ const VoucherSelector = ({
 
       const response = await voucherAPI.validate(voucherCode.trim(), originalAmount);
       
-      if (response.data.success && response.data.data.isValid) {
+      // Handle both response formats
+      const responseData = response.data?.data || response.data;
+      
+      if (responseData?.isValid) {
         setSuccess('Áp dụng voucher thành công!');
-        onVoucherApplied(response.data.data);
+        onVoucherApplied(responseData);
         setVoucherCode('');
         setShowVoucherForm(false);
       } else {
-        setError(response.data.data?.message || 'Voucher không hợp lệ');
+        setError(responseData?.message || 'Voucher không hợp lệ');
       }
     } catch (error) {
       console.error('Error applying voucher:', error);
-      setError(error.message || 'Có lỗi xảy ra khi áp dụng voucher');
+      const errorMessage = error?.message || error?.response?.data?.message || 'Có lỗi xảy ra khi áp dụng voucher';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -129,19 +135,31 @@ const VoucherSelector = ({
                 Áp dụng mã giảm giá
               </Button>
             ) : (
-              <form onSubmit={handleApplyVoucher}>
+              <form onSubmit={handleApplyVoucher} onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleApplyVoucher(e);
+                }
+              }}>
                 <Box display="flex" gap={1} mb={2}>
                   <TextField
                     fullWidth
                     label="Nhập mã voucher"
                     value={voucherCode}
                     onChange={(e) => setVoucherCode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleApplyVoucher(e);
+                      }
+                    }}
                     placeholder="VD: WELCOME10, SAVE20..."
                     size="small"
                     disabled={loading}
                   />
                   <Button 
-                    type="submit" 
+                    type="button"
+                    onClick={handleApplyVoucher}
                     variant="contained" 
                     disabled={loading || !voucherCode.trim()}
                     startIcon={loading ? null : <CheckIcon />}

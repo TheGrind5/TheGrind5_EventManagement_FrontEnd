@@ -33,42 +33,67 @@ const VNPayReturnPage = () => {
         const vnpResponseCode = searchParams.get('vnp_ResponseCode');
         const vnpTxnRef = searchParams.get('vnp_TxnRef');
         
-        // Extract order ID from TxnRef (format: ORDER_{OrderId}_{Timestamp})
-        if (vnpTxnRef && vnpTxnRef.startsWith('ORDER_')) {
-          const parts = vnpTxnRef.split('_');
-          if (parts.length >= 2) {
-            const extractedOrderId = parseInt(parts[1]);
-            setOrderId(extractedOrderId);
+        // Check if this is subscription payment (TxnRef starts with SUB_) or order payment (ORDER_)
+        const isSubscriptionPayment = vnpTxnRef && vnpTxnRef.startsWith('SUB_');
+        
+        if (isSubscriptionPayment) {
+          // Subscription payment handling
+          if (vnpResponseCode === '00') {
+            setStatus('success');
+            setMessage('Thanh toán thành công! Gói subscription của bạn đã được kích hoạt.');
+            
+            // Wait for webhook to process, then redirect to subscription plans or dashboard
+            setTimeout(() => {
+              navigate('/subscriptions/plans', {
+                state: { 
+                  paymentSuccess: true,
+                  message: 'Gói subscription đã được kích hoạt thành công. Bạn có thể tạo sự kiện ngay bây giờ!'
+                }
+              });
+            }, 2000);
+          } else {
+            setStatus('failed');
+            setMessage('Thanh toán thất bại. Vui lòng thử lại hoặc liên hệ hỗ trợ.');
           }
-        }
-
-        // Check payment status based on VNPay response code
-        // ResponseCode "00" means success
-        if (vnpResponseCode === '00') {
-          setStatus('success');
-          setMessage('Thanh toán thành công! Đơn hàng của bạn đã được xử lý.');
-          
-          // Wait a bit for webhook to process, then fetch order
-          setTimeout(async () => {
-            if (orderId) {
-              try {
-                const orderResponse = await ordersAPI.getById(orderId);
-                const orderData = orderResponse.data || orderResponse;
-                
-                // Navigate to order confirmation after 2 seconds
-                setTimeout(() => {
-                  navigate(`/order-confirmation/${orderId}`, {
-                    state: { order: orderData }
-                  });
-                }, 2000);
-              } catch (err) {
-                console.error('Error fetching order:', err);
-              }
-            }
-          }, 1500);
         } else {
-          setStatus('failed');
-          setMessage('Thanh toán thất bại. Vui lòng thử lại.');
+          // Order payment handling (original logic)
+          // Extract order ID from TxnRef (format: ORDER_{OrderId}_{Timestamp})
+          if (vnpTxnRef && vnpTxnRef.startsWith('ORDER_')) {
+            const parts = vnpTxnRef.split('_');
+            if (parts.length >= 2) {
+              const extractedOrderId = parseInt(parts[1]);
+              setOrderId(extractedOrderId);
+            }
+          }
+
+          // Check payment status based on VNPay response code
+          // ResponseCode "00" means success
+          if (vnpResponseCode === '00') {
+            setStatus('success');
+            setMessage('Thanh toán thành công! Đơn hàng của bạn đã được xử lý.');
+            
+            // Wait a bit for webhook to process, then fetch order
+            setTimeout(async () => {
+              if (orderId) {
+                try {
+                  const orderResponse = await ordersAPI.getById(orderId);
+                  const orderData = orderResponse.data || orderResponse;
+                  
+                  // Navigate to order confirmation after 2 seconds
+                  setTimeout(() => {
+                    navigate(`/order-confirmation/${orderId}`, {
+                      state: { order: orderData }
+                    });
+                  }, 2000);
+                } catch (err) {
+                  console.error('Error fetching order:', err);
+                }
+              }
+            }, 1500);
+          } else {
+            setStatus('failed');
+            setMessage('Thanh toán thất bại. Vui lòng thử lại.');
+          }
         }
       } catch (error) {
         console.error('Error checking payment status:', error);
