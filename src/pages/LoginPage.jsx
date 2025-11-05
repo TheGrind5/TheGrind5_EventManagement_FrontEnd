@@ -23,7 +23,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -37,6 +37,19 @@ const LoginPage = () => {
       }
     }
   }, [location.state]);
+
+  // Redirect based on user role after login
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'Admin') {
+        navigate('/admin/users', { replace: true });
+      } else if (user.role === 'Host') {
+        navigate('/host-dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -71,13 +84,14 @@ const LoginPage = () => {
     try {
       const result = await login(formData.email, formData.password);
       if (result.success) {
-        navigate('/dashboard');
+        // Redirect will be handled by useEffect when user state is updated
+        // No need to navigate here
       } else {
         setError(result.message);
+        setLoading(false);
       }
     } catch (err) {
       setError('An unexpected error occurred');
-    } finally {
       setLoading(false);
     }
   };

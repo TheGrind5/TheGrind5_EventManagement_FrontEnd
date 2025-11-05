@@ -15,11 +15,6 @@ const AdminDashboardPage = () => {
     fetchStatistics();
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
   const fetchStatistics = async () => {
     try {
       setLoading(true);
@@ -32,6 +27,11 @@ const AdminDashboardPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   const formatCurrency = (amount) => {

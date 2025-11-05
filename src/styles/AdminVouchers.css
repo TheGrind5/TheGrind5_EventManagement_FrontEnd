@@ -1,6 +1,6 @@
-/* Admin Users Page Styles */
+/* Admin Vouchers Page Styles - Similar to AdminUsers.css */
 
-.admin-users-page {
+.admin-vouchers-page {
   max-width: 1600px;
   margin: 0 auto;
   padding: 20px;
@@ -9,7 +9,7 @@
   transition: background-color 0.3s ease;
 }
 
-.dark-theme .admin-users-page {
+.dark-theme .admin-vouchers-page {
   background-color: #0D0D0D;
 }
 
@@ -41,6 +41,27 @@
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.btn-add-voucher {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-add-voucher:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-back {
@@ -164,6 +185,9 @@
   font-size: 16px;
   font-weight: 500;
   transition: all 0.2s;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .filter-tab:hover {
@@ -194,23 +218,23 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.users-table {
+.vouchers-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1000px;
+  min-width: 800px;
 }
 
-.users-table thead {
+.vouchers-table thead {
   background: #FAFAFA;
   transition: background-color 0.3s ease;
 }
 
-.dark-theme .users-table thead {
+.dark-theme .vouchers-table thead {
   background: #1A1A1A;
   border-bottom: 2px solid #2A2A2A;
 }
 
-.users-table th {
+.vouchers-table th {
   padding: 16px 12px;
   text-align: left;
   font-size: 14px;
@@ -222,67 +246,83 @@
   transition: color 0.3s ease, border-color 0.3s ease;
 }
 
-.dark-theme .users-table th {
+.dark-theme .vouchers-table th {
   color: #FFFFFF;
   border-bottom: 2px solid #2A2A2A;
 }
 
-.users-table th.sortable {
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.2s;
-}
-
-.users-table th.sortable:hover {
-  background: #F0F0F0;
-}
-
-.dark-theme .users-table th.sortable:hover {
-  background: #2A2A2A;
-}
-
-.users-table tbody tr {
+.vouchers-table tbody tr {
   border-bottom: 1px solid #E8E8E8;
   transition: background 0.2s;
 }
 
-.dark-theme .users-table tbody tr {
+.dark-theme .vouchers-table tbody tr {
   border-bottom: 1px solid #2A2A2A;
 }
 
-.users-table tbody tr:hover {
+.vouchers-table tbody tr:hover {
   background: #FAFAFA;
 }
 
-.dark-theme .users-table tbody tr:hover {
+.dark-theme .vouchers-table tbody tr:hover {
   background: #2A2A2A;
 }
 
-.users-table td {
+.vouchers-table td {
   padding: 16px 12px;
   font-size: 15px;
   color: #2D3748;
   transition: color 0.3s ease;
 }
 
-.dark-theme .users-table td {
+.dark-theme .vouchers-table td {
   color: #FFFFFF;
 }
 
-.user-info {
+.voucher-code {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.user-avatar-small {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
+.voucher-code strong {
+  font-size: 16px;
+  color: #2D3748;
+  transition: color 0.3s ease;
 }
 
-.role-badge {
+.dark-theme .voucher-code strong {
+  color: #FFFFFF;
+}
+
+.voucher-description {
+  font-size: 13px;
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .voucher-description {
+  color: #A5A5A5;
+}
+
+.discount-value {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FF7A00;
+  background: rgba(255, 122, 0, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.dark-theme .discount-value {
+  color: #FF8A00;
+  background: rgba(255, 122, 0, 0.2);
+}
+
+/* Status Badges */
+.status-badge {
   display: inline-block;
   padding: 6px 12px;
   border-radius: 20px;
@@ -292,37 +332,48 @@
   letter-spacing: 0.5px;
 }
 
-.badge-host {
-  background: #ffe5d4;
-  color: #E66A00;
+.badge-active {
+  background: #E6F7E6;
+  color: #2D8A2D;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.dark-theme .badge-host {
-  background: rgba(255, 122, 0, 0.2);
-  color: #FF8A00;
+.dark-theme .badge-active {
+  background: rgba(45, 138, 45, 0.3);
+  color: #4CAF50;
 }
 
-.badge-customer {
-  background: #ffe5d4;
-  color: #E66A00;
+.badge-expired {
+  background: #FFE6E6;
+  color: #D32F2F;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.dark-theme .badge-customer {
-  background: rgba(255, 122, 0, 0.2);
-  color: #FF8A00;
-}
-
-.badge-admin {
-  background: #fed7d7;
-  color: #C62828;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.dark-theme .badge-admin {
+.dark-theme .badge-expired {
   background: rgba(211, 47, 47, 0.3);
   color: #F44336;
+}
+
+.badge-inactive {
+  background: #E8E8E8;
+  color: #2D3748;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-theme .badge-inactive {
+  background: #2A2A2A;
+  color: #A5A5A5;
+}
+
+.badge-pending {
+  background: #FFF4E6;
+  color: #FF7A00;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-theme .badge-pending {
+  background: rgba(255, 122, 0, 0.2);
+  color: #FF8A00;
 }
 
 .badge-default {
@@ -336,131 +387,7 @@
   color: #A5A5A5;
 }
 
-/* Order Status Badges */
-.badge-pending {
-  background: #FFF4E6;
-  color: #FF7A00;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.dark-theme .badge-pending {
-  background: rgba(255, 122, 0, 0.2);
-  color: #FF8A00;
-}
-
-.badge-paid {
-  background: #E6F7E6;
-  color: #2D8A2D;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.dark-theme .badge-paid {
-  background: rgba(45, 138, 45, 0.3);
-  color: #4CAF50;
-}
-
-.badge-cancelled {
-  background: #FFE6E6;
-  color: #D32F2F;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.dark-theme .badge-cancelled {
-  background: rgba(211, 47, 47, 0.3);
-  color: #F44336;
-}
-
-.badge-refunded {
-  background: #E6F0FF;
-  color: #1976D2;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.dark-theme .badge-refunded {
-  background: rgba(25, 118, 210, 0.3);
-  color: #64B5F6;
-}
-
-.badge-failed {
-  background: #FFE6E6;
-  color: #C62828;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.dark-theme .badge-failed {
-  background: rgba(198, 40, 40, 0.3);
-  color: #EF5350;
-}
-
-/* Order Status Badges */
-.badge-pending {
-  background: #fff4e6;
-  color: #d46b08;
-}
-
-.badge-paid {
-  background: #d6f4dd;
-  color: #389e0d;
-}
-
-.badge-cancelled {
-  background: #ffe7e7;
-  color: #cf1322;
-}
-
-.badge-refunded {
-  background: #e6f7ff;
-  color: #096dd9;
-}
-
-.badge-failed {
-  background: #fff1f0;
-  color: #a8071a;
-}
-
-.wallet-amount {
-  font-weight: 600;
-  color: #FF7A00;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .wallet-amount {
-  color: #FF7A00;
-}
-
-.btn-view {
-  background: #FF7A00;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-view:hover {
-  background: #FF8A00;
-}
-
-.btn-warn {
-  background: #fbbf24;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-warn:hover {
-  background: #f59e0b;
-}
-
-.btn-ban {
+.btn-delete {
   background: #ef4444;
   color: white;
   border: none;
@@ -468,82 +395,22 @@
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #FFFFFF;
-  padding: 20px 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #E0E0E0;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.dark-theme .pagination {
-  background: #1A1A1A;
-  border: 1px solid #2A2A2A;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.pagination-info {
-  font-size: 15px;
-  color: #4A5568;
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .pagination-info {
-  color: #A5A5A5;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.btn-page {
-  background: #FF7A00;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
 }
 
-.btn-page:hover:not(:disabled) {
-  background: #FF8A00;
+.btn-delete:hover {
+  background: #dc2626;
 }
 
-.btn-page:disabled {
-  background: #D0D5DD;
-  cursor: not-allowed;
-  color: #A0AEC0;
+.no-action {
+  color: #999;
+  font-size: 14px;
+  font-style: italic;
 }
 
-.dark-theme .btn-page:disabled {
-  background: #2A2A2A;
+.dark-theme .no-action {
   color: #666;
-}
-
-.page-info {
-  font-size: 15px;
-  color: #2D3748;
-  font-weight: 600;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .page-info {
-  color: #FFFFFF;
 }
 
 /* Loading Spinner */
@@ -594,34 +461,6 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Retry Button */
-.btn-retry {
-  background: #FF7A00;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-retry:hover {
-  background: #FF8A00;
-}
-
-/* Quantity cell */
-.quantity {
-  font-weight: 600;
-  color: #2D3748;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .quantity {
-  color: #FFFFFF;
-}
-
 /* Error Message */
 .error-message {
   background: #fff5f5;
@@ -665,61 +504,22 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
 }
 
-.error-help {
-  background: #FAFAFA;
-  border-radius: 8px;
-  padding: 20px;
-  margin-top: 20px;
-  border: 1px solid #E0E0E0;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.dark-theme .error-help {
-  background: #2A2A2A;
-  border: 1px solid #3A3A3A;
-}
-
-.error-help p {
-  margin: 0 0 10px 0;
-  color: #2D3748;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .error-help p {
-  color: #FFFFFF;
-}
-
-.error-help ol {
-  padding-left: 20px;
-}
-
-.error-help li {
-  margin-bottom: 8px;
-  color: #4A5568;
-  line-height: 1.6;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .error-help li {
-  color: #A5A5A5;
-}
-
-.error-help code {
-  background: #F0F0F0;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
+.btn-retry {
+  background: #FF7A00;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
   font-size: 14px;
-  color: #2D3748;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.dark-theme .error-help code {
-  background: #2A2A2A;
-  color: #FFFFFF;
+.btn-retry:hover {
+  background: #FF8A00;
 }
 
 /* No Data */
@@ -827,11 +627,16 @@
   color: #333;
 }
 
+.dark-theme .btn-close:hover {
+  background: #2A2A2A;
+  color: #FFFFFF;
+}
+
 .modal-body {
   padding: 24px;
 }
 
-.user-detail {
+.voucher-detail {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -874,6 +679,284 @@
   color: #FFFFFF;
 }
 
+/* Form Styles */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #2D3748;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .form-group label {
+  color: #FFFFFF;
+}
+
+.form-group label .required {
+  color: #F44336;
+  margin-left: 4px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="datetime-local"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #D0D5DD;
+  border-radius: 8px;
+  font-size: 15px;
+  background: #FFFFFF;
+  color: #2D3748;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+/* Format date input để hiển thị theo dd/mm/yyyy */
+.form-group input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+  filter: invert(0.5);
+}
+
+.form-group input[type="date"]::-webkit-datetime-edit-text {
+  color: #2D3748;
+}
+
+.form-group input[type="date"]::-webkit-datetime-edit-month-field,
+.form-group input[type="date"]::-webkit-datetime-edit-day-field,
+.form-group input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #2D3748;
+}
+
+.dark-theme .form-group input[type="date"]::-webkit-datetime-edit-text,
+.dark-theme .form-group input[type="date"]::-webkit-datetime-edit-month-field,
+.dark-theme .form-group input[type="date"]::-webkit-datetime-edit-day-field,
+.dark-theme .form-group input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #FFFFFF;
+}
+
+.dark-theme .form-group input {
+  background: #2A2A2A;
+  border: 1px solid #3A3A3A;
+  color: #FFFFFF;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #FF7A00;
+  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.1);
+}
+
+.form-group small {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .form-group small {
+  color: #A5A5A5;
+}
+
+.form-info {
+  background: #F0F7FF;
+  border: 1px solid #B3D9FF;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark-theme .form-info {
+  background: #1A2A3A;
+  border: 1px solid #2A4A5A;
+}
+
+.form-info p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #1976D2;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .form-info p {
+  color: #64B5F6;
+}
+
+.form-info ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #4A5568;
+  font-size: 14px;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .form-info ul {
+  color: #A5A5A5;
+}
+
+.form-info ul li {
+  margin-bottom: 6px;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.alert-danger {
+  background: #FFE6E6;
+  color: #A8071A;
+  border: 1px solid #FFA5A5;
+}
+
+.dark-theme .alert-danger {
+  background: rgba(211, 47, 47, 0.2);
+  color: #F44336;
+  border: 1px solid rgba(211, 47, 47, 0.5);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #E0E0E0;
+  transition: border-color 0.3s ease;
+}
+
+.dark-theme .modal-actions {
+  border-top: 1px solid #2A2A2A;
+}
+
+.btn-cancel {
+  background: #E0E0E0;
+  color: #2D3748;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.dark-theme .btn-cancel {
+  background: #3A3A3A;
+  color: #FFFFFF;
+}
+
+.btn-cancel:hover {
+  background: #D0D0D0;
+}
+
+.dark-theme .btn-cancel:hover {
+  background: #4A4A4A;
+}
+
+.btn-primary {
+  background: #FF7A00;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #FF8A00;
+}
+
+.btn-delete-confirm {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-delete-confirm:hover {
+  background: #dc2626;
+}
+
+.voucher-info-delete {
+  background: #FAFAFA;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme .voucher-info-delete {
+  background: #2A2A2A;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .info-label {
+  color: #A5A5A5;
+}
+
+.info-value {
+  font-size: 15px;
+  color: #2D3748;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .info-value {
+  color: #FFFFFF;
+}
+
+.alert-warning {
+  background: #fffbe6;
+  color: #d46b08;
+  border: 1px solid #ffd591;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+  font-size: 14px;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-theme .alert-warning {
+  background: rgba(212, 107, 8, 0.2);
+  color: #ffa940;
+  border: 1px solid rgba(212, 107, 8, 0.5);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .page-header {
@@ -891,6 +974,7 @@
     flex-direction: column;
   }
 
+  .btn-add-voucher,
   .btn-back,
   .btn-logout {
     width: 100%;
@@ -903,11 +987,6 @@
 
   .filter-tab {
     text-align: center;
-  }
-
-  .pagination {
-    flex-direction: column;
-    gap: 15px;
   }
 
   .detail-row {

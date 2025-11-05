@@ -142,18 +142,18 @@ const MyTicketsPage = () => {
     }
   };
 
-  const handleRefund = async (ticketId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hoàn tiền vé này?')) {
+  const handleCancel = async (ticketId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy vé này?')) {
       return;
     }
 
     try {
-      await ticketsAPI.refundTicket(ticketId);
-      // Refresh tickets after refund
+      await ticketsAPI.cancelTicket(ticketId);
+      // Refresh tickets after cancel
       await fetchTickets();
-      alert('Hoàn tiền thành công!');
+      alert('Hủy vé thành công!');
     } catch (err) {
-      alert(`Lỗi hoàn tiền: ${err.message}`);
+      alert(`Lỗi hủy vé: ${err.message}`);
     }
   };
 
@@ -206,6 +206,7 @@ const MyTicketsPage = () => {
       case 'Assigned': return '#22c55e';
       case 'Used': return '#3b82f6';
       case 'Refunded': return '#ef4444';
+      case 'Cancelled': return '#f97316';
       default: return '#6b7280';
     }
   };
@@ -215,6 +216,7 @@ const MyTicketsPage = () => {
       case 'Assigned': return 'Có thể sử dụng';
       case 'Used': return 'Đã sử dụng';
       case 'Refunded': return 'Đã hoàn tiền';
+      case 'Cancelled': return 'Đã hủy';
       default: return status;
     }
   };
@@ -242,6 +244,9 @@ const MyTicketsPage = () => {
         break;
       case 'refunded':
         matchesStatus = ticketStatus === 'Refunded';
+        break;
+      case 'cancelled':
+        matchesStatus = ticketStatus === 'Cancelled';
         break;
       default:
         matchesStatus = true;
@@ -481,6 +486,12 @@ const MyTicketsPage = () => {
               onClick={() => setFilter('Refunded')}
             >
               Đã hoàn ({tickets.filter(t => (t.Status || t.status) === 'Refunded').length})
+            </Button>
+            <Button 
+              variant={filter === 'Cancelled' ? 'contained' : 'outlined'}
+              onClick={() => setFilter('Cancelled')}
+            >
+              Đã hủy ({tickets.filter(t => (t.Status || t.status) === 'Cancelled').length})
             </Button>
           </Box>
           )}
@@ -759,7 +770,7 @@ const MyTicketsPage = () => {
                               variant="outlined"
                               color="warning"
                               size="small"
-                              onClick={() => handleRefund(ticket.TicketId || ticket.ticketId)}
+                              onClick={() => handleCancel(ticket.TicketId || ticket.ticketId)}
                               sx={{ 
                                 flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
                                 minWidth: '100px',
@@ -767,7 +778,7 @@ const MyTicketsPage = () => {
                                 fontWeight: 600
                               }}
                             >
-                              Hoàn tiền
+                              Hủy vé
                             </Button>
                           </>
                         )}

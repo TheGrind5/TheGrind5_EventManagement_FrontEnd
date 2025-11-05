@@ -26,6 +26,9 @@ const AdminUsersPage = () => {
   
   // Selected user for detail modal
   const [selectedUser, setSelectedUser] = useState(null);
+  
+  // Track which users have been warned
+  const [warnedUsers, setWarnedUsers] = useState(new Set());
 
   const handleLogout = () => {
     logout();
@@ -167,6 +170,20 @@ const AdminUsersPage = () => {
 
   const closeModal = () => {
     setSelectedUser(null);
+  };
+
+  const handleWarnUser = async (userId) => {
+    try {
+      await adminService.warnUser(userId);
+      
+      // Mark user as warned
+      setWarnedUsers(prev => new Set(prev).add(userId));
+      
+      alert('Đã gửi thông báo cảnh cáo đến người dùng thành công');
+    } catch (err) {
+      console.error('Error warning user:', err);
+      alert('Có lỗi xảy ra khi gửi thông báo cảnh cáo: ' + (err.response?.data?.message || err.message));
+    }
   };
 
   if (loading && users.length === 0) {
@@ -332,12 +349,31 @@ const AdminUsersPage = () => {
                     <td className="wallet-amount">{formatCurrency(user.walletBalance)}</td>
                     <td>{formatDate(user.createdAt)}</td>
                     <td>
-                      <button
-                        onClick={() => viewUserDetail(user.userId)}
-                        className="btn-view"
-                      >
-                        👁️ Xem
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          onClick={() => viewUserDetail(user.userId)}
+                          className="btn-view"
+                        >
+                          👁️ Xem
+                        </button>
+                        {user.role !== 'Admin' && (
+                          warnedUsers.has(user.userId) ? (
+                            <button
+                              className="btn-ban"
+                              disabled
+                            >
+                              Cấm
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleWarnUser(user.userId)}
+                              className="btn-warn"
+                            >
+                              Cảnh cáo
+                            </button>
+                          )
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

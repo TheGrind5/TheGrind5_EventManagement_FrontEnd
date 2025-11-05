@@ -104,6 +104,7 @@ const NotificationIcon = () => {
       case 'OrderConfirmation': return '✓';
       case 'PaymentSuccess': return '💰';
       case 'Refund': return '💸';
+      case 'EventReport': return '🚩';
       default: return '🔔';
     }
   };
@@ -116,6 +117,7 @@ const NotificationIcon = () => {
       case 'OrderConfirmation': return '#17a2b8';
       case 'PaymentSuccess': return '#28a745';
       case 'Refund': return '#6f42c1';
+      case 'EventReport': return '#f44336';
       default: return '#007bff';
     }
   };

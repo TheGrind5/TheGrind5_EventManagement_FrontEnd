@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const LoginModal = () => {
   const { isLoginModalOpen, closeLoginModal, openRegisterModal } = useModal();
   const { login, user } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -14,12 +15,21 @@ const LoginModal = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Close modal if user logs in successfully
+  // Close modal and redirect based on role when user logs in successfully
   useEffect(() => {
     if (user && isLoginModalOpen) {
       closeLoginModal();
+      
+      // Redirect based on role
+      if (user.role === 'Admin') {
+        navigate('/admin/users', { replace: true });
+      } else if (user.role === 'Host') {
+        navigate('/host-dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [user, isLoginModalOpen, closeLoginModal]);
+  }, [user, isLoginModalOpen, closeLoginModal, navigate]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -80,13 +90,14 @@ const LoginModal = () => {
     try {
       const result = await login(formData.email, formData.password);
       if (result.success) {
-        // Modal will close automatically via useEffect when user is set
+        // Modal close and redirect will be handled by useEffect when user state is updated
+        // No need to navigate here
       } else {
         setError(result.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+        setLoading(false);
       }
     } catch (err) {
       setError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
-    } finally {
       setLoading(false);
     }
   };

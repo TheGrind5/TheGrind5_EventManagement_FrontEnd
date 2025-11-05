@@ -1,38 +1,41 @@
 .user-management {
   padding: 30px;
-  background: #F5F5F5;
+  background: #f7fafc;
   min-height: 100vh;
-  transition: background-color 0.3s ease;
-}
-
-.dark-theme .user-management {
-  background: #0D0D0D;
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 12px;
   margin-bottom: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.page-header .header-left {
+  flex: 1;
+}
+
+.page-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .page-header .MuiTypography-body1 {
-  color: #4A5568 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   font-weight: 500 !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .page-header .MuiTypography-body1 {
-  color: #A5A5A5 !important;
 }
 
 .page-title {
   font-weight: 700 !important;
-  color: #2D3748 !important;
+  color: #ffffff !important;
   margin-bottom: 8px !important;
   font-size: 32px !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .page-title {
-  color: #FFFFFF !important;
 }
 
 .stats-grid {
@@ -44,21 +47,9 @@
 
 .stat-card {
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease !important;
-  border: 1px solid #E0E0E0 !important;
-  background: #FFFFFF !important;
-}
-
-.stat-card .MuiCardContent-root {
-  background: transparent !important;
-  color: inherit !important;
-}
-
-.dark-theme .stat-card {
-  background: #1A1A1A !important;
-  border: 1px solid #2A2A2A !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .stat-card:hover {
@@ -85,15 +76,15 @@
 }
 
 .stat-icon.total {
-  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
+  background: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
 }
 
 .stat-icon.admin {
-  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .stat-icon.host {
-  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
+  background: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
 }
 
 .stat-icon.customer {
@@ -103,98 +94,50 @@
 .stat-details h4 {
   margin: 0;
   font-weight: 700;
-  color: #2D3748;
+  color: #ffffff;
   font-size: 36px;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .stat-details h4 {
-  color: #FFFFFF;
 }
 
 .stat-details .MuiTypography-body2 {
-  color: #4A5568 !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
   font-size: 14px !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .stat-details .MuiTypography-body2 {
-  color: #FFFFFF !important;
 }
 
 .search-card {
   margin-bottom: 20px;
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-  border: 1px solid #E0E0E0 !important;
-  background: #FFFFFF !important;
-  transition: background-color 0.3s ease, border-color 0.3s ease !important;
-}
-
-.dark-theme .search-card {
-  background: #1A1A1A !important;
-  border: 1px solid #2A2A2A !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .search-card .MuiInputBase-input {
-  color: #2D3748 !important;
+  color: #ffffff !important;
   font-weight: 500 !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .search-card .MuiInputBase-input {
-  color: #FFFFFF !important;
 }
 
 .search-card .MuiInputBase-input::placeholder {
-  color: #A0AEC0 !important;
+  color: #cbd5e0 !important;
   opacity: 1 !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .search-card .MuiInputBase-input::placeholder {
-  color: #6C757D !important;
 }
 
 .search-card .MuiSvgIcon-root {
-  color: #A0AEC0 !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .search-card .MuiSvgIcon-root {
-  color: #A5A5A5 !important;
+  color: #cbd5e0 !important;
 }
 
 .search-card .MuiOutlinedInput-notchedOutline {
-  border-color: #D0D5DD !important;
-  transition: border-color 0.3s ease !important;
-}
-
-.dark-theme .search-card .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
 .search-card .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: #FF7A00 !important;
-}
-
-.dark-theme .search-card .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(255, 255, 255, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
 .table-card {
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
   overflow: hidden;
-  border: 1px solid #E0E0E0 !important;
-  background: #FFFFFF !important;
-  transition: background-color 0.3s ease, border-color 0.3s ease !important;
-}
-
-.dark-theme .table-card {
-  background: #1A1A1A !important;
-  border: 1px solid #2A2A2A !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .user-cell {
@@ -203,52 +146,30 @@
 }
 
 .user-cell .MuiTypography-body1 {
-  color: #2D3748 !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .user-cell .MuiTypography-body1 {
-  color: #FFFFFF !important;
 }
 
 .user-cell .MuiTypography-caption {
-  color: #6c757d !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .user-cell .MuiTypography-caption {
-  color: #A5A5A5 !important;
+  color: #cbd5e0 !important;
 }
 
 .wallet-cell, .date-cell {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #2D3748;
+  color: #ffffff;
   font-weight: 500;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .wallet-cell,
-.dark-theme .date-cell {
-  color: #FFFFFF;
 }
 
 .wallet-cell svg, .date-cell svg {
   font-size: 16px;
-  color: #A0AEC0;
-  transition: color 0.3s ease;
-}
-
-.dark-theme .wallet-cell svg,
-.dark-theme .date-cell svg {
-  color: #A5A5A5;
+  color: #cbd5e0;
 }
 
 /* Table Styling */
 .MuiTableHead-root .MuiTableRow-root {
-  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%);
+  background: linear-gradient(135deg, #0A1128 0%, #001F3F 100%);
 }
 
 .MuiTableHead-root .MuiTableCell-root {
@@ -269,30 +190,16 @@
   transform: scale(1.01);
 }
 
-.dark-theme .MuiTableBody-root .MuiTableRow-root:hover {
-  background: #2A2A2A !important;
-}
-
 .MuiTableBody-root .MuiTableCell-root {
-  border-bottom: 1px solid #E8E8E8 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   font-size: 14px !important;
-  color: #2D3748 !important;
+  color: #ffffff !important;
   font-weight: 500 !important;
-  transition: color 0.3s ease, border-color 0.3s ease !important;
 }
 
-.dark-theme .MuiTableBody-root .MuiTableCell-root {
-  border-bottom: 1px solid #2A2A2A !important;
-  color: #FFFFFF !important;
-}
-
-/* Đảm bảo email cũng là chữ phù hợp với theme */
+/* Đảm bảo email cũng là chữ trắng */
 .MuiTableBody-root .MuiTableCell-root:nth-child(2) {
-  color: #6c757d !important;
-}
-
-.dark-theme .MuiTableBody-root .MuiTableCell-root:nth-child(2) {
-  color: #A5A5A5 !important;
+  color: #e2e8f0 !important;
 }
 
 /* Số dư ví format */
@@ -302,12 +209,7 @@
 
 /* Empty state message */
 .MuiTableBody-root .MuiTypography-body1 {
-  color: #6c757d !important;
-  transition: color 0.3s ease !important;
-}
-
-.dark-theme .MuiTableBody-root .MuiTypography-body1 {
-  color: #A5A5A5 !important;
+  color: #cbd5e0 !important;
 }
 
 /* Responsive */
