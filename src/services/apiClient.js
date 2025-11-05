@@ -257,6 +257,15 @@ export const eventsAPI = {
   
   deleteVenueLayout: async (eventId) => {
     return api.delete(`/Event/${eventId}/venue-layout`);
+  },
+  
+  // Report Event API
+  reportEvent: async (eventId) => {
+    return api.post(`/Event/${eventId}/report`);
+  },
+  
+  getReportStatus: async (eventId) => {
+    return api.get(`/Event/${eventId}/report/status`);
   }
 };
 
@@ -350,6 +359,10 @@ export const ticketsAPI = {
   
   refundTicket: async (ticketId) => {
     return api.put(`/Ticket/${ticketId}/refund`);
+  },
+  
+  cancelTicket: async (ticketId) => {
+    return api.put(`/Ticket/${ticketId}/cancel`);
   },
   
   validateTicket: async (ticketId) => {

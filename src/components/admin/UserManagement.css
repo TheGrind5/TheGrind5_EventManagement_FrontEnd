@@ -5,17 +5,35 @@
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 12px;
   margin-bottom: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.page-header .header-left {
+  flex: 1;
+}
+
+.page-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .page-header .MuiTypography-body1 {
-  color: #000000 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   font-weight: 500 !important;
 }
 
 .page-title {
   font-weight: 700 !important;
-  color: #000000 !important;
+  color: #ffffff !important;
   margin-bottom: 8px !important;
   font-size: 32px !important;
 }

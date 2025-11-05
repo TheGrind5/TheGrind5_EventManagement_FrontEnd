@@ -246,6 +246,32 @@
   color: #2d3748;
 }
 
+/* Order Status Badges */
+.badge-pending {
+  background: #fff4e6;
+  color: #d46b08;
+}
+
+.badge-paid {
+  background: #d6f4dd;
+  color: #389e0d;
+}
+
+.badge-cancelled {
+  background: #ffe7e7;
+  color: #cf1322;
+}
+
+.badge-refunded {
+  background: #e6f7ff;
+  color: #096dd9;
+}
+
+.badge-failed {
+  background: #fff1f0;
+  color: #a8071a;
+}
+
 .wallet-amount {
   font-weight: 600;
   color: #48bb78;
@@ -265,6 +291,34 @@
 
 .btn-view:hover {
   background: #5568d3;
+}
+
+.btn-warn {
+  background: #fbbf24;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-warn:hover {
+  background: #f59e0b;
+}
+
+.btn-ban {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* Pagination */

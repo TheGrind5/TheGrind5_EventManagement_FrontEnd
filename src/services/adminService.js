@@ -127,6 +127,90 @@ const adminService = {
       console.error('Error getting orders:', error);
       throw error;
     }
+  },
+
+  /**
+   * Hoàn tiền cho một đơn hàng (chỉ Admin)
+   * @param {number} orderId - ID của đơn hàng
+   */
+  async refundOrder(orderId) {
+    try {
+      const response = await apiClient.post(`/admin/orders/${orderId}/refund`);
+      return response;
+    } catch (error) {
+      console.error(`Error refunding order ${orderId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Gửi thông báo cảnh cáo cho một user (chỉ Admin)
+   * @param {number} userId - ID của user
+   */
+  async warnUser(userId) {
+    try {
+      const response = await apiClient.post(`/admin/users/${userId}/warn`);
+      return response;
+    } catch (error) {
+      console.error(`Error warning user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy danh sách tất cả events với filter và pagination (bao gồm số lần bị báo cáo)
+   * @param {Object} params - Query parameters
+   * @param {string} params.searchTerm - Tìm kiếm theo title, host name (optional)
+   * @param {string} params.status - Filter theo status (optional)
+   * @param {number} params.pageNumber - Số trang (default: 1)
+   * @param {number} params.pageSize - Số items mỗi trang (default: 10)
+   * @param {string} params.sortBy - Sắp xếp theo field (default: "CreatedAt")
+   * @param {string} params.sortOrder - Thứ tự: "asc" hoặc "desc" (default: "desc")
+   */
+  async getAllEvents(params = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.searchTerm) queryParams.append('searchTerm', params.searchTerm);
+      if (params.status) queryParams.append('status', params.status);
+      if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+      if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+      if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+
+      const response = await apiClient.get(`/admin/events?${queryParams.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error getting events:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Xóa vĩnh viễn một sự kiện (Admin bypass ownership)
+   * @param {number} eventId - ID của sự kiện
+   */
+  async adminDeleteEvent(eventId) {
+    try {
+      const response = await apiClient.delete(`/Event/${eventId}/admin`);
+      return response;
+    } catch (error) {
+      console.error(`Error admin delete event ${eventId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Force delete event (permanent, bypass checks)
+   */
+  async adminForceDeleteEvent(eventId) {
+    try {
+      const response = await apiClient.delete(`/Event/${eventId}/admin/force`);
+      return response;
+    } catch (error) {
+      console.error(`Error admin force delete event ${eventId}:`, error);
+      throw error;
+    }
   }
 };
 

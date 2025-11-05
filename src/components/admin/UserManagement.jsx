@@ -27,6 +27,8 @@ import {
 } from '@mui/material';
 import { Search, Person, AttachMoney, CalendarToday, Block, CheckCircle, Event as EventIcon } from '@mui/icons-material';
 import adminAPI from '../../services/adminAPI';
+import adminService from '../../services/adminService';
+import NotificationIcon from '../common/NotificationIcon';
 import './UserManagement.css';
 
 const UserManagement = () => {
@@ -51,6 +53,8 @@ const UserManagement = () => {
     reports: [],
     loading: false
   });
+  // Track which users have been warned
+  const [warnedUsers, setWarnedUsers] = useState(new Set());
 
   useEffect(() => {
     fetchUsers();
@@ -187,6 +191,12 @@ const UserManagement = () => {
         await adminAPI.banUser(banDialog.user.userId, 'Vi phạm chính sách');
       } else {
         await adminAPI.unbanUser(banDialog.user.userId);
+        // Sau khi bỏ cấm, xóa user khỏi danh sách đã cảnh cáo để quay lại nút "Cảnh cáo"
+        setWarnedUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(banDialog.user.userId);
+          return newSet;
+        });
       }
       
       // Refresh user list
@@ -234,6 +244,20 @@ const UserManagement = () => {
     });
   };
 
+  const handleWarnUser = async (userId) => {
+    try {
+      await adminService.warnUser(userId);
+      
+      // Mark user as warned
+      setWarnedUsers(prev => new Set(prev).add(userId));
+      
+      alert('Đã gửi thông báo cảnh cáo đến người dùng thành công');
+    } catch (err) {
+      console.error('Error warning user:', err);
+      alert('Có lỗi xảy ra khi gửi thông báo cảnh cáo: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -245,12 +269,17 @@ const UserManagement = () => {
   return (
     <div className="user-management">
       <div className="page-header">
-        <Typography variant="h4" className="page-title">
-          Quản Lý Users
-        </Typography>
-        <Typography variant="body1" color="textSecondary">
-          Quản lý tất cả người dùng trong hệ thống
-        </Typography>
+        <div className="header-left">
+          <Typography variant="h4" className="page-title">
+            Quản Lý Users
+          </Typography>
+          <Typography variant="body1" color="textSecondary">
+            Quản lý tất cả người dùng trong hệ thống
+          </Typography>
+        </div>
+        <div className="header-right">
+          <NotificationIcon />
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -413,6 +442,13 @@ const UserManagement = () => {
                         label={user.isBanned ? 'Đã cấm' : 'Hoạt động'}
                         color={user.isBanned ? 'error' : 'success'}
                         size="small"
+                        sx={user.isBanned ? {} : {
+                          backgroundColor: '#4caf50',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: '#45a049'
+                          }
+                        }}
                       />
                     </TableCell>
                     <TableCell align="center">
@@ -427,12 +463,17 @@ const UserManagement = () => {
                               sx={{ 
                                 minWidth: '100px',
                                 fontWeight: 600,
-                                textTransform: 'none'
+                                textTransform: 'none',
+                                backgroundColor: '#4caf50',
+                                color: 'white',
+                                '&:hover': {
+                                  backgroundColor: '#45a049'
+                                }
                               }}
                             >
                               Bỏ cấm
                             </Button>
-                          ) : (
+                          ) : warnedUsers.has(user.userId) ? (
                             <Button
                               variant="contained"
                               color="error"
@@ -445,6 +486,24 @@ const UserManagement = () => {
                               }}
                             >
                               Cấm
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={() => handleWarnUser(user.userId)}
+                              sx={{ 
+                                minWidth: '100px',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                backgroundColor: '#fbbf24',
+                                color: 'white',
+                                '&:hover': {
+                                  backgroundColor: '#f59e0b'
+                                }
+                              }}
+                            >
+                              Cảnh cáo
                             </Button>
                           )}
                         </div>

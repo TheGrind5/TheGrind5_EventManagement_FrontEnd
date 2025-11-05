@@ -197,9 +197,20 @@ const HomePage = () => {
 
       } catch (err) {
 
-        setError('Failed to load events');
-
         console.error('Error fetching events:', err);
+        
+        // Hiển thị thông báo lỗi chi tiết hơn
+        let errorMessage = 'Failed to load events';
+        if (err.response) {
+          console.error('Error response:', err.response);
+          errorMessage = err.response.data?.message || `Failed to load events (Status: ${err.response.status})`;
+        } else if (err.request) {
+          errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra backend đã chạy chưa.';
+        } else {
+          errorMessage = err.message || 'Failed to load events';
+        }
+        
+        setError(errorMessage);
 
       } finally {
 

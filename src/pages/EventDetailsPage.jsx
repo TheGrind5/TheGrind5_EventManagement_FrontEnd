@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -25,7 +25,8 @@ import {
   ConfirmationNumber,
   ShoppingCart,
   ArrowBack,
-  Business
+  Business,
+  Flag
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
@@ -44,8 +45,44 @@ const EventDetailsPage = () => {
   const [error, setError] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [hasReported, setHasReported] = useState(false);
+  const currentUserId = user && (user.userId ?? user.id);
+  const reportedKey = currentUserId && id ? `reported:${currentUserId}:${id}` : null;
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportCount, setReportCount] = useState(0);
   
   const theme = useTheme();
+
+  const checkReportStatus = useCallback(async () => {
+    if (!id || !user) return;
+    try {
+      const response = await eventsAPI.getReportStatus(id);
+      if (response.data?.success) {
+        const serverFlag = !!response.data.data.hasReported;
+        const localFlag = reportedKey ? localStorage.getItem(reportedKey) === '1' : false;
+        let finalFlag = serverFlag || localFlag;
+        // Nếu server nói chưa báo cáo mà local có cờ → xóa cờ để đồng bộ
+        if (!serverFlag && localFlag && reportedKey) {
+          localStorage.removeItem(reportedKey);
+          finalFlag = false;
+        }
+        setHasReported(finalFlag);
+        setReportCount(response.data.data.reportCount || 0);
+        if (finalFlag && reportedKey) {
+          localStorage.setItem(reportedKey, '1');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking report status:', error);
+      // Không hiển thị lỗi cho user vì đây là optional check
+    }
+  }, [id, user, reportedKey]);
+
+  // Reset trạng thái báo cáo khi chuyển event hoặc đổi user để tránh giữ state cũ
+  useEffect(() => {
+    setHasReported(false);
+    setIsReporting(false);
+  }, [id, user]);
 
   useEffect(() => {
     // Check if id is valid
@@ -82,7 +119,61 @@ const EventDetailsPage = () => {
     };
 
     fetchEvent();
-  }, [id, user]);
+    
+    // Check report status if user is logged in
+    if (user) {
+      // Ưu tiên trạng thái cache local để xám nút ngay sau khi báo cáo
+      const localFlag = reportedKey ? localStorage.getItem(reportedKey) === '1' : false;
+      if (localFlag) {
+        setHasReported(true);
+      }
+      checkReportStatus();
+    }
+  }, [id, user, checkReportStatus, reportedKey]);
+  
+  const handleReportEvent = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (hasReported) {
+      alert('Bạn đã báo cáo sự kiện này rồi.');
+      return;
+    }
+    
+    if (!window.confirm('Bạn có chắc chắn muốn báo cáo sự kiện này không?')) {
+      return;
+    }
+    
+    try {
+      setIsReporting(true);
+      // Optimistic UI: xám nút ngay
+      setHasReported(true);
+      if (reportedKey) {
+        localStorage.setItem(reportedKey, '1');
+      }
+      const response = await eventsAPI.reportEvent(id);
+      if (response.data?.success) {
+        // Đồng bộ lại với server
+        await checkReportStatus();
+        alert('Báo cáo sự kiện thành công. Cảm ơn bạn đã báo cáo!');
+      } else {
+        // Revert nếu server từ chối
+        setHasReported(false);
+        if (reportedKey) localStorage.removeItem(reportedKey);
+        alert(response.data?.message || 'Có lỗi xảy ra khi báo cáo sự kiện');
+      }
+    } catch (error) {
+      console.error('Error reporting event:', error);
+      // Revert nếu lỗi mạng
+      setHasReported(false);
+      if (reportedKey) localStorage.removeItem(reportedKey);
+      alert(error?.response?.data?.message || 'Có lỗi xảy ra khi báo cáo sự kiện. Vui lòng thử lại sau.');
+    } finally {
+      setIsReporting(false);
+    }
+  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -262,7 +353,53 @@ const EventDetailsPage = () => {
             )}
           </Box>
 
-          <CardContent sx={{ p: { xs: 2, md: 4 } }}>
+          <CardContent sx={{ p: { xs: 2, md: 4 }, position: 'relative' }}>
+            {/* Report Button - Top Right */}
+            {user && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: { xs: 16, md: 24 }, 
+                right: { xs: 16, md: 24 },
+                zIndex: 10
+              }}>
+                {hasReported ? (
+                  <Button
+                    variant="contained"
+                    disabled
+                    startIcon={<Flag />}
+                    size="small"
+                    sx={{
+                      backgroundColor: 'grey.500',
+                      color: '#fff',
+                      pointerEvents: 'none',
+                      '&:hover': { backgroundColor: 'grey.600' }
+                    }}
+                  >
+                    Đã báo cáo
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleReportEvent}
+                    variant="contained"
+                    color="error"
+                    disabled={isReporting}
+                    startIcon={<Flag />}
+                    size={isReporting ? 'small' : 'medium'}
+                    sx={{
+                      boxShadow: 2,
+                      '&:hover': {
+                        boxShadow: 4,
+                        transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {isReporting ? 'Đang báo cáo...' : 'Báo cáo sự kiện'}
+                  </Button>
+                )}
+              </Box>
+            )}
+            
             <Grid container spacing={4}>
               {/* Left Column - Description and Details */}
               <Grid item xs={12} md={8}>
