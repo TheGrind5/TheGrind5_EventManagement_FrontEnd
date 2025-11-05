@@ -54,19 +54,34 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login(email, password);
 
-      // Fix: Check response.data instead of response directly
-      if (response.data && response.data.user && response.data.accessToken) {
+      // apiClient wraps response in { success, data, message, timestamp }
+      // Backend returns { user, accessToken, expiresAt }
+      // So response.data should be { user, accessToken, expiresAt }
+      const loginData = response.data || response;
+      
+      if (loginData && loginData.user && loginData.accessToken) {
         // Lưu token trước
-        localStorage.setItem('token', response.data.accessToken);
+        localStorage.setItem('token', loginData.accessToken);
         
         // Fetch profile đầy đủ với avatar
-        const profileData = await fetchUserProfile(response.data.accessToken);
-        if (profileData) {
-          setUser(profileData);
-          localStorage.setItem('user', JSON.stringify(profileData));
-        } else {
+        try {
+          const profileData = await fetchUserProfile(loginData.accessToken);
+          if (profileData) {
+            setUser(profileData);
+            localStorage.setItem('user', JSON.stringify(profileData));
+          } else {
+            // Fallback nếu không fetch được profile
+            const userData = { ...loginData.user };
+            if (userData.avatar && userData.avatar.startsWith("/")) {
+              userData.avatar = `${config.BASE_URL}${userData.avatar}`;
+            }
+            setUser(userData);
+            localStorage.setItem('user', JSON.stringify(userData));
+          }
+        } catch (profileError) {
+          console.warn('Failed to fetch profile, using login data:', profileError);
           // Fallback nếu không fetch được profile
-          const userData = { ...response.data.user };
+          const userData = { ...loginData.user };
           if (userData.avatar && userData.avatar.startsWith("/")) {
             userData.avatar = `${config.BASE_URL}${userData.avatar}`;
           }
@@ -76,9 +91,17 @@ export const AuthProvider = ({ children }) => {
         
         return { success: true };
       }
-      return { success: false, message: 'Login failed' };
+      return { success: false, message: 'Login failed: Invalid response format' };
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Handle error from apiClient interceptor (wrapped in { success: false, message, code })
+      if (error.success === false) {
+        return {
+          success: false,
+          message: error.message || 'Đăng nhập thất bại'
+        };
+      }
       
       // Check if user is banned (status 403)
       if (error.response?.status === 403 && error.response?.data?.isBanned) {
@@ -91,7 +114,7 @@ export const AuthProvider = ({ children }) => {
       
       return { 
         success: false, 
-        message: error.response?.data?.message || error.message || 'Login failed' 
+        message: error.response?.data?.message || error.message || 'Có lỗi xảy ra khi đăng nhập' 
       };
     }
   };
