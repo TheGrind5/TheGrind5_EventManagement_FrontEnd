@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import OTPVerification from '../components/OTPVerification';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,8 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -77,26 +80,61 @@ const RegisterPage = () => {
 
     try {
       const result = await register(formData);
-      if (result.success) {
-        // Sau khi register thành công, chuyển đến trang login
-        navigate('/login', { 
-          state: { 
-            message: result.message || 'Đăng ký thành công! Vui lòng đăng nhập.',
-            email: formData.email 
-          } 
-        });
+      console.log('Register response:', result); // Debug log
+      
+      // Kiểm tra nếu tài khoản đã được tạo
+      if (result.accountCreated) {
+        // Kiểm tra nếu cần xác minh OTP
+        if (result.requiresVerification && result.otpSent) {
+          // Hiển thị giao diện nhập OTP - CHƯA thành công, cần verify OTP
+          // KHÔNG hiển thị thông báo thành công ở đây
+          // Chỉ khi verify OTP thành công thì mới coi là đăng ký thành công
+          setRegisteredEmail(result.email || formData.email);
+          setShowOTP(true);
+          // Clear error message khi hiển thị OTP modal
+          setError('');
+        } else if (result.requiresVerification && !result.otpSent) {
+          // Cần verify nhưng không gửi được OTP
+          setError('Tài khoản đã được tạo nhưng không thể gửi OTP. Vui lòng liên hệ hỗ trợ.');
+        } else {
+          // Không cần verify (không nên xảy ra với cấu hình hiện tại)
+          setError('Tài khoản đã được tạo nhưng không cần xác minh email.');
+        }
       } else {
+        // Hiển thị lỗi từ backend (có thể là "Email này đã được sử dụng" hoặc lỗi khác)
         setError(result.message || 'Đăng ký thất bại. Vui lòng thử lại.');
       }
     } catch (err) {
-      setError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
+      console.error('Register error:', err); // Debug log
+      setError(err.response?.data?.message || 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleOTPVerified = () => {
+    // Chỉ khi verify OTP thành công (EmailVerified = true trong database) 
+    // thì mới coi là đăng ký thành công và mới được navigate đến login
+    setShowOTP(false);
+    // Đăng ký thành công! Email đã được xác minh
+    navigate('/login', { 
+      state: { 
+        message: 'Đăng ký thành công! Email đã được xác minh. Bạn có thể đăng nhập ngay.',
+        email: registeredEmail 
+      } 
+    });
+  };
+
   return (
-    <div className="auth-container animate-fade-in">
+    <>
+      {showOTP && (
+        <OTPVerification
+          email={registeredEmail}
+          onVerified={handleOTPVerified}
+          onClose={() => setShowOTP(false)}
+        />
+      )}
+      <div className="auth-container animate-fade-in">
       <div className="auth-card animate-slide-up">
         <div className="auth-header">
           <h1 className="auth-title">Đăng Ký</h1>
@@ -288,6 +326,7 @@ const RegisterPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
