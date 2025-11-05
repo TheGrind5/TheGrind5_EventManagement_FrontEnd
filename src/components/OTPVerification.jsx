@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import './OTPVerification.css';
+import config from '../config/environment';
 
-const OTPVerification = ({ email, onVerified, onClose, apiUrl = 'http://localhost:5000/api' }) => {
+const OTPVerification = ({ email, onVerified, onClose, apiUrl }) => {
+  const apiBaseUrl = apiUrl || `${config.API_URL}`;
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,7 +74,7 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl = 'http://localhos
     setError('');
 
     try {
-      const response = await axios.post(`${apiUrl}/Auth/verify-otp`, {
+      const response = await axios.post(`${apiBaseUrl}/Auth/verify-otp`, {
         email: email,
         code: otpCode
       });
@@ -101,7 +102,7 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl = 'http://localhos
     inputRefs.current[0]?.focus();
 
     try {
-      const response = await axios.post(`${apiUrl}/Auth/resend-otp`, {
+      const response = await axios.post(`${apiBaseUrl}/Auth/resend-otp`, {
         email: email
       });
 
@@ -123,32 +124,133 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl = 'http://localhos
   };
 
   return (
-    <div className="otp-verification-modal">
-      <div className="otp-verification-overlay" onClick={onClose}></div>
-      <div className="otp-verification-content">
-        <div className="otp-verification-header">
-          <h2>Xác minh Email</h2>
-          <button className="otp-close-btn" onClick={onClose}>&times;</button>
+    <div 
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        animation: 'fadeIn 0.3s ease-out'
+      }}
+    >
+      <div 
+        className="modal-content animate-slide-up"
+        style={{
+          background: 'linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(18, 18, 18, 0.95) 100%)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderRadius: '20px',
+          width: '100%',
+          maxWidth: '520px',
+          maxHeight: '90vh',
+          overflow: 'auto',
+          position: 'relative',
+          border: '1px solid rgba(255, 122, 0, 0.2)',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 122, 0, 0.2)',
+          animation: 'slideUp 0.3s ease-out'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header với gradient */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0A1128 0%, #001F3F 100%)',
+          padding: '24px 32px',
+          borderTopLeftRadius: '20px',
+          borderTopRightRadius: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid rgba(255, 122, 0, 0.2)'
+        }}>
+          <h2 style={{
+            fontSize: '28px',
+            fontWeight: 700,
+            color: '#FFFFFF',
+            margin: 0,
+            letterSpacing: '-0.5px'
+          }}>
+            Xác minh Email
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              color: '#FFFFFF'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+              e.target.style.transform = 'rotate(90deg)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.transform = 'rotate(0deg)';
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
         </div>
 
-        <div className="otp-verification-body">
-          <p className="otp-info-text">
-            Chúng tôi đã gửi mã OTP đến email <strong>{email}</strong>
+        {/* Body */}
+        <div style={{ padding: '32px' }}>
+          <p style={{
+            margin: '0 0 8px 0',
+            color: 'var(--color-text-primary, #FFFFFF)',
+            fontSize: '15px',
+            lineHeight: '1.5'
+          }}>
+            Chúng tôi đã gửi mã OTP đến email <strong style={{ color: 'var(--color-primary, #FF7A00)', fontWeight: 600 }}>{email}</strong>
           </p>
-          <p className="otp-subtext">
+          <p style={{
+            margin: '0 0 24px 0',
+            color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.7))',
+            fontSize: '14px'
+          }}>
             Vui lòng nhập mã OTP 6 số để xác minh tài khoản
           </p>
 
           {error && (
-            <div className="otp-error-message">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              {error}
+            <div className="alert alert-danger animate-fade-in" style={{ marginBottom: '24px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                {error}
+              </span>
             </div>
           )}
 
-          <div className="otp-input-container">
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'center',
+            marginBottom: '24px'
+          }}>
             {otp.map((digit, index) => (
               <input
                 key={index}
@@ -159,44 +261,176 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl = 'http://localhos
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="otp-input"
                 disabled={verifying || loading}
+                style={{
+                  width: '50px',
+                  height: '60px',
+                  textAlign: 'center',
+                  fontSize: '24px',
+                  fontWeight: 600,
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#FFFFFF',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--color-primary, #FF7A00)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(255, 122, 0, 0.2)';
+                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                  e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                }}
               />
             ))}
           </div>
 
-          <div className="otp-timer-container">
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '24px'
+          }}>
             {timeLeft > 0 ? (
-              <p className="otp-timer">
-                Mã OTP sẽ hết hạn sau: <span className="otp-timer-value">{formatTime(timeLeft)}</span>
+              <p style={{
+                margin: 0,
+                color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.7))',
+                fontSize: '14px'
+              }}>
+                Mã OTP sẽ hết hạn sau: <span style={{
+                  fontWeight: 700,
+                  color: 'var(--color-primary, #FF7A00)',
+                  fontSize: '16px'
+                }}>{formatTime(timeLeft)}</span>
               </p>
             ) : (
-              <p className="otp-timer-expired">Mã OTP đã hết hạn</p>
+              <p style={{
+                margin: 0,
+                color: '#dc2626',
+                fontWeight: 600,
+                fontSize: '14px'
+              }}>
+                Mã OTP đã hết hạn
+              </p>
             )}
           </div>
 
-          <div className="otp-actions">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
             <button
               type="button"
               onClick={handleVerify}
-              className="otp-verify-btn"
+              className="auth-button"
               disabled={otp.join('').length !== 6 || verifying || loading}
+              style={{
+                width: '100%',
+                marginTop: '8px'
+              }}
             >
-              {verifying ? 'Đang xác minh...' : 'Xác minh'}
+              {verifying ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <svg className="loading-spinner" width="20" height="20" viewBox="0 0 20 20" style={{ animation: 'spin 1s linear infinite' }}>
+                    <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeDashoffset="24" opacity="0.3" />
+                    <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeDashoffset="24" />
+                  </svg>
+                  Đang xác minh...
+                </span>
+              ) : (
+                'Xác minh'
+              )}
             </button>
 
             {canResend && (
               <button
                 type="button"
                 onClick={handleResendOTP}
-                className="otp-resend-btn"
                 disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  background: 'transparent',
+                  color: 'var(--color-primary, #FF7A00)',
+                  border: '2px solid var(--color-primary, #FF7A00)',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: loading ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.target.style.background = 'rgba(255, 122, 0, 0.1)';
+                    e.target.style.borderColor = '#FF9500';
+                    e.target.style.color = '#FF9500';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.target.style.background = 'transparent';
+                    e.target.style.borderColor = 'var(--color-primary, #FF7A00)';
+                    e.target.style.color = 'var(--color-primary, #FF7A00)';
+                  }
+                }}
               >
                 {loading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
               </button>
             )}
           </div>
         </div>
+
+        <style>{`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
+          }
+
+          @keyframes slideUp {
+            from {
+              transform: translateY(20px);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          .modal-content::-webkit-scrollbar {
+            width: 8px;
+          }
+
+          .modal-content::-webkit-scrollbar-track {
+            background: transparent;
+          }
+
+          .modal-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+          }
+
+          .modal-content::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary, #FF7A00);
+          }
+        `}</style>
       </div>
     </div>
   );
