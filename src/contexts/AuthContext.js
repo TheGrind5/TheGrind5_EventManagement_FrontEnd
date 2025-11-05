@@ -99,18 +99,63 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authAPI.register(userData);
-      // Backend trả về UserId, FullName, etc. (PascalCase)
+      // Backend trả về UserId, FullName, requiresVerification, otpSent, etc.
       if (response.data && response.data.userId) {
-        // Không tự động login sau khi register
-        // Chỉ trả về thông báo thành công
-        return { success: true, message: 'Đăng ký thành công. Vui lòng đăng nhập.' };
+        const requiresVerification = response.data.requiresVerification || false;
+        const otpSent = response.data.otpSent || false;
+        
+        // Chỉ coi là thành công nếu không cần verify hoặc đã verify rồi
+        // Nếu cần verify thì chưa thành công (chưa verify OTP)
+        const isSuccess = !requiresVerification;
+        
+        return { 
+          success: isSuccess, // Chỉ true nếu không cần verify
+          accountCreated: true, // Tài khoản đã được tạo (nhưng chưa verify)
+          message: response.data.message || 'Đăng ký thành công',
+          requiresVerification: requiresVerification,
+          otpSent: otpSent,
+          email: response.data.email || userData.email,
+          data: response.data
+        };
       }
-      return { success: false, message: 'Registration failed' };
+      return { success: false, accountCreated: false, message: 'Đăng ký thất bại' };
     } catch (error) {
       console.error('Register error:', error);
+      
+      // Xác định xem có phải network error không
+      const errorMessage = error.message || error.response?.data?.message || 'Đăng ký thất bại';
+      const isNetworkError = errorMessage.includes('Không thể kết nối đến server') || 
+                            errorMessage.includes('Network Error') ||
+                            errorMessage.includes('timeout') ||
+                            (error.code === 0) ||
+                            (!error.response && error.request); // Có request nhưng không có response
+      
+      // Handle email already exists error
+      if (error.response?.status === 400 && error.response?.data?.message) {
+        return { 
+          success: false,
+          accountCreated: false,
+          message: error.response.data.message 
+        };
+      }
+      
+      // Với network error, có thể backend đã tạo account và gửi OTP nhưng response không về được
+      // Trả về một object cho phép frontend xử lý tiếp (cho user nhập OTP)
+      if (isNetworkError) {
+        return {
+          success: false,
+          accountCreated: false, // Không chắc chắn, nhưng có thể đã tạo
+          message: errorMessage,
+          isNetworkError: true,
+          email: userData.email // Cung cấp email để có thể thử OTP
+        };
+      }
+      
       return { 
-        success: false, 
-        message: error.message || 'Registration failed' 
+        success: false,
+        accountCreated: false,
+        message: errorMessage,
+        isNetworkError: false
       };
     }
   };

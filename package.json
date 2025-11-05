@@ -34,15 +34,16 @@
     "autoprefixer": "^10.4.20",
     "concurrently": "^8.2.2",
     "postcss": "^8.4.47",
+    "react-app-rewired": "^2.2.1",
     "tailwindcss": "^3.4.13"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "test:coverage": "react-scripts test --coverage --watchAll=false",
-    "test:watch": "react-scripts test --watch",
-    "test:once": "react-scripts test --watchAll=false",
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "test:coverage": "react-app-rewired test --coverage --watchAll=false",
+    "test:watch": "react-app-rewired test --watch",
+    "test:once": "react-app-rewired test --watchAll=false",
     "eject": "react-scripts eject",
     "dev": "concurrently \"npm run start\" \"npm run backend\"",
     "backend": "cd ../TheGrind5_EventManagement_BackEnd/src && dotnet run"
