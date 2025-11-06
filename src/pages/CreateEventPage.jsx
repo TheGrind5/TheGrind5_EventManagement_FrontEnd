@@ -19,6 +19,7 @@ import Header from '../components/layout/Header';
 import EventInfoStep from '../components/event-creation/EventInfoStep';
 import DateTimeTicketStep from '../components/event-creation/DateTimeTicketStep';
 import VirtualStageStep from '../components/stage/VirtualStageStep';
+import ProductStep from '../components/event-creation/ProductStep';
 import SettingsStep from '../components/event-creation/SettingsStep';
 import PaymentStep from '../components/event-creation/PaymentStep';
 import { eventsAPI } from '../services/apiClient';
@@ -55,9 +56,10 @@ const CreateEventPage = () => {
     const hasStep3 = localStorage.getItem('createEvent_step3');
     const hasStep4 = localStorage.getItem('createEvent_step4');
     const hasStep5 = localStorage.getItem('createEvent_step5');
+    const hasStep6 = localStorage.getItem('createEvent_step6');
     
     // Nếu có data ở bất kỳ bước nào và không phải edit mode, thì đang trong quá trình tạo
-    if (!isEditMode && (hasStep1 || hasStep2 || hasStep3 || hasStep4 || hasStep5)) {
+    if (!isEditMode && (hasStep1 || hasStep2 || hasStep3 || hasStep4 || hasStep5 || hasStep6)) {
       // Parse và check xem có data thực sự không (không phải empty object)
       try {
         if (hasStep1) {
@@ -144,13 +146,7 @@ const CreateEventPage = () => {
   
   function getInitialStep4Data() {
     return {
-      eventStatus: 'Draft',
-      priority: 'Normal',
-      maxAttendees: 0,
-      registrationDeadline: 0,
-      contactEmail: '',
-      contactPhone: '',
-      internalNotes: ''
+      products: []
     };
   }
 
@@ -163,6 +159,26 @@ const CreateEventPage = () => {
   });
   
   function getInitialStep5Data() {
+    return {
+      eventStatus: 'Draft',
+      priority: 'Normal',
+      maxAttendees: 0,
+      registrationDeadline: 0,
+      contactEmail: '',
+      contactPhone: '',
+      internalNotes: ''
+    };
+  }
+
+  const [step6Data, setStep6Data] = useState(() => {
+    if (isEditMode) {
+      const saved = localStorage.getItem('createEvent_step6');
+      return saved ? JSON.parse(saved) : getInitialStep6Data();
+    }
+    return getInitialStep6Data();
+  });
+  
+  function getInitialStep6Data() {
     return {
       selectedPaymentMethods: ['bank_transfer'],
       bankAccounts: [
@@ -183,6 +199,7 @@ const CreateEventPage = () => {
     'Thông tin cơ bản',
     'Thời gian & Loại vé',
     'Sân khấu ảo',
+    'Tạo phụ kiện',
     'Cài đặt',
     'Thanh toán'
   ];
@@ -218,10 +235,24 @@ const CreateEventPage = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      localStorage.setItem('createEvent_step4', JSON.stringify(step4Data));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [step4Data]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
       localStorage.setItem('createEvent_step5', JSON.stringify(step5Data));
     }, 500);
     return () => clearTimeout(timer);
   }, [step5Data]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('createEvent_step6', JSON.stringify(step6Data));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [step6Data]);
 
   // Check subscription before allowing event creation (not edit mode)
   useEffect(() => {
@@ -270,6 +301,7 @@ const CreateEventPage = () => {
       localStorage.removeItem('createEvent_step3');
       localStorage.removeItem('createEvent_step4');
       localStorage.removeItem('createEvent_step5');
+      localStorage.removeItem('createEvent_step6');
       console.log('Create mode: localStorage cleared');
     }
   }, []); // Run once on mount
@@ -333,6 +365,7 @@ const CreateEventPage = () => {
         localStorage.removeItem('createEvent_step3');
         localStorage.removeItem('createEvent_step4');
         localStorage.removeItem('createEvent_step5');
+        localStorage.removeItem('createEvent_step6');
         setShouldBlockNavigation(false);
       }
     };
@@ -841,33 +874,52 @@ const CreateEventPage = () => {
     } else if (activeStep === 2) {
         // Bước 3: Virtual Stage - Lưu venue layout vào localStorage
         // QUAN TRỌNG: Không tạo/update event ở bước này - chỉ lưu vào localStorage
-        // Event sẽ chỉ được tạo khi hoàn thành bước 5
+        // Event sẽ chỉ được tạo khi hoàn thành bước 6
         
         setLoading(true);
         setError(null);
         
         console.log('Step 3 Data (Venue Layout):', step3Data);
-        console.log('Step 3 completed - Data saved to localStorage only. Event will be created at step 5.');
+        console.log('Step 3 completed - Data saved to localStorage only. Event will be created at step 6.');
         
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        setLoading(false);
+        setIsProcessing(false);
         
       } else if (activeStep === 3) {
-        // Bước 4: Cập nhật cài đặt - Lưu vào localStorage
+        // Bước 4: Tạo phụ kiện - Lưu vào localStorage
         // QUAN TRỌNG: Không tạo/update event ở bước này - chỉ lưu vào localStorage
-        // Event sẽ chỉ được tạo khi hoàn thành bước 5
+        // Event sẽ chỉ được tạo khi hoàn thành bước 6
         
         setLoading(true);
         setError(null);
         
-        console.log('Step 4 Data:', step4Data);
-        console.log('Step 4 completed - Data saved to localStorage only. Event will be created at step 5.');
+        console.log('Step 4 Data (Products):', step4Data);
+        console.log('Step 4 completed - Data saved to localStorage only. Event will be created at step 6.');
         
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        setLoading(false);
+        setIsProcessing(false);
         
       } else if (activeStep === 4) {
-        // Bước 5: Hoàn thành
+        // Bước 5: Cập nhật cài đặt - Lưu vào localStorage
+        // QUAN TRỌNG: Không tạo/update event ở bước này - chỉ lưu vào localStorage
+        // Event sẽ chỉ được tạo khi hoàn thành bước 6
+        
+        setLoading(true);
+        setError(null);
+        
+        console.log('Step 5 Data (Settings):', step5Data);
+        console.log('Step 5 completed - Data saved to localStorage only. Event will be created at step 6.');
+        
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        setLoading(false);
+        setIsProcessing(false);
+        
+      } else if (activeStep === 5) {
+        // Bước 6: Hoàn thành
         // Nếu đang edit mode: Cập nhật event với tất cả các bước
-        // Nếu tạo mới: Tạo event hoàn chỉnh với tất cả 5 bước cùng lúc
+        // Nếu tạo mới: Tạo event hoàn chỉnh với tất cả 6 bước cùng lúc
 
         setLoading(true);
         setError(null);
@@ -881,8 +933,9 @@ const CreateEventPage = () => {
         console.log('Step 1 Data:', step1Data);
         console.log('Step 2 Data:', step2Data);
         console.log('Step 3 Data:', step3Data);
-        console.log('Step 4 Data:', step4Data);
-        console.log('Step 5 Data:', step5Data);
+        console.log('Step 4 Data (Products):', step4Data);
+        console.log('Step 5 Data (Settings):', step5Data);
+        console.log('Step 6 Data (Payment):', step6Data);
         
         // Chuẩn bị location string từ step1Data
         let locationString = '';
@@ -983,12 +1036,14 @@ const CreateEventPage = () => {
           ticketTypes: ticketTypes,
           // Step 3
           venueLayout: venueLayout,
-          // Step 4 - Settings (optional)
-          eventSettings: step4Data ? JSON.stringify(step4Data) : null,
-          // Step 5
-          paymentMethod: step5Data.selectedPaymentMethods?.join(', ') || 'Bank Transfer',
-          bankAccount: step5Data.bankAccounts ? JSON.stringify(step5Data.bankAccounts) : '',
-          taxInfo: step5Data.taxInfo || ''
+          // Step 4 - Products (optional)
+          products: step4Data?.products || [],
+          // Step 5 - Settings (optional)
+          eventSettings: step5Data ? JSON.stringify(step5Data) : null,
+          // Step 6
+          paymentMethod: step6Data.selectedPaymentMethods?.join(', ') || 'Bank Transfer',
+          bankAccount: step6Data.bankAccounts ? JSON.stringify(step6Data.bankAccounts) : '',
+          taxInfo: step6Data.taxInfo || ''
         };
         
         console.log('Complete Event Request:', completeEventRequest);
@@ -1049,12 +1104,34 @@ const CreateEventPage = () => {
             
             console.log('Event updated successfully with ID:', eventId);
             
+            // Tạo products nếu có
+            if (step4Data?.products && step4Data.products.length > 0) {
+              try {
+                const { productsAPI } = await import('../services/apiClient');
+                for (const product of step4Data.products) {
+                  if (product.name && product.name.trim()) {
+                    await productsAPI.create({
+                      eventId: eventId,
+                      name: product.name,
+                      image: product.image || '',
+                      price: product.isFree ? 0 : (product.price || 0)
+                    });
+                  }
+                }
+                console.log('Products created successfully');
+              } catch (productError) {
+                console.error('Error creating products:', productError);
+                // Không throw error vì products là optional
+              }
+            }
+            
             // Xóa dữ liệu tạm trong localStorage
             localStorage.removeItem('createEvent_step1');
             localStorage.removeItem('createEvent_step2');
             localStorage.removeItem('createEvent_step3');
             localStorage.removeItem('createEvent_step4');
             localStorage.removeItem('createEvent_step5');
+            localStorage.removeItem('createEvent_step6');
             
             // QUAN TRỌNG: Đánh dấu event đã được update để HomePage reload
             sessionStorage.setItem('eventUpdated', Date.now().toString());
@@ -1098,12 +1175,34 @@ const CreateEventPage = () => {
           const newEventId = response.data.eventId;
           console.log('Event created successfully with ID:', newEventId);
           
+          // Tạo products nếu có
+          if (step4Data?.products && step4Data.products.length > 0) {
+            try {
+              const { productsAPI } = await import('../services/apiClient');
+              for (const product of step4Data.products) {
+                if (product.name && product.name.trim()) {
+                  await productsAPI.create({
+                    eventId: newEventId,
+                    name: product.name,
+                    image: product.image || '',
+                    price: product.isFree ? 0 : (product.price || 0)
+                  });
+                }
+              }
+              console.log('Products created successfully');
+            } catch (productError) {
+              console.error('Error creating products:', productError);
+              // Không throw error vì products là optional
+            }
+          }
+          
           // Xóa dữ liệu tạm trong localStorage
           localStorage.removeItem('createEvent_step1');
           localStorage.removeItem('createEvent_step2');
           localStorage.removeItem('createEvent_step3');
           localStorage.removeItem('createEvent_step4');
           localStorage.removeItem('createEvent_step5');
+          localStorage.removeItem('createEvent_step6');
           
           // Chuyển đến trang chi tiết event
           navigate(`/events/${newEventId}`);
@@ -1120,8 +1219,8 @@ const CreateEventPage = () => {
         setError(err.message || 'Có lỗi xảy ra khi tạo sự kiện');
         setIsEventBeingCreated(false);
         setShouldBlockNavigation(false);
-      } else if (activeStep === 4) {
-        // Xử lý lỗi đặc biệt cho bước 5 (validation errors từ backend)
+      } else if (activeStep === 5) {
+        // Xử lý lỗi đặc biệt cho bước 6 (validation errors từ backend)
         if (err.response && err.response.data) {
           const errorData = err.response.data;
           
@@ -1174,6 +1273,8 @@ const CreateEventPage = () => {
     localStorage.removeItem('createEvent_step2');
     localStorage.removeItem('createEvent_step3');
     localStorage.removeItem('createEvent_step4');
+    localStorage.removeItem('createEvent_step5');
+    localStorage.removeItem('createEvent_step6');
     
     // Reset all states
     setStep1Data({
@@ -1202,6 +1303,15 @@ const CreateEventPage = () => {
     });
     
     setStep3Data({
+      hasVirtualStage: false,
+      layout: null
+    });
+    
+    setStep4Data({
+      products: []
+    });
+    
+    setStep5Data({
       eventStatus: 'Draft',
       priority: 'Normal',
       maxAttendees: 0,
@@ -1211,7 +1321,7 @@ const CreateEventPage = () => {
       internalNotes: ''
     });
     
-    setStep4Data({
+    setStep6Data({
       selectedPaymentMethods: ['bank_transfer'],
       bankAccounts: [
         {
@@ -1324,18 +1434,20 @@ const CreateEventPage = () => {
       case 2:
         return true; // Virtual Stage is optional
       case 3:
-        return true; // Settings are optional
+        return true; // Products are optional
       case 4:
+        return true; // Settings are optional
+      case 5:
         // Check if at least one payment method is selected
-        const hasPaymentMethods = step5Data.selectedPaymentMethods && 
-                                 step5Data.selectedPaymentMethods.length > 0;
+        const hasPaymentMethods = step6Data.selectedPaymentMethods && 
+                                 step6Data.selectedPaymentMethods.length > 0;
         
         // Check if bank accounts are valid (if bank transfer is selected)
         let hasValidBankAccounts = true;
-        if (step5Data.selectedPaymentMethods?.includes('bank_transfer')) {
-          hasValidBankAccounts = step5Data.bankAccounts && 
-                                step5Data.bankAccounts.length > 0 &&
-                                step5Data.bankAccounts.every(account => 
+        if (step6Data.selectedPaymentMethods?.includes('bank_transfer')) {
+          hasValidBankAccounts = step6Data.bankAccounts && 
+                                step6Data.bankAccounts.length > 0 &&
+                                step6Data.bankAccounts.every(account => 
                                   account.bankName && 
                                   account.bankName.trim() !== '' &&
                                   account.accountNumber && 
@@ -1390,16 +1502,24 @@ const CreateEventPage = () => {
         );
       case 3:
         return (
-          <SettingsStep
+          <ProductStep
             data={step4Data}
             onChange={setStep4Data}
+            eventId={eventId}
           />
         );
       case 4:
         return (
-          <PaymentStep
+          <SettingsStep
             data={step5Data}
             onChange={setStep5Data}
+          />
+        );
+      case 5:
+        return (
+          <PaymentStep
+            data={step6Data}
+            onChange={setStep6Data}
           />
         );
       default:
@@ -1440,7 +1560,7 @@ const CreateEventPage = () => {
           </Typography>
           
           <Typography variant="body1" color="text.secondary">
-            {isEditMode ? 'Chỉnh sửa sự kiện của bạn' : 'Tạo sự kiện của bạn theo 4 bước đơn giản'}
+            {isEditMode ? 'Chỉnh sửa sự kiện của bạn' : 'Tạo sự kiện của bạn theo 6 bước đơn giản'}
           </Typography>
           
           {editModeLoading && (

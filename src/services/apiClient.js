@@ -514,4 +514,54 @@ export const paymentAPI = {
   }
 };
 
+// Product API
+export const productsAPI = {
+  getByEvent: async (eventId) => {
+    return api.get(`/Product/by-event/${eventId}`);
+  },
+  
+  getById: async (productId) => {
+    return api.get(`/Product/${productId}`);
+  },
+  
+  create: async (productData) => {
+    return api.post('/Product', productData);
+  },
+  
+  update: async (productId, productData) => {
+    return api.put(`/Product/${productId}`, productData);
+  },
+  
+  delete: async (productId) => {
+    return api.delete(`/Product/${productId}`);
+  }
+};
+
+// Announcement API
+export const announcementAPI = {
+  getAll: async () => {
+    return api.get('/Announcement');
+  },
+  
+  getActive: async () => {
+    return api.get('/Announcement/active');
+  },
+  
+  getById: async (announcementId) => {
+    return api.get(`/Announcement/${announcementId}`);
+  },
+  
+  create: async (content) => {
+    return api.post('/Announcement', { content });
+  },
+  
+  update: async (announcementId, data) => {
+    return api.put(`/Announcement/${announcementId}`, data);
+  },
+  
+  delete: async (announcementId) => {
+    return api.delete(`/Announcement/${announcementId}`);
+  }
+};
+
 export default apiClient;

@@ -8,7 +8,8 @@ import {
   Settings,
   Logout,
   AdminPanelSettings,
-  LocalOffer
+  LocalOffer,
+  Notifications
 } from '@mui/icons-material';
 import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
@@ -25,6 +26,7 @@ const AdminSidebar = ({ onLogout }) => {
     { path: '/admin/events', icon: <Event />, label: 'Quản Lý Events' },
     { path: '/admin/orders', icon: <Receipt />, label: 'Quản Lý Orders' },
     { path: '/admin/vouchers', icon: <LocalOffer />, label: 'Quản Lý Vouchers' },
+    { path: '/admin/announcements', icon: <Notifications />, label: 'Thêm Thông Báo' },
     { path: '/admin/settings', icon: <Settings />, label: 'Cài Đặt' },
   ];
 

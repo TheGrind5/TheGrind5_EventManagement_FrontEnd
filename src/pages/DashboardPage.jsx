@@ -43,7 +43,7 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import { useAuth } from '../contexts/AuthContext';
-import { eventsAPI, ticketsAPI, ordersAPI, walletAPI, notificationAPI } from '../services/apiClient';
+import { eventsAPI, ticketsAPI, ordersAPI, walletAPI, notificationAPI, announcementAPI } from '../services/apiClient';
 import { decodeText } from '../utils/textDecoder';
 
 const DashboardPage = () => {
@@ -60,6 +60,7 @@ const DashboardPage = () => {
     walletBalance: 0,
     unreadNotifications: 0
   });
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
@@ -98,11 +99,12 @@ const DashboardPage = () => {
         setTotalCount(total);
         
         // Fetch statistics in parallel
-        const [ticketsRes, ordersRes, walletRes, notificationsRes] = await Promise.allSettled([
+        const [ticketsRes, ordersRes, walletRes, notificationsRes, announcementsRes] = await Promise.allSettled([
           ticketsAPI.getMyTickets().catch(() => ({ data: [] })),
           ordersAPI.getMyOrders().catch(() => ({ data: [] })),
           walletAPI.getBalance().catch(() => ({ data: { balance: 0 } })),
-          notificationAPI.getNotifications(1, 1).catch(() => ({ data: { notifications: [], unreadCount: 0 } }))
+          notificationAPI.getNotifications(1, 1).catch(() => ({ data: { notifications: [], unreadCount: 0 } })),
+          announcementAPI.getActive().catch(() => ({ data: [] }))
         ]);
         
         // Xử lý tickets - kiểm tra nhiều cấu trúc dữ liệu
@@ -141,6 +143,18 @@ const DashboardPage = () => {
           ? (notificationsRes.value?.data || {})
           : {};
         const unreadNotifications = notificationsData.unreadCount || 0;
+        
+        // Xử lý announcements
+        let announcementsData = [];
+        if (announcementsRes.status === 'fulfilled' && announcementsRes.value?.data) {
+          const data = announcementsRes.value.data;
+          if (Array.isArray(data)) {
+            announcementsData = data;
+          } else if (Array.isArray(data?.data)) {
+            announcementsData = data.data;
+          }
+        }
+        setAnnouncements(announcementsData);
         
         // Đếm số lượng vé và đơn hàng
         const ticketCount = Array.isArray(tickets) ? tickets.length : 0;
@@ -257,12 +271,85 @@ const DashboardPage = () => {
       <Header />
       
       <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 } }}>
-        {/* Welcome Header with Gradient */}
+        {/* Scrolling Announcements - Above Welcome Banner */}
+        {announcements.length > 0 && (
+          <Box
+            sx={{
+              mb: 2,
+              overflow: 'hidden',
+              position: 'relative',
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 152, 0, 0.1)' : 'rgba(255, 152, 0, 0.15)',
+              borderRadius: 2,
+              py: 1.5,
+              border: `2px solid ${theme.palette.primary.main}`,
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: '50px',
+                background: 'linear-gradient(to right, rgba(255, 152, 0, 0.15), transparent)',
+                zIndex: 1,
+                pointerEvents: 'none'
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: '50px',
+                background: 'linear-gradient(to left, rgba(255, 152, 0, 0.15), transparent)',
+                zIndex: 1,
+                pointerEvents: 'none'
+              }
+            }}
+          >
+            <Box
+              sx={{
+                display: 'inline-flex',
+                whiteSpace: 'nowrap',
+                animation: 'scroll-left 40s linear infinite',
+                '@keyframes scroll-left': {
+                  '0%': {
+                    transform: 'translateX(100%)'
+                  },
+                  '100%': {
+                    transform: 'translateX(-100%)'
+                  }
+                }
+              }}
+            >
+              {/* Duplicate announcements for seamless loop */}
+              {[...announcements, ...announcements].map((announcement, index) => (
+                <Typography
+                  key={`${announcement.announcementId || announcement.AnnouncementId || index}-${Math.floor(index / announcements.length)}`}
+                  variant="body1"
+                  component="span"
+                  sx={{
+                    color: theme.palette.primary.main,
+                    fontWeight: 600,
+                    fontSize: '1.1rem',
+                    px: 4,
+                    display: 'inline-block',
+                    flexShrink: 0
+                  }}
+                >
+                  {announcement.content || announcement.Content} • 
+                </Typography>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* Welcome Header with Gradient - Moved down slightly */}
         <Paper
           elevation={0}
           sx={{
             p: { xs: 3, md: 5 },
             mb: 4,
+            mt: 3, // Di chuyển xuống một chút
             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
             color: 'white',
             borderRadius: 4,

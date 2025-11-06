@@ -7,6 +7,7 @@ import EventManagement from '../components/admin/EventManagement';
 import AdminOrdersPage from './admin/AdminOrdersPage';
 import AdminEventsPage from './admin/AdminEventsPage';
 import AdminVouchersPage from './admin/AdminVouchersPage';
+import AdminAnnouncementsPage from './admin/AdminAnnouncementsPage';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminDashboard.css';
 
@@ -31,6 +32,7 @@ const AdminDashboard = () => {
           <Route path="/events" element={<AdminEventsPage />} />
           <Route path="/orders" element={<AdminOrdersPage />} />
           <Route path="/vouchers" element={<AdminVouchersPage />} />
+          <Route path="/announcements" element={<AdminAnnouncementsPage />} />
           <Route path="/settings" element={<ComingSoon title="Cài Đặt" />} />
         </Routes>
       </div>

@@ -138,7 +138,7 @@ const AdminOrdersPage = () => {
       'Paid': 'Đã thanh toán',
       'Cancelled': 'Đã hủy',
       'Refunded': 'Đã hoàn tiền',
-      'Failed': 'Thất bại'
+      'Failed': 'Thanh toán thất bại'
     };
     return statusMap[status] || status;
   };
@@ -325,6 +325,8 @@ const AdminOrdersPage = () => {
                     <td>
                       {(() => {
                         const status = (order.status || order.Status || 'Pending').toLowerCase();
+                        // Chỉ hiển thị nút "Hoàn tiền" cho status "Cancelled" (Đã hủy)
+                        // Ẩn nút "Hoàn tiền" cho status "Failed" (Thanh toán thất bại)
                         return status === 'cancelled' ? (
                           <button
                             onClick={() => handleRefund(order.orderId, order.status || order.Status)}

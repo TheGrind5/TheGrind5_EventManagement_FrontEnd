@@ -49,10 +49,17 @@ const VNPayPaymentPage = () => {
   const MAX_POLL_COUNT = 100; // Poll tối đa 100 lần (5 phút với 3s interval)
 
   // Check if timer expired
-  const handleTimerExpire = () => {
+  const handleTimerExpire = async () => {
     setCountdownExpired(true);
     stopPolling();
     setError('Đã hết thời gian thanh toán! Đơn hàng sẽ bị hủy.');
+    
+    // Cập nhật order status thành "Failed" khi hết thời gian
+    try {
+      await ordersAPI.updateStatus(orderId, 'Failed');
+    } catch (statusError) {
+      console.error('Error updating order status to Failed:', statusError);
+    }
     
     // Cancel payment
     if (paymentId) {
@@ -120,6 +127,15 @@ const VNPayPaymentPage = () => {
     // Cleanup polling on unmount
     return () => {
       stopPolling();
+      
+      // Nếu component unmount và order vẫn ở trạng thái Pending, cập nhật thành Failed
+      // (xử lý trường hợp người dùng đóng tab hoặc navigate đi mà không bấm nút)
+      // Chỉ cập nhật nếu order đã được load và status là Pending
+      if (orderId && order && (order.status === 'Pending' || order.status === 'pending')) {
+        ordersAPI.updateStatus(orderId, 'Failed').catch(err => {
+          console.error('Error updating order status to Failed on unmount:', err);
+        });
+      }
     };
   }, [orderId, user, location.state]);
 
@@ -185,6 +201,13 @@ const VNPayPaymentPage = () => {
 
   const handleCancel = async () => {
     try {
+      // Cập nhật order status thành "Failed" khi người dùng quay lại
+      try {
+        await ordersAPI.updateStatus(orderId, 'Failed');
+      } catch (statusError) {
+        console.error('Error updating order status to Failed:', statusError);
+      }
+      
       if (paymentId) {
         await paymentAPI.cancelPayment(paymentId);
       }
@@ -192,6 +215,12 @@ const VNPayPaymentPage = () => {
       navigate(`/order-information/${orderId}`);
     } catch (err) {
       console.error('Error canceling payment:', err);
+      // Vẫn cập nhật order status thành "Failed" ngay cả khi có lỗi
+      try {
+        await ordersAPI.updateStatus(orderId, 'Failed');
+      } catch (statusError) {
+        console.error('Error updating order status to Failed:', statusError);
+      }
       navigate(`/order-information/${orderId}`);
     }
   };

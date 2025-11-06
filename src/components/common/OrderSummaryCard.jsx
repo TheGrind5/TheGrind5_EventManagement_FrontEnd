@@ -12,15 +12,17 @@ import {
 
 /**
  * OrderSummaryCard Component
- * Display order summary with ticket details and pricing
+ * Display order summary with ticket details, products, and pricing
  * 
  * @param {array} orderItems - Array of order items {ticketTypeName, quantity, unitPrice, totalPrice}
- * @param {number} subtotal - Subtotal amount
+ * @param {array} orderProducts - Array of order products {productName, quantity, price, totalPrice}
+ * @param {number} subtotal - Subtotal amount (giá gốc trước giảm)
  * @param {number} discount - Discount amount
- * @param {number} total - Total amount
+ * @param {number} total - Total amount (giá cuối cùng sau giảm)
  */
 const OrderSummaryCard = ({ 
   orderItems = [], 
+  orderProducts = [],
   subtotal = 0, 
   discount = 0, 
   total = 0 
@@ -55,8 +57,9 @@ const OrderSummaryCard = ({
 
       <Divider sx={{ mb: 2 }} />
 
+      {/* Hiển thị vé */}
       {orderItems.map((item, index) => (
-        <Box key={index} sx={{ mb: 2 }}>
+        <Box key={`ticket-${index}`} sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 0.5 }}>
             <Typography variant="body1" fontWeight={600}>
               {item.ticketTypeName || 'Loại vé'}
@@ -76,27 +79,58 @@ const OrderSummaryCard = ({
         </Box>
       ))}
 
+      {/* Hiển thị phụ kiện */}
+      {orderProducts && orderProducts.length > 0 && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+            Phụ kiện:
+          </Typography>
+          {orderProducts.map((product, index) => (
+            <Box key={`product-${index}`} sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 0.5 }}>
+                <Typography variant="body1" fontWeight={600}>
+                  {product.productName || 'Phụ kiện'}
+                </Typography>
+                <Typography variant="body1" fontWeight={600}>
+                  {formatCurrency(product.price || 0)}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Số lượng: {product.quantity || 0}
+                </Typography>
+                <Typography variant="body2" fontWeight={600}>
+                  {formatCurrency(product.totalPrice || 0)}
+                </Typography>
+              </Box>
+            </Box>
+          ))}
+        </>
+      )}
+
       <Divider sx={{ my: 2 }} />
 
+      {/* Luôn hiển thị Tạm tính (giá gốc trước giảm) */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          Tạm tính
+        </Typography>
+        <Typography variant="body2">
+          {formatCurrency(subtotal)}
+        </Typography>
+      </Box>
+      
+      {/* Hiển thị Giảm giá nếu có */}
       {discount > 0 && (
-        <>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Tạm tính
-            </Typography>
-            <Typography variant="body2">
-              {formatCurrency(subtotal)}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="body2" color="error">
-              Giảm giá
-            </Typography>
-            <Typography variant="body2" color="error">
-              -{formatCurrency(discount)}
-            </Typography>
-          </Box>
-        </>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="body2" color="error">
+            Giảm giá
+          </Typography>
+          <Typography variant="body2" color="error">
+            -{formatCurrency(discount)}
+          </Typography>
+        </Box>
       )}
 
       <Divider sx={{ my: 2 }} />
