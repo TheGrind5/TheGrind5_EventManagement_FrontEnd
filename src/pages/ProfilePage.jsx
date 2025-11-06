@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/apiClient';
+import { subscriptionAPI, subscriptionHelpers } from '../services/subscriptionService';
 import Header from '../components/layout/Header';
 import AIHistory from '../components/ai/AIHistory';
 import config from '../config/environment';
@@ -8,7 +10,8 @@ import Cropper from 'react-easy-crop';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -24,6 +27,8 @@ const ProfilePage = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [avatarKey, setAvatarKey] = useState(0); // Key để force re-render avatar
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   
   // Crop states
   const [showCropModal, setShowCropModal] = useState(false);
@@ -35,6 +40,18 @@ const ProfilePage = () => {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    // Load subscription after user is loaded
+    console.log('🔍 useEffect triggered, user:', user);
+    const userRole = user?.role || user?.Role;
+    if (user && userRole === 'Host') {
+      console.log('👤 User loaded, loading subscription for:', user.email || user.Email);
+      loadSubscription();
+    } else {
+      console.log('⚠️ Not a Host user or user not loaded yet. Role:', userRole);
+    }
+  }, [user]);
 
   const loadProfile = async () => {
     try {
@@ -65,6 +82,45 @@ const ProfilePage = () => {
       setError('Không thể tải thông tin profile: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSubscription = async () => {
+    try {
+      setSubscriptionLoading(true);
+      const response = await subscriptionAPI.getMySubscription();
+      console.log('🔍 Full Subscription Response:', response);
+      console.log('🔍 Response Type:', typeof response);
+      console.log('🔍 Response Keys:', Object.keys(response));
+      console.log('🔍 Response.data:', response.data);
+      console.log('🔍 Response.data Type:', typeof response.data);
+      console.log('🔍 Response.data Keys:', response.data ? Object.keys(response.data) : 'no data');
+      
+      const data = response.data;
+      
+      // Handle SubscriptionStatusResponse - check both camelCase and PascalCase
+      // Backend returns: { hasActiveSubscription, activeSubscription, ... } or { HasActiveSubscription, ActiveSubscription, ... }
+      const activeSubscription = data?.activeSubscription || data?.ActiveSubscription;
+      
+      if (activeSubscription) {
+        console.log('✅ Found ActiveSubscription:', activeSubscription);
+        setSubscription(activeSubscription);
+      } else if (data?.planType || data?.PlanType || data?.subscriptionId || data?.SubscriptionId) {
+        // Direct subscription object (fallback)
+        console.log('✅ Found direct subscription data:', data);
+        setSubscription(data);
+      } else {
+        console.log('⚠️ No subscription found in response');
+        console.log('⚠️ HasActiveSubscription:', data?.hasActiveSubscription ?? data?.HasActiveSubscription);
+        console.log('⚠️ Data dump:', JSON.stringify(data, null, 2));
+        setSubscription(null);
+      }
+    } catch (err) {
+      console.error('❌ Error loading subscription:', err);
+      console.error('❌ Error details:', err.response?.data);
+      setSubscription(null);
+    } finally {
+      setSubscriptionLoading(false);
     }
   };
 
@@ -293,6 +349,28 @@ const ProfilePage = () => {
     setZoom(1);
   };
 
+  // Helper function to convert hex to RGB
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result 
+      ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+      : '76, 175, 80'; // Default green
+  };
+
+  // Get gradient colors for subscription plan (matching SubscriptionPlansPage)
+  const getGradientColors = (planType) => {
+    switch (planType) {
+      case 'Professional':
+        return { start: '#FF9800', end: '#FFC107' }; // Orange to Yellow
+      case 'BreakoutHost':
+        return { start: '#E91E63', end: '#9C27B0' }; // Pink to Purple
+      case 'RisingHost':
+        return { start: '#4CAF50', end: '#388E3C' }; // Green gradient
+      default:
+        return { start: '#4CAF50', end: '#43A047' }; // Default green
+    }
+  };
+
 
   if (loading) {
     return (
@@ -385,31 +463,164 @@ const ProfilePage = () => {
 
         {/* Profile Content */}
         <div className="profile-content">
-          {/* Avatar Section */}
-          <div className="profile-avatar-card">
-            <div className="profile-avatar-wrapper">
-              {avatarPreview || profile?.avatar ? (
-                <img 
-                  key={avatarKey}
-                  src={avatarPreview || profile?.avatar} 
-                  alt="Avatar" 
-                  className="profile-avatar-img"
-                />
-              ) : (
-                <span className="profile-avatar-initial">
-                  {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              )}
+          {/* Left Column - Avatar & Subscription */}
+          <div className="profile-left-column">
+            {/* Avatar Section */}
+            <div className="profile-avatar-card">
+              <div className="profile-avatar-wrapper">
+                {avatarPreview || profile?.avatar ? (
+                  <img 
+                    key={avatarKey}
+                    src={avatarPreview || profile?.avatar} 
+                    alt="Avatar" 
+                    className="profile-avatar-img"
+                  />
+                ) : (
+                  <span className="profile-avatar-initial">
+                    {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                  </span>
+                )}
+              </div>
+              <h3 className="profile-name">
+                {profile?.fullName || 'Chưa có tên'}
+              </h3>
+              <div className="profile-role">
+                {profile?.role}
+              </div>
+              <div className="profile-id">
+                ID: {profile?.userId}
+              </div>
             </div>
-            <h3 className="profile-name">
-              {profile?.fullName || 'Chưa có tên'}
-            </h3>
-            <div className="profile-role">
-              {profile?.role}
-            </div>
-            <div className="profile-id">
-              ID: {profile?.userId}
-            </div>
+
+            {/* Subscription Section - Only for Host */}
+            {console.log('🎯 Rendering subscription section, user role:', user?.role || user?.Role)}
+            {(user?.role === 'Host' || user?.Role === 'Host') && (
+              <div className="profile-subscription-card">
+                <h3 className="profile-subscription-title">
+                  Gói Subscription
+                </h3>
+                
+                {subscriptionLoading ? (
+                  <div className="subscription-loading">
+                    <div className="loading-spinner">Đang tải...</div>
+                  </div>
+                ) : subscription ? (() => {
+                  const planType = subscription.PlanType ?? subscription.planType ?? '';
+                  const isActive = (subscription.Status === 'Active' || subscription.status === 'Active');
+                  const gradient = getGradientColors(planType);
+                  
+                  return (
+                    <div className="subscription-info">
+                      <div 
+                        className={`subscription-card ${isActive ? 'subscription-active' : 'subscription-inactive'}`}
+                        style={{
+                          background: isActive 
+                            ? `linear-gradient(135deg, rgba(${hexToRgb(gradient.start)}, 0.15) 0%, rgba(${hexToRgb(gradient.end)}, 0.08) 100%)`
+                            : undefined,
+                          border: isActive 
+                            ? `2px solid rgba(${hexToRgb(gradient.start)}, 0.4)`
+                            : undefined
+                        }}
+                      >
+                        <div className="subscription-content">
+                          <div className="subscription-header">
+                            <div className="subscription-plan-info">
+                              <h4 className="subscription-plan-name">
+                                {subscription.PlanName ?? subscription.planName ?? subscriptionHelpers.getPlanDisplayName(planType)}
+                              </h4>
+                              <span className={`subscription-badge ${isActive ? 'subscription-badge-active' : 'subscription-badge-inactive'}`}>
+                                {subscription.Status ?? subscription.status}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="subscription-details">
+                            {/* Only show remaining events for non-Professional plans */}
+                            {planType !== 'Professional' && (
+                              <div className="subscription-detail-item">
+                                <span className="subscription-detail-icon">📅</span>
+                                <div className="subscription-detail-content">
+                                  <span className="subscription-detail-label">Sự kiện còn lại</span>
+                                  <span className="subscription-detail-value">
+                                    {(subscription.RemainingEvents === 'Unlimited' || subscription.remainingEvents === 'Unlimited') ||
+                                     subscription.RemainingEvents === -1 || subscription.remainingEvents === -1 ||
+                                     (typeof subscription.RemainingEvents === 'number' && subscription.RemainingEvents > 1000) ||
+                                     (typeof subscription.remainingEvents === 'number' && subscription.remainingEvents > 1000)
+                                      ? 'Không giới hạn' 
+                                      : `${subscription.RemainingEvents ?? subscription.remainingEvents ?? 0} sự kiện`}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Show unlimited create event for Professional plan */}
+                            {planType === 'Professional' && (
+                              <div className="subscription-detail-item">
+                                <span className="subscription-detail-icon">✨</span>
+                                <div className="subscription-detail-content">
+                                  <span className="subscription-detail-label">Unlimited create event</span>
+                                  <span className="subscription-detail-value" style={{ color: gradient.start, fontWeight: 'bold' }}>
+                                    Tạo sự kiện không giới hạn
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="subscription-detail-item">
+                              <span className="subscription-detail-icon">⏰</span>
+                              <div className="subscription-detail-content">
+                                <span className="subscription-detail-label">Hết hạn</span>
+                                <span className="subscription-detail-value">
+                                  {new Date(subscription.EndDate ?? subscription.endDate).toLocaleDateString('vi-VN')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {((subscription.PlanType === 'RisingHost' || subscription.planType === 'RisingHost') || 
+                          (subscription.PlanType === 'BreakoutHost' || subscription.planType === 'BreakoutHost')) && (
+                          <div className="subscription-action">
+                            <button
+                              onClick={() => navigate('/subscriptions/plans')}
+                              className="subscription-upgrade-btn"
+                              style={{
+                                background: `linear-gradient(135deg, ${gradient.start} 0%, ${gradient.end} 100%)`,
+                                boxShadow: `0 4px 12px ${gradient.start}40`
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.background = `linear-gradient(135deg, ${gradient.end} 0%, ${gradient.start} 100%)`;
+                                e.target.style.boxShadow = `0 6px 16px ${gradient.start}50`;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.background = `linear-gradient(135deg, ${gradient.start} 0%, ${gradient.end} 100%)`;
+                                e.target.style.boxShadow = `0 4px 12px ${gradient.start}40`;
+                              }}
+                            >
+                              <span className="subscription-upgrade-icon">⬆️</span>
+                              <span>Nâng cấp</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })() : (
+                  <div className="subscription-empty">
+                    <div className="subscription-empty-icon">📦</div>
+                    <p className="subscription-empty-text">
+                      Chưa có gói
+                    </p>
+                    <button
+                      onClick={() => navigate('/subscriptions/plans')}
+                      className="profile-btn profile-btn-primary subscription-empty-btn"
+                    >
+                      Mua ngay
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Profile Details */}
@@ -594,10 +805,10 @@ const ProfilePage = () => {
             </form>
           </div>
 
-          {/* AI History Section */}
-          <div className="profile-details-card" style={{ marginTop: '2rem' }}>
+          {/* AI History Section - Commented out for now due to AISuggestion table issue */}
+          {/* <div className="profile-details-card" style={{ marginTop: '2rem' }}>
             <AIHistory />
-          </div>
+          </div> */}
         </div>
       </div>
 

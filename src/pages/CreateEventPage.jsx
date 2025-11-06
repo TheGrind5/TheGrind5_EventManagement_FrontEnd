@@ -271,9 +271,71 @@ const CreateEventPage = () => {
       try {
         setSubscriptionCheckLoading(true);
         const response = await subscriptionAPI.checkStatus();
-        const canCreate = response.data.canCreateEvent;
         
+        console.log('[CreateEventPage] Subscription check response:', response.data);
+        console.log('[CreateEventPage] Full response object:', response);
+        
+        // Check response data structure - handle nested response
+        const responseData = response.data || response;
+        let canCreate = responseData?.canCreateEvent ?? responseData?.CanCreateEvent ?? false;
+        const hasSubscription = responseData?.hasActiveSubscription ?? responseData?.HasActiveSubscription ?? false;
+        const remainingEvents = responseData?.remainingEvents ?? responseData?.RemainingEvents ?? 0;
+        const activeSubscription = responseData?.activeSubscription ?? responseData?.ActiveSubscription;
+        
+        // Get plan details
+        const planType = activeSubscription?.planType ?? activeSubscription?.PlanType ?? '';
+        const status = activeSubscription?.status ?? activeSubscription?.Status ?? '';
+        const maxEventsAllowed = activeSubscription?.maxEventsAllowed ?? activeSubscription?.MaxEventsAllowed ?? 0;
+        const eventsCreated = activeSubscription?.eventsCreated ?? activeSubscription?.EventsCreated ?? 0;
+        
+        console.log('[CreateEventPage] Subscription details:', {
+          canCreate,
+          hasSubscription,
+          remainingEvents,
+          planType,
+          status,
+          maxEventsAllowed,
+          eventsCreated,
+          message: responseData?.message ?? responseData?.Message
+        });
+        
+        // Special handling for Professional plan with unlimited events
+        const isProfessional = planType === 'Professional';
+        // Check if unlimited: int.MaxValue = 2147483647, or -1, or remainingEvents is very large
+        const isUnlimited = maxEventsAllowed === 2147483647 || 
+                           remainingEvents === 2147483647 || 
+                           remainingEvents === -1 ||
+                           (typeof remainingEvents === 'string' && remainingEvents.toLowerCase() === 'unlimited');
+        
+        console.log('[CreateEventPage] Plan check:', {
+          isProfessional,
+          isUnlimited,
+          maxEventsAllowed,
+          remainingEvents,
+          hasSubscription,
+          status,
+          originalCanCreate: canCreate
+        });
+        
+        // Override canCreate for Professional plan - Professional always has unlimited events
+        // Don't rely on isUnlimited check as subscription might have been created before fix
+        if (isProfessional && hasSubscription && status === 'Active') {
+          console.log('[CreateEventPage] ✅ Professional plan detected - allowing unlimited event creation');
+          canCreate = true;
+        }
+        
+        // Final check
         if (!canCreate) {
+          console.warn('[CreateEventPage] Cannot create event - redirecting to subscription plans', {
+            canCreate,
+            isProfessional,
+            isUnlimited,
+            hasSubscription,
+            status,
+            remainingEvents,
+            maxEventsAllowed,
+            planType
+          });
           // Redirect to subscription plans page
           navigate('/subscriptions/plans', { 
             replace: true,
@@ -281,8 +343,11 @@ const CreateEventPage = () => {
           });
           return;
         }
+        
+        console.log('[CreateEventPage] ✅ Allowed to create event');
       } catch (err) {
-        console.error('Error checking subscription:', err);
+        console.error('[CreateEventPage] Error checking subscription:', err);
+        console.error('[CreateEventPage] Error details:', err.response?.data || err.message);
         // If error, still allow access (don't block user)
       } finally {
         setSubscriptionCheckLoading(false);

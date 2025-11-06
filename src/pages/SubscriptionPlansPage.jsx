@@ -189,22 +189,29 @@ const SubscriptionPlansPage = () => {
   }
 
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
       <Header />
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate(-1)}
-          sx={{ mb: 3, color: 'rgba(255, 255, 255, 0.7)', '&:hover': { color: 'white', bgcolor: 'rgba(255, 255, 255, 0.1)' } }}
+          sx={{ 
+            mb: 3, 
+            color: theme.palette.text.secondary,
+            '&:hover': { 
+              color: theme.palette.text.primary, 
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+            } 
+          }}
         >
           Quay lại
         </Button>
 
         <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700, color: 'white', mb: 2 }}>
+          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700, color: 'text.primary', mb: 2 }}>
             Upgrade Your Plan
           </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.7)' }}>
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
             Choose a new plan to unlock more features today.
           </Typography>
           {error && (
@@ -299,7 +306,7 @@ const SubscriptionPlansPage = () => {
                 case 'BreakoutHost':
                   return { start: '#E91E63', end: '#9C27B0' }; // Pink to Purple
                 case 'RisingHost':
-                  return { start: '#9C27B0', end: '#673AB7' }; // Purple gradient
+                  return { start: '#4CAF50', end: '#388E3C' }; // Green gradient
                 default:
                   return { start: planColor, end: planColor };
               }
@@ -342,7 +349,9 @@ const SubscriptionPlansPage = () => {
                       letterSpacing: '0.5px',
                       textTransform: 'uppercase',
                       borderRadius: '4px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      boxShadow: theme.palette.mode === 'dark' 
+                        ? '0 2px 8px rgba(0,0,0,0.3)' 
+                        : '0 2px 8px rgba(0,0,0,0.2)',
                       transform: 'rotate(-5deg)',
                     }}
                   >
@@ -365,7 +374,9 @@ const SubscriptionPlansPage = () => {
                       fontWeight: 700,
                       letterSpacing: '0.5px',
                       textTransform: 'uppercase',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      boxShadow: theme.palette.mode === 'dark' 
+                        ? '0 2px 8px rgba(0,0,0,0.3)' 
+                        : '0 2px 8px rgba(0,0,0,0.2)',
                       transform: 'rotate(-12deg)',
                       '&::before': {
                         content: '""',
@@ -388,9 +399,17 @@ const SubscriptionPlansPage = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
-                    background: 'rgba(33, 33, 33, 0.95)',
+                    background: theme.palette.mode === 'dark' 
+                      ? (isCurrentPlan ? 'rgba(33, 33, 33, 0.95)' : 'rgba(40, 40, 40, 0.95)')
+                      : (isCurrentPlan ? 'rgba(255, 255, 255, 0.98)' : 'rgba(250, 250, 250, 0.98)'),
                     border: `3px solid transparent`,
-                    backgroundImage: `linear-gradient(${isCurrentPlan ? 'rgba(33, 33, 33, 0.95)' : 'rgba(40, 40, 40, 0.95)'}, ${isCurrentPlan ? 'rgba(33, 33, 33, 0.95)' : 'rgba(40, 40, 40, 0.95)'}), 
+                    backgroundImage: `linear-gradient(${theme.palette.mode === 'dark' 
+                      ? (isCurrentPlan ? 'rgba(33, 33, 33, 0.95)' : 'rgba(40, 40, 40, 0.95)')
+                      : (isCurrentPlan ? 'rgba(255, 255, 255, 0.98)' : 'rgba(250, 250, 250, 0.98)')}, ${
+                      theme.palette.mode === 'dark' 
+                        ? (isCurrentPlan ? 'rgba(33, 33, 33, 0.95)' : 'rgba(40, 40, 40, 0.95)')
+                        : (isCurrentPlan ? 'rgba(255, 255, 255, 0.98)' : 'rgba(250, 250, 250, 0.98)')
+                    }), 
                                    linear-gradient(135deg, ${gradient.start}, ${gradient.end})`,
                     backgroundOrigin: 'border-box',
                     backgroundClip: 'padding-box, border-box',
@@ -399,7 +418,9 @@ const SubscriptionPlansPage = () => {
                     overflow: 'visible',
                     '&:hover': {
                       transform: 'translateY(-8px)',
-                      boxShadow: `0 16px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px ${gradient.start}40`,
+                      boxShadow: theme.palette.mode === 'dark'
+                        ? `0 16px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px ${gradient.start}40`
+                        : `0 16px 32px rgba(0, 0, 0, 0.15), 0 0 0 1px ${gradient.start}40`,
                     }
                   }}
                 >
@@ -436,7 +457,7 @@ const SubscriptionPlansPage = () => {
                           variant="h3" 
                           component="span"
                           sx={{ 
-                            color: 'white',
+                            color: 'text.primary',
                             fontWeight: 700,
                             fontSize: '2.75rem',
                             lineHeight: 1
@@ -448,7 +469,7 @@ const SubscriptionPlansPage = () => {
                           variant="body2" 
                           component="span"
                           sx={{ 
-                            color: 'rgba(255, 255, 255, 0.7)',
+                            color: 'text.secondary',
                             ml: 0.5,
                             fontSize: '0.875rem',
                             fontWeight: 400
@@ -463,7 +484,6 @@ const SubscriptionPlansPage = () => {
                         color="text.secondary"
                         sx={{ 
                           mt: 2,
-                          color: 'rgba(255, 255, 255, 0.8)',
                           lineHeight: 1.6,
                           minHeight: '48px'
                         }}
@@ -472,7 +492,7 @@ const SubscriptionPlansPage = () => {
                       </Typography>
                     </Box>
 
-                    <Divider sx={{ my: 2.5, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+                    <Divider sx={{ my: 2.5, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }} />
 
                     <List dense sx={{ flexGrow: 1, mb: 2 }}>
                       {features.map((feature, idx) => (
@@ -485,7 +505,7 @@ const SubscriptionPlansPage = () => {
                             primaryTypographyProps={{
                               variant: 'body2',
                               sx: {
-                                color: 'rgba(255, 255, 255, 0.9)',
+                                color: 'text.primary',
                                 fontSize: '0.875rem'
                               }
                             }}
@@ -521,9 +541,9 @@ const SubscriptionPlansPage = () => {
                             boxShadow: `0 8px 16px ${gradient.start}40`
                           },
                           '&:disabled': {
-                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                            color: 'rgba(255, 255, 255, 0.4)',
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                            color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)',
+                            borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
                             cursor: 'not-allowed'
                           }
                         }}

@@ -79,14 +79,36 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick }) => {
     ? ticketTypes?.find(t => t?.ticketTypeId === selectedArea.ticketTypeId)
     : null;
 
-  const canvasWidth = layout.canvasWidth || 1000;
-  const canvasHeight = layout.canvasHeight || 700;
+  const canvasWidth = layout.canvasWidth || 1280;
+  const canvasHeight = layout.canvasHeight || 720;
+
+  // Tính toán scale để fit vào container 16:9
+  const containerAspectRatio = 16 / 9;
+  const canvasAspectRatio = canvasWidth / canvasHeight;
+  
+  // Nếu canvas không phải 16:9, tính scale để fit
+  let scaleToFit = 1;
+  let displayWidth = canvasWidth;
+  let displayHeight = canvasHeight;
+  
+  if (Math.abs(canvasAspectRatio - containerAspectRatio) > 0.01) {
+    // Scale để fit vào container 16:9
+    if (canvasAspectRatio > containerAspectRatio) {
+      // Canvas rộng hơn, scale theo height
+      displayHeight = canvasWidth / containerAspectRatio;
+      scaleToFit = displayHeight / canvasHeight;
+    } else {
+      // Canvas cao hơn, scale theo width
+      displayWidth = canvasHeight * containerAspectRatio;
+      scaleToFit = displayWidth / canvasWidth;
+    }
+  }
 
   return (
-    <Box>
-      <Paper sx={{ p: 2 }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <Paper sx={{ p: 2, width: '100%', maxWidth: '1280px' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">Chọn Khu Vực</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Sơ đồ sân khấu</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton size="small" onClick={handleZoomOut}>
               <ZoomOutIcon />
@@ -117,20 +139,30 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick }) => {
 
         <Box
           sx={{
+            width: '100%',
+            aspectRatio: '16/9',
             border: '2px solid #e0e0e0',
             borderRadius: 2,
-            overflow: 'auto',
+            overflow: 'hidden',
             bgcolor: '#f5f5f5',
-            transform: `scale(${zoom})`,
-            transformOrigin: 'top left',
-            width: `${canvasWidth}px`,
-            height: `${canvasHeight}px`
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative'
           }}
         >
-          <Stage
-            width={canvasWidth}
-            height={canvasHeight}
+          <Box
+            sx={{
+              transform: `scale(${zoom * scaleToFit})`,
+              transformOrigin: 'center center',
+              width: `${canvasWidth}px`,
+              height: `${canvasHeight}px`
+            }}
           >
+            <Stage
+              width={canvasWidth}
+              height={canvasHeight}
+            >
             <Layer>
               {layout.areas.map((area) => {
                 const ticketInfo = ticketTypes?.find(t => t?.ticketTypeId === area.ticketTypeId);
@@ -179,9 +211,10 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick }) => {
               })}
             </Layer>
           </Stage>
+          </Box>
         </Box>
 
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
           Hãy chọn khu vực bạn muốn ngồi/đứng
         </Typography>
       </Paper>

@@ -265,18 +265,24 @@ const EventDetailsPage = () => {
     <Box sx={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden', position: 'relative' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ py: 4, width: '100%', maxWidth: '100%' }}>
-        <Card>
-          {/* Event Image Header */}
-          <Box sx={{ 
-            height: 400,
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: 'grey.100',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+      {/* Container chính với maxWidth 1280px cho tất cả nội dung */}
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: '1280px', 
+        margin: '0 auto',
+        px: { xs: 2, md: 0 }
+      }}>
+        {/* Event Image Header - Tỉ lệ 1280x720 (16:9) */}
+        <Box sx={{ 
+          width: '100%',
+          aspectRatio: '16/9',
+          position: 'relative',
+          overflow: 'hidden',
+          backgroundColor: 'grey.100',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
             {/* Placeholder khi không có ảnh */}
             {!imageToUse && (
               <Box sx={{
@@ -353,53 +359,8 @@ const EventDetailsPage = () => {
             )}
           </Box>
 
-          <CardContent sx={{ p: { xs: 2, md: 4 }, position: 'relative' }}>
-            {/* Report Button - Top Right */}
-            {user && (
-              <Box sx={{ 
-                position: 'absolute', 
-                top: { xs: 16, md: 24 }, 
-                right: { xs: 16, md: 24 },
-                zIndex: 10
-              }}>
-                {hasReported ? (
-                  <Button
-                    variant="contained"
-                    disabled
-                    startIcon={<Flag />}
-                    size="small"
-                    sx={{
-                      backgroundColor: 'grey.500',
-                      color: '#fff',
-                      pointerEvents: 'none',
-                      '&:hover': { backgroundColor: 'grey.600' }
-                    }}
-                  >
-                    Đã báo cáo
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleReportEvent}
-                    variant="contained"
-                    color="error"
-                    disabled={isReporting}
-                    startIcon={<Flag />}
-                    size={isReporting ? 'small' : 'medium'}
-                    sx={{
-                      boxShadow: 2,
-                      '&:hover': {
-                        boxShadow: 4,
-                        transform: 'translateY(-2px)'
-                      },
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    {isReporting ? 'Đang báo cáo...' : 'Báo cáo sự kiện'}
-                  </Button>
-                )}
-              </Box>
-            )}
-            
+          {/* Nội dung bên dưới ảnh */}
+          <Box sx={{ py: 4 }}>
             <Grid container spacing={4}>
               {/* Left Column - Description and Details */}
               <Grid item xs={12} md={8}>
@@ -655,7 +616,7 @@ const EventDetailsPage = () => {
                 </Paper>
               )}
 
-              {/* Virtual Stage 2D */}
+              {/* Virtual Stage 2D - Căn giữa và tỉ lệ 1280x720 */}
               {(() => {
                 console.log('Checking venue layout:', event.venueLayout);
                 console.log('Has virtual stage:', event.venueLayout?.hasVirtualStage);
@@ -663,10 +624,12 @@ const EventDetailsPage = () => {
                 
                 if (event.venueLayout && event.venueLayout.hasVirtualStage) {
                   return (
-                    <Box>
-                      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                        Sơ đồ sân khấu
-                      </Typography>
+                    <Box sx={{ 
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center'
+                    }}>
                       <StageViewer 
                         layout={event.venueLayout}
                         ticketTypes={ticketTypes.map(t => ({
@@ -914,9 +877,8 @@ const EventDetailsPage = () => {
                   </Card>
                 </Box>
             )}
-          </CardContent>
-        </Card>
-      </Container>
+          </Box>
+        </Box>
 
       {/* AI Chatbot */}
       <AIChatbot eventId={id} />

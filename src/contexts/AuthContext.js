@@ -187,7 +187,9 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-
+    
+    // Redirect về trang home sau khi logout
+    window.location.href = '/';
   };
 
   const fetchUserProfile = async (token) => {
