@@ -16,7 +16,8 @@ import {
   FormControlLabel,
   Radio,
   RadioGroup,
-  IconButton
+  IconButton,
+  Stack
 } from '@mui/material';
 import {
   AccessTime,
@@ -273,35 +274,70 @@ const OrderInformationPage = () => {
               <Box sx={{ position: 'sticky', top: 80 }}>
                 <OrderSummaryCard
                   orderItems={order.orderItems || []}
-                  subtotal={order.amount || 0}
+                  orderProducts={order.orderProducts || []}
+                  subtotal={order.subTotalAmount || 0} // Giá gốc trước giảm
                   discount={order.discountAmount || 0}
-                  total={(order.amount || 0) - (order.discountAmount || 0)}
+                  total={order.amount || 0} // Giá cuối cùng sau giảm
                 />
 
-                {/* Continue Button */}
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  disabled={submitting}
-                  onClick={handleContinue}
-                  sx={{
-                    mt: 3,
-                    py: 2,
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    borderRadius: 2,
-                    boxShadow: 'none',
-                    '&:hover': {
-                      boxShadow: `0 8px 24px rgba(61, 190, 41, 0.35)`,
-                      transform: 'translateY(-2px)'
-                    },
-                    transition: 'all 0.3s ease'
-                  }}
-                  startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
-                >
-                  {submitting ? 'Đang xử lý...' : 'Tiếp tục ›'}
-                </Button>
+                {/* Action Buttons */}
+                <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    disabled={submitting}
+                    onClick={async () => {
+                      // Cập nhật order status thành "Failed" khi người dùng quay lại
+                      try {
+                        await ordersAPI.updateStatus(orderId, 'Failed');
+                      } catch (statusError) {
+                        console.error('Error updating order status to Failed:', statusError);
+                      }
+                      // Quay về trang chọn vé và phụ kiện
+                      navigate(`/ticket-selection/${order.eventId}`);
+                    }}
+                    sx={{
+                      flex: 1,
+                      py: 2,
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      borderColor: 'primary.main',
+                      color: 'primary.main',
+                      '&:hover': {
+                        borderColor: 'primary.dark',
+                        backgroundColor: 'primary.light',
+                        opacity: 0.8
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                    startIcon={<ArrowBack />}
+                  >
+                    Quay lại
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    disabled={submitting}
+                    onClick={handleContinue}
+                    sx={{
+                      flex: 1,
+                      py: 2,
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      boxShadow: 'none',
+                      '&:hover': {
+                        boxShadow: `0 8px 24px rgba(61, 190, 41, 0.35)`,
+                        transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                    startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
+                  >
+                    {submitting ? 'Đang xử lý...' : 'Tiếp tục ›'}
+                  </Button>
+                </Stack>
               </Box>
             </Grid>
           </Grid>

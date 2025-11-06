@@ -521,7 +521,15 @@ const PaymentPage = () => {
                                     variant="outlined"
                                     size="large"
                                     startIcon={<ArrowBack />}
-                                    onClick={() => navigate('/')}
+                                    onClick={async () => {
+                                        // Cập nhật order status thành "Failed" khi người dùng quay lại
+                                        try {
+                                            await ordersAPI.updateStatus(orderId, 'Failed');
+                                        } catch (statusError) {
+                                            console.error('Error updating order status to Failed:', statusError);
+                                        }
+                                        navigate('/');
+                                    }}
                                     sx={{ minWidth: 150 }}
                                 >
                                     Quay lại

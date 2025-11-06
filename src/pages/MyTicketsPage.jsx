@@ -201,7 +201,10 @@ const MyTicketsPage = () => {
     }).format(price) + ' ₫';
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status, orderStatus) => {
+    // Nếu order status là Failed, hiển thị màu lỗi
+    if (orderStatus === 'Failed') return '#ef4444';
+    
     switch (status) {
       case 'Assigned': return '#22c55e';
       case 'Used': return '#3b82f6';
@@ -211,7 +214,10 @@ const MyTicketsPage = () => {
     }
   };
 
-  const getStatusText = (status) => {
+  const getStatusText = (status, orderStatus) => {
+    // Nếu order status là Failed, hiển thị "Thanh toán thất bại"
+    if (orderStatus === 'Failed') return 'Thanh toán thất bại';
+    
     switch (status) {
       case 'Assigned': return 'Có thể sử dụng';
       case 'Used': return 'Đã sử dụng';
@@ -614,13 +620,23 @@ const MyTicketsPage = () => {
                             </Typography>
                           </Box>
                           <Box sx={{ textAlign: 'right', flexShrink: 0, alignSelf: 'flex-start' }}>
-                            <Chip 
-                              label={getStatusText(ticket.Status || ticket.status)}
-                              color={(ticket.Status || ticket.status) === 'Assigned' ? 'success' : 
-                                     (ticket.Status || ticket.status) === 'Used' ? 'info' : 'default'}
-                              size="small"
-                              sx={{ mb: 1, display: 'block' }}
-                            />
+                            {(() => {
+                              const ticketStatus = ticket.Status || ticket.status;
+                              const orderStatus = ticket.Order?.Status || ticket.order?.status || ticket.Order?.status;
+                              const statusText = getStatusText(ticketStatus, orderStatus);
+                              const statusColor = getStatusColor(ticketStatus, orderStatus);
+                              
+                              return (
+                                <Chip 
+                                  label={statusText}
+                                  color={orderStatus === 'Failed' ? 'error' :
+                                         ticketStatus === 'Assigned' ? 'success' : 
+                                         ticketStatus === 'Used' ? 'info' : 'default'}
+                                  size="small"
+                                  sx={{ mb: 1, display: 'block' }}
+                                />
+                              );
+                            })()}
                             <Typography 
                               variant="h6" 
                               sx={{ 
@@ -629,7 +645,7 @@ const MyTicketsPage = () => {
                                 lineHeight: 1.2
                               }}
                             >
-                              {formatPrice((ticket.TicketType?.Price || ticket.ticketType?.price || ticket.TicketType?.price || 0))}
+                              {formatPrice((ticket.Order?.Amount || ticket.order?.amount || ticket.Order?.amount || 0))}
                             </Typography>
                           </Box>
                         </Box>
@@ -750,38 +766,49 @@ const MyTicketsPage = () => {
                       }}
                     >
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        {(ticket.Status || ticket.status) === 'Assigned' && (
-                          <>
-                            <Button 
-                              variant="contained"
-                              color="success"
-                              size="small"
-                              onClick={() => handleCheckIn(ticket.TicketId || ticket.ticketId)}
-                              sx={{ 
-                                flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
-                                minWidth: '100px',
-                                textTransform: 'none',
-                                fontWeight: 600
-                              }}
-                            >
-                              Check-in
-                            </Button>
-                            <Button 
-                              variant="outlined"
-                              color="warning"
-                              size="small"
-                              onClick={() => handleCancel(ticket.TicketId || ticket.ticketId)}
-                              sx={{ 
-                                flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
-                                minWidth: '100px',
-                                textTransform: 'none',
-                                fontWeight: 600
-                              }}
-                            >
-                              Hủy vé
-                            </Button>
-                          </>
-                        )}
+                        {(() => {
+                          const ticketStatus = ticket.Status || ticket.status;
+                          const orderStatus = ticket.Order?.Status || ticket.order?.status || ticket.Order?.status;
+                          const isAssigned = ticketStatus === 'Assigned';
+                          const isPaymentFailed = orderStatus === 'Failed';
+                          
+                          // Chỉ hiển thị nút khi ticket là Assigned VÀ order không phải Failed
+                          if (isAssigned && !isPaymentFailed) {
+                            return (
+                              <>
+                                <Button 
+                                  variant="contained"
+                                  color="success"
+                                  size="small"
+                                  onClick={() => handleCheckIn(ticket.TicketId || ticket.ticketId)}
+                                  sx={{ 
+                                    flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                                    minWidth: '100px',
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Check-in
+                                </Button>
+                                <Button 
+                                  variant="outlined"
+                                  color="warning"
+                                  size="small"
+                                  onClick={() => handleCancel(ticket.TicketId || ticket.ticketId)}
+                                  sx={{ 
+                                    flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                                    minWidth: '100px',
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Hủy vé
+                                </Button>
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
                         <Button 
                           component={Link} 
                           to={`/event/${ticket.Event?.EventId || ticket.event?.eventId || ticket.Event?.eventId || '0'}`}

@@ -16,6 +16,7 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import { voucherAPI } from '../../services/apiClient';
+import { useAuth } from '../../contexts/AuthContext';
 
 const VoucherSelector = ({ 
   originalAmount, 
@@ -23,6 +24,7 @@ const VoucherSelector = ({
   appliedVoucher, 
   onRemoveVoucher 
 }) => {
+  const { user } = useAuth(); // Lấy user từ AuthContext
   const [voucherCode, setVoucherCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +52,33 @@ const VoucherSelector = ({
       setError('');
       setSuccess('');
 
-      const response = await voucherAPI.validate(voucherCode.trim(), originalAmount);
+      // Lấy userId từ user object (nếu user đã đăng nhập)
+      // Kiểm tra nhiều cách để lấy userId vì có thể là camelCase hoặc PascalCase
+      const userId = user?.userId || user?.UserId || user?.user?.userId || user?.user?.UserId || null;
+      console.log('[VoucherSelector] Validating voucher:', { 
+        voucherCode: voucherCode.trim(), 
+        originalAmount, 
+        userId, 
+        user,
+        userKeys: user ? Object.keys(user) : null
+      });
+      
+      // Nếu userId vẫn null, thử lấy từ localStorage
+      let finalUserId = userId;
+      if (!finalUserId) {
+        try {
+          const savedUser = localStorage.getItem('user');
+          if (savedUser) {
+            const parsedUser = JSON.parse(savedUser);
+            finalUserId = parsedUser?.userId || parsedUser?.UserId || null;
+            console.log('[VoucherSelector] Got userId from localStorage:', finalUserId);
+          }
+        } catch (e) {
+          console.error('[VoucherSelector] Error parsing saved user:', e);
+        }
+      }
+      
+      const response = await voucherAPI.validate(voucherCode.trim(), originalAmount, finalUserId);
       
       // Handle both response formats
       const responseData = response.data?.data || response.data;

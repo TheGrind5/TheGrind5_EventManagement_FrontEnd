@@ -37,7 +37,7 @@ import Header from '../components/layout/Header';
 import VoucherSelector from '../components/common/VoucherSelector';
 import StageViewer from '../components/stage/StageViewer';
 import { useAuth } from '../contexts/AuthContext';
-import { eventsAPI, ordersAPI, ticketsAPI } from '../services/apiClient';
+import { eventsAPI, ordersAPI, ticketsAPI, productsAPI } from '../services/apiClient';
 
 const TicketSelectionPage = () => {
   const { eventId } = useParams();
@@ -58,6 +58,8 @@ const TicketSelectionPage = () => {
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [venueLayout, setVenueLayout] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState({}); // { productId: quantity }
 
   const isFromWishlist = location.state?.fromWishlist || false;
   const selectedWishlistItems = location.state?.selectedWishlistItems || [];
@@ -107,6 +109,15 @@ const TicketSelectionPage = () => {
           }
         } catch (layoutError) {
           console.log('No venue layout available');
+        }
+
+        // Fetch products
+        try {
+          const productsResponse = await productsAPI.getByEvent(eventId);
+          const productsArray = productsResponse?.data || [];
+          setProducts(productsArray);
+        } catch (productsError) {
+          console.log('No products available or error fetching products:', productsError);
         }
 
         const ticketTypeFromUrl = searchParams.get('ticketType');
@@ -196,12 +207,21 @@ const TicketSelectionPage = () => {
       setCreatingOrder(true);
       setError(null);
 
+      // Prepare selected products
+      const selectedProductsArray = Object.keys(selectedProducts)
+        .filter(productId => selectedProducts[productId] > 0)
+        .map(productId => ({
+          productId: parseInt(productId),
+          quantity: selectedProducts[productId]
+        }));
+
       const orderData = {
         EventId: parseInt(eventId),
         TicketTypeId: parseInt(selectedTicketType),
         Quantity: quantity,
         SeatNo: null,
-        VoucherCode: appliedVoucher?.voucherCode || null
+        VoucherCode: appliedVoucher?.voucherCode || null,
+        SelectedProducts: selectedProductsArray.length > 0 ? selectedProductsArray : null
       };
 
       const response = await ordersAPI.create(orderData);
@@ -311,21 +331,38 @@ const TicketSelectionPage = () => {
     if (!ticketType) return null;
 
     const originalAmount = ticketType.price * quantity;
-    let finalAmount = originalAmount;
+    
+    // Calculate products total
+    let productsTotal = 0;
+    Object.keys(selectedProducts).forEach(productId => {
+      const product = products.find(p => p.productId === parseInt(productId));
+      if (product && selectedProducts[productId] > 0) {
+        productsTotal += product.price * selectedProducts[productId];
+      }
+    });
+
+    const subtotal = originalAmount + productsTotal;
+    let finalAmount = subtotal;
     let discountAmount = 0;
 
     if (appliedVoucher) {
-      discountAmount = appliedVoucher.discountAmount;
-      finalAmount = appliedVoucher.finalAmount;
+      // Recalculate discount based on subtotal (tickets + products)
+      discountAmount = appliedVoucher.discountPercentage 
+        ? (subtotal * appliedVoucher.discountPercentage / 100)
+        : appliedVoucher.discountAmount;
+      finalAmount = subtotal - discountAmount;
+      if (finalAmount < 0) finalAmount = 0;
     }
 
     return {
       originalAmount,
+      productsTotal,
+      subtotal,
       discountAmount,
       finalAmount,
       ticketType
     };
-  }, [selectedTicketType, ticketTypes, quantity, appliedVoucher]);
+  }, [selectedTicketType, ticketTypes, quantity, selectedProducts, products, appliedVoucher]);
 
   const theme = useTheme();
   const formatCurrency = (amount) => {
@@ -491,11 +528,115 @@ const TicketSelectionPage = () => {
                   </CardContent>
                 </Card>
 
+                {/* Products Selection */}
+                <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3, mt: 2 }}>
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Typography variant="body2" fontWeight={700} gutterBottom sx={{ mb: 2 }}>
+                      Chọn phụ kiện
+                    </Typography>
+                    {products.length === 0 ? (
+                      <Alert severity="info" sx={{ mt: 1 }}>
+                        Sự kiện này chưa có phụ kiện nào
+                      </Alert>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        {products.map((product) => {
+                          const productQuantity = selectedProducts[product.productId] || 0;
+                          return (
+                            <Box
+                              key={product.productId}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.5,
+                                p: 1.5,
+                                borderRadius: 1,
+                                backgroundColor: productQuantity > 0
+                                  ? theme.palette.mode === 'dark'
+                                    ? 'rgba(61, 190, 41, 0.1)'
+                                    : 'rgba(61, 190, 41, 0.05)'
+                                  : 'transparent',
+                                border: `1px solid ${
+                                  productQuantity > 0 ? theme.palette.primary.main : 'transparent'
+                                }`
+                              }}
+                            >
+                              {product.image && (
+                                <Box
+                                  component="img"
+                                  src={product.image}
+                                  alt={product.name}
+                                  sx={{
+                                    width: 50,
+                                    height: 50,
+                                    objectFit: 'cover',
+                                    borderRadius: 1,
+                                    flexShrink: 0
+                                  }}
+                                />
+                              )}
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {product.name}
+                                </Typography>
+                                <Typography variant="caption" color="primary.main" fontWeight={600}>
+                                  {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <IconButton
+                                  disabled={productQuantity <= 0}
+                                  onClick={() => {
+                                    setSelectedProducts(prev => ({
+                                      ...prev,
+                                      [product.productId]: Math.max(0, productQuantity - 1)
+                                    }));
+                                  }}
+                                  size="small"
+                                  sx={{ width: 28, height: 28 }}
+                                >
+                                  <RemoveIcon fontSize="small" />
+                                </IconButton>
+                                <TextField
+                                  type="number"
+                                  value={productQuantity}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    setSelectedProducts(prev => ({
+                                      ...prev,
+                                      [product.productId]: val
+                                    }));
+                                  }}
+                                  inputProps={{ min: 0 }}
+                                  sx={{ width: 50 }}
+                                  size="small"
+                                />
+                                <IconButton
+                                  onClick={() => {
+                                    setSelectedProducts(prev => ({
+                                      ...prev,
+                                      [product.productId]: productQuantity + 1
+                                    }));
+                                  }}
+                                  size="small"
+                                  sx={{ width: 28, height: 28 }}
+                                >
+                                  <AddIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Voucher Selector */}
                 {selectedTicketType && quantity > 0 && pricing && (
                   <Box sx={{ mt: 2 }} className="voucher-form">
                     <VoucherSelector
-                      originalAmount={pricing.originalAmount}
+                      originalAmount={pricing.subtotal || pricing.originalAmount}
                       onVoucherApplied={handleVoucherApplied}
                       appliedVoucher={appliedVoucher}
                       onRemoveVoucher={handleRemoveVoucher}
@@ -518,6 +659,26 @@ const TicketSelectionPage = () => {
                           {formatCurrency(pricing.originalAmount)}
                         </Typography>
                       </Box>
+                      {pricing.productsTotal > 0 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Phụ kiện
+                          </Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {formatCurrency(pricing.productsTotal)}
+                          </Typography>
+                        </Box>
+                      )}
+                      {pricing.subtotal && pricing.subtotal !== pricing.originalAmount && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Tạm tính
+                          </Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {formatCurrency(pricing.subtotal)}
+                          </Typography>
+                        </Box>
+                      )}
                       {appliedVoucher && (
                         <>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -579,20 +740,22 @@ const TicketSelectionPage = () => {
               </Grid>
             </Grid>
           ) : (
-            // Layout without Virtual Stage (2 columns: Ticket List + Summary)
+            // Layout without Virtual Stage (2 columns: Left = Tickets + Products, Right = Summary)
             <Grid container spacing={3}>
-              {/* Left: Ticket Selection List */}
+              {/* Left: Ticket Selection + Products */}
               <Grid item xs={12} md={7}>
-                <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3 }}>
-                  <CardContent sx={{ p: 3 }}>
-                    <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                      Chọn vé
-                    </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {/* Ticket Selection Card */}
+                  <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3 }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+                        Đặt vé
+                      </Typography>
 
-                    <Divider sx={{ mb: 3 }} />
+                      <Divider sx={{ mb: 3 }} />
 
-                    {/* Ticket Types List */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {/* Ticket Types List */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       {ticketTypes.map((ticketType, index) => {
                         const isSelected = selectedTicketType == ticketType.ticketTypeId;
                         const quantityForThisType = isSelected ? quantity : 0;
@@ -686,9 +849,131 @@ const TicketSelectionPage = () => {
                           </Box>
                         );
                       })}
-                    </Box>
-                  </CardContent>
-                </Card>
+                      </Box>
+                    </CardContent>
+                  </Card>
+
+                  {/* Products Selection Card */}
+                  <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3 }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+                        Chọn phụ kiện
+                      </Typography>
+
+                      <Divider sx={{ mb: 3 }} />
+
+                      {products.length === 0 ? (
+                        <Alert severity="info">
+                          Sự kiện này chưa có phụ kiện nào
+                        </Alert>
+                      ) : (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {products.map((product, index) => {
+                            const productQuantity = selectedProducts[product.productId] || 0;
+
+                            return (
+                              <Box key={product.productId}>
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    gap: 2,
+                                    p: 2,
+                                    borderRadius: 2,
+                                    backgroundColor: productQuantity > 0
+                                      ? theme.palette.mode === 'dark'
+                                        ? 'rgba(61, 190, 41, 0.15)'
+                                        : 'rgba(61, 190, 41, 0.05)'
+                                      : 'transparent',
+                                    border: `1px solid ${
+                                      productQuantity > 0 ? theme.palette.primary.main : theme.palette.divider
+                                    }`,
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                  {product.image && (
+                                    <Box
+                                      component="img"
+                                      src={product.image}
+                                      alt={product.name}
+                                      sx={{
+                                        width: 60,
+                                        height: 60,
+                                        objectFit: 'cover',
+                                        borderRadius: 1,
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                  )}
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography variant="body1" fontWeight={600} sx={{ mb: 0.5 }}>
+                                      {product.name}
+                                    </Typography>
+                                    <Typography variant="body2" fontWeight={700} color="primary.main">
+                                      {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
+                                    </Typography>
+                                  </Box>
+
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <IconButton
+                                      disabled={productQuantity <= 0}
+                                      onClick={() => {
+                                        setSelectedProducts(prev => ({
+                                          ...prev,
+                                          [product.productId]: Math.max(0, productQuantity - 1)
+                                        }));
+                                      }}
+                                      color="primary"
+                                      size="small"
+                                      sx={{
+                                        border: `1px solid ${theme.palette.primary.main}`,
+                                        width: 32,
+                                        height: 32
+                                      }}
+                                    >
+                                      <RemoveIcon />
+                                    </IconButton>
+                                    <TextField
+                                      type="number"
+                                      value={productQuantity}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value) || 0;
+                                        setSelectedProducts(prev => ({
+                                          ...prev,
+                                          [product.productId]: val
+                                        }));
+                                      }}
+                                      inputProps={{ min: 0 }}
+                                      sx={{ width: 60 }}
+                                      size="small"
+                                    />
+                                    <IconButton
+                                      onClick={() => {
+                                        setSelectedProducts(prev => ({
+                                          ...prev,
+                                          [product.productId]: productQuantity + 1
+                                        }));
+                                      }}
+                                      color="primary"
+                                      size="small"
+                                      sx={{
+                                        border: `1px solid ${theme.palette.primary.main}`,
+                                        width: 32,
+                                        height: 32
+                                      }}
+                                    >
+                                      <AddIcon />
+                                    </IconButton>
+                                  </Box>
+                                </Box>
+                                {index < products.length - 1 && <Divider sx={{ my: 2 }} />}
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Box>
               </Grid>
 
               {/* Right: Order Summary & Details */}
@@ -754,11 +1039,113 @@ const TicketSelectionPage = () => {
                         </Alert>
                       )}
 
+                      {/* Products Selection */}
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" fontWeight={700} gutterBottom sx={{ mb: 1.5 }}>
+                          Chọn phụ kiện
+                        </Typography>
+                        {products.length === 0 ? (
+                          <Alert severity="info">
+                            Sự kiện này chưa có phụ kiện nào
+                          </Alert>
+                        ) : (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            {products.map((product) => {
+                              const productQuantity = selectedProducts[product.productId] || 0;
+                              return (
+                                <Box
+                                  key={product.productId}
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.5,
+                                    p: 1.5,
+                                    borderRadius: 1,
+                                    backgroundColor: productQuantity > 0
+                                      ? theme.palette.mode === 'dark'
+                                        ? 'rgba(61, 190, 41, 0.1)'
+                                        : 'rgba(61, 190, 41, 0.05)'
+                                      : 'transparent',
+                                    border: `1px solid ${
+                                      productQuantity > 0 ? theme.palette.primary.main : 'transparent'
+                                    }`
+                                  }}
+                                >
+                                  {product.image && (
+                                    <Box
+                                      component="img"
+                                      src={product.image}
+                                      alt={product.name}
+                                      sx={{
+                                        width: 50,
+                                        height: 50,
+                                        objectFit: 'cover',
+                                        borderRadius: 1,
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                  )}
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography variant="body2" fontWeight={600}>
+                                      {product.name}
+                                    </Typography>
+                                    <Typography variant="caption" color="primary.main" fontWeight={600}>
+                                      {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <IconButton
+                                      disabled={productQuantity <= 0}
+                                      onClick={() => {
+                                        setSelectedProducts(prev => ({
+                                          ...prev,
+                                          [product.productId]: Math.max(0, productQuantity - 1)
+                                        }));
+                                      }}
+                                      size="small"
+                                      sx={{ width: 28, height: 28 }}
+                                    >
+                                      <RemoveIcon fontSize="small" />
+                                    </IconButton>
+                                    <TextField
+                                      type="number"
+                                      value={productQuantity}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value) || 0;
+                                        setSelectedProducts(prev => ({
+                                          ...prev,
+                                          [product.productId]: val
+                                        }));
+                                      }}
+                                      inputProps={{ min: 0 }}
+                                      sx={{ width: 50 }}
+                                      size="small"
+                                    />
+                                    <IconButton
+                                      onClick={() => {
+                                        setSelectedProducts(prev => ({
+                                          ...prev,
+                                          [product.productId]: productQuantity + 1
+                                        }));
+                                      }}
+                                      size="small"
+                                      sx={{ width: 28, height: 28 }}
+                                    >
+                                      <AddIcon fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        )}
+                      </Box>
+
                       {/* Voucher Selector */}
                       {selectedTicketType && quantity > 0 && pricing && (
                         <Box sx={{ mb: 2 }} className="voucher-form">
                           <VoucherSelector
-                            originalAmount={pricing.originalAmount}
+                            originalAmount={pricing.subtotal || pricing.originalAmount}
                             onVoucherApplied={handleVoucherApplied}
                             appliedVoucher={appliedVoucher}
                             onRemoveVoucher={handleRemoveVoucher}
@@ -776,10 +1163,28 @@ const TicketSelectionPage = () => {
                         <>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                             <Typography variant="body2" color="text.secondary">
-                              Tạm tính
+                              {pricing.ticketType.typeName} × {quantity}
                             </Typography>
                             <Typography variant="body2" fontWeight={600}>
                               {formatCurrency(pricing.originalAmount)}
+                            </Typography>
+                          </Box>
+                          {pricing.productsTotal > 0 && (
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                              <Typography variant="body2" color="text.secondary">
+                                Phụ kiện
+                              </Typography>
+                              <Typography variant="body2" fontWeight={600}>
+                                {formatCurrency(pricing.productsTotal)}
+                              </Typography>
+                            </Box>
+                          )}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Tạm tính
+                            </Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              {formatCurrency(pricing.subtotal || pricing.originalAmount)}
                             </Typography>
                           </Box>
                           {appliedVoucher && (
@@ -803,9 +1208,14 @@ const TicketSelectionPage = () => {
                         </>
                       )}
                       
-                      <Typography variant="h5" fontWeight={800} color="primary.main">
-                        {formatCurrency(pricing?.finalAmount || 0)}
-                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="h6" fontWeight={800}>
+                          Tổng cộng
+                        </Typography>
+                        <Typography variant="h5" fontWeight={800} color="primary.main">
+                          {formatCurrency(pricing?.finalAmount || 0)}
+                        </Typography>
+                      </Box>
                     </CardContent>
                   </Card>
 

@@ -364,9 +364,10 @@ const RecipientInformationPage = () => {
             <Box sx={{ position: 'sticky', top: 80 }}>
               <OrderSummaryCard
                 orderItems={order.orderItems || []}
-                subtotal={order.amount || 0}
+                orderProducts={order.orderProducts || []}
+                subtotal={order.subTotalAmount || 0} // Giá gốc trước giảm
                 discount={order.discountAmount || 0}
-                total={(order.amount || 0) - (order.discountAmount || 0)}
+                total={order.amount || 0} // Giá cuối cùng sau giảm
               />
             </Box>
           </Grid>
