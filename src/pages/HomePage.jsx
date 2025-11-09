@@ -2,25 +2,19 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
-import { Link } from 'react-router-dom';
-
 
 
 // Material-UI Components
 
 import { 
-
+  
   Container, 
-
+  
   Typography, 
-
+  
   Box, 
-
-  Card, 
-
-  CardContent, 
-
-  Button, 
+  
+  Button,
 
   FormControl, 
 
@@ -100,11 +94,6 @@ const HomePage = () => {
 
   const [totalCount, setTotalCount] = useState(0);
 
-  
-  
-  // Tính tổng số trang
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  
   // Search and Filter states
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -130,17 +119,6 @@ const HomePage = () => {
 
   // Debounce search term để giảm số lượng API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-
-  // Trạng thái có đang dùng bộ lọc (đặt sau khi khai báo state filter)
-  const filtersActive = debouncedSearchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || campusFilter !== 'all' || priceFilter !== 'all';
-
-  // Refs for horizontal scroll containers
-
-  const trendingScrollRef = useRef(null);
-
-  const recommendedScrollRef = useRef(null);
-
-  const upcomingScrollRef = useRef(null);
 
 
 
@@ -228,28 +206,6 @@ const HomePage = () => {
 
 
 
-  //Hàm constants để format date - Memoized để tránh tạo function mới mỗi render
-
-  const formatDate = useCallback((dateString) => {
-
-    return new Date(dateString).toLocaleDateString('en-US', {
-
-      year: 'numeric',
-
-      month: 'long',
-
-      day: 'numeric',
-
-      hour: '2-digit',
-
-      minute: '2-digit'
-
-    });
-
-  }, []);
-
-
-
   // Determine event status based on time (align with EventCard) - Memoized
 
   const getEventStatus = useCallback((startTime, endTime) => {
@@ -324,27 +280,6 @@ const HomePage = () => {
     [...new Set(validEvents.map(event => event.category).filter(Boolean))],
     [validEvents]
   );
-  const [allCategories, setAllCategories] = useState([]);
-
-  
-  // Fetch all categories when component mounts (without filters)
-  useEffect(() => {
-    const fetchAllCategories = async () => {
-      try {
-        // Fetch first page of all events to get unique categories
-        const response = await eventsAPI.getAll(1, 100); // Get first 100 events to get all categories
-        const payload = response.data;
-        if (payload && Array.isArray(payload.data)) {
-          const cats = [...new Set(payload.data.map(event => event.category).filter(Boolean))];
-          setAllCategories(cats);
-        }
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
-    };
-    
-    fetchAllCategories();
-  }, []); // Only run once on mount
 
   // FPT Campuses list
 
@@ -539,7 +474,7 @@ const HomePage = () => {
 
     </Grid>
 
-  ), [buildImageUrl]);
+  ), []);
 
 
 
@@ -559,14 +494,96 @@ const HomePage = () => {
   const baseEventsForCarousel = processedEvents;
 
   // Hero events - Use validEvents (from database) if available for proper images - Memoized
-  const featuredEventsForHero = useMemo(() => baseEventsForCarousel
-    .filter(event => {
+  // FIXED: Hiển thị 5 sự kiện phù hợp nhất: ưu tiên sắp diễn ra > đang diễn ra > gần nhất
+  const featuredEventsForHero = useMemo(() => {
+    // Lấy thời gian thực hiện tại
+    const now = new Date();
+    
+    // Lọc sự kiện có startTime hợp lệ
+    const validEvents = baseEventsForCarousel.filter(event => {
+      if (!event.startTime) {
+        console.warn('Hero Section - Event missing startTime:', event.eventId, event.title);
+        return false;
+      }
+      
       const start = new Date(event.startTime);
-      return start > new Date();
-    })
-    .slice(0, 5), // Lấy 5 sự kiện cho Hero
-    [baseEventsForCarousel]
-  );
+      if (isNaN(start.getTime())) {
+        console.warn('Hero Section - Event has invalid startTime:', event.eventId, event.title, event.startTime);
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Phân loại sự kiện: sắp diễn ra, đang diễn ra, đã qua
+    const upcomingEvents = []; // startTime > now
+    const activeEvents = [];   // startTime <= now && endTime >= now
+    const pastEvents = [];     // endTime < now hoặc startTime < now && không có endTime
+    
+    validEvents.forEach(event => {
+      const start = new Date(event.startTime);
+      const end = event.endTime ? new Date(event.endTime) : null;
+      
+      if (start.getTime() > now.getTime()) {
+        // Sự kiện sắp diễn ra
+        upcomingEvents.push(event);
+      } else if (end && end.getTime() >= now.getTime()) {
+        // Sự kiện đang diễn ra
+        activeEvents.push(event);
+      } else {
+        // Sự kiện đã qua
+        pastEvents.push(event);
+      }
+    });
+    
+    // Sắp xếp:
+    // - Sắp diễn ra: theo startTime tăng dần (gần nhất trước)
+    // - Đang diễn ra: theo startTime giảm dần (mới nhất trước)
+    // - Đã qua: theo startTime giảm dần (mới nhất trước)
+    upcomingEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    activeEvents.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    pastEvents.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    
+    // Ưu tiên: sắp diễn ra > đang diễn ra > gần nhất (nếu không có sự kiện sắp/đang diễn ra)
+    let selectedEvents = [];
+    
+    if (upcomingEvents.length > 0) {
+      // Có sự kiện sắp diễn ra: lấy 5 sự kiện sắp diễn ra gần nhất
+      selectedEvents = upcomingEvents.slice(0, 5);
+    } else if (activeEvents.length > 0) {
+      // Không có sự kiện sắp diễn ra, nhưng có sự kiện đang diễn ra: lấy 5 sự kiện đang diễn ra
+      selectedEvents = activeEvents.slice(0, 5);
+    } else {
+      // Không có sự kiện sắp/đang diễn ra: lấy 5 sự kiện gần nhất (mới nhất)
+      selectedEvents = pastEvents.slice(0, 5);
+    }
+    
+    // Debug log kết quả (chỉ trong development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== HERO SECTION DEBUG ===');
+      console.log('Total events in baseEventsForCarousel:', baseEventsForCarousel.length);
+      console.log('Valid events:', validEvents.length);
+      console.log('Upcoming events:', upcomingEvents.length);
+      console.log('Active events:', activeEvents.length);
+      console.log('Past events:', pastEvents.length);
+      console.log('Selected events for hero:', selectedEvents.length);
+      if (selectedEvents.length > 0) {
+        console.log('Hero Section - Selected events:', selectedEvents.map(e => ({
+          eventId: e.eventId,
+          title: e.title?.substring(0, 50),
+          startTime: e.startTime,
+          endTime: e.endTime,
+          status: e.status
+        })));
+      } else {
+        console.warn('Hero Section - No events selected!');
+      }
+      console.log('========================');
+    }
+    
+    // Lấy 5 sự kiện (hoặc ít hơn nếu không đủ 5)
+    return selectedEvents;
+  }, [baseEventsForCarousel]);
 
   const featuredEvents = useMemo(() => filteredEvents
     .filter(event => {
@@ -927,8 +944,8 @@ const HomePage = () => {
 
 
 
-  // Render event section with horizontal scroll
-
+  // Render event section with horizontal scroll - REMOVED: Not used
+  // eslint-disable-next-line no-unused-vars
   const renderEventSection = (title, events, icon, scrollRef) => {
 
     if (events.length === 0) return null;
@@ -1199,8 +1216,8 @@ const HomePage = () => {
 
 
 
-  // Render featured events section with grid layout (3 columns)
-
+  // Render featured events section with grid layout (3 columns) - REMOVED: Not used
+  // eslint-disable-next-line no-unused-vars
   const renderFeaturedEventsGrid = () => {
 
     if (featuredEvents.length === 0) return null;
@@ -1371,8 +1388,6 @@ const HomePage = () => {
     );
 
   };
-
-
 
   // Render events grid with TicketBox styling
 
@@ -1700,15 +1715,21 @@ const HomePage = () => {
       price: displayPrice, // Only 0 if all free, null otherwise (don't show badge)
       campus: eventCampus // Use campus from database, not location
     };
-  }, [buildImageUrl]);
+  }, []);
 
-  // Hàm constants để render loading state
+  // Hàm constants để render loading state với giao diện đẹp và chuyên nghiệp
 
   if (loading) {
 
     return (
 
-      <Box>
+      <Box sx={{ 
+        backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+        width: '100%',
+        height: '100vh',
+        overflow: 'hidden',
+        position: 'relative'
+      }}>
 
         <Header />
 
@@ -1720,15 +1741,234 @@ const HomePage = () => {
 
           alignItems: 'center', 
 
-          minHeight: '50vh' 
-
+          minHeight: 'calc(100vh - 64px)',
+          position: 'relative',
+          overflow: 'hidden'
         }}>
 
-          <Stack alignItems="center" spacing={2}>
+          {/* Animated Background Gradient */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: theme.palette.mode === 'dark' 
+                ? 'radial-gradient(circle at 50% 50%, rgba(255, 122, 0, 0.1) 0%, transparent 70%)'
+                : 'radial-gradient(circle at 50% 50%, rgba(255, 122, 0, 0.05) 0%, transparent 70%)',
+              animation: 'pulse 3s ease-in-out infinite',
+              '@keyframes pulse': {
+                '0%, 100%': {
+                  opacity: 0.5,
+                  transform: 'scale(1)',
+                },
+                '50%': {
+                  opacity: 1,
+                  transform: 'scale(1.1)',
+                },
+              },
+            }}
+          />
 
-            <CircularProgress />
+          {/* Floating Particles */}
+          {[...Array(6)].map((_, i) => (
+            <Box
+              key={i}
+              sx={{
+                position: 'absolute',
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FF7A00 0%, #FF9500 100%)',
+                opacity: 0.6,
+                animation: `float${i} ${3 + i * 0.5}s ease-in-out infinite`,
+                animationDelay: `${i * 0.3}s`,
+                left: `${20 + i * 15}%`,
+                top: `${30 + i * 10}%`,
+                '@keyframes float0': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(-30px) translateX(20px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float1': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(30px) translateX(-20px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float2': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(-40px) translateX(-15px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float3': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(40px) translateX(15px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float4': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(-25px) translateX(25px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float5': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(25px) translateX(-25px) scale(1.2)', opacity: 1 },
+                },
+              }}
+            />
+          ))}
 
-            <Typography>Loading events...</Typography>
+          <Stack alignItems="center" spacing={4} sx={{ position: 'relative', zIndex: 1 }}>
+
+            {/* Multi-Ring Loading Animation */}
+            <Box sx={{ position: 'relative', width: 120, height: 120 }}>
+              {/* Outer Ring */}
+              <CircularProgress
+                size={120}
+                thickness={2}
+                sx={{
+                  position: 'absolute',
+                  color: theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.3)' : 'rgba(255, 122, 0, 0.2)',
+                  animation: 'spin 2s linear infinite',
+                  '@keyframes spin': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' },
+                  },
+                }}
+              />
+              
+              {/* Middle Ring */}
+              <CircularProgress
+                size={90}
+                thickness={3}
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.6)' : 'rgba(255, 122, 0, 0.4)',
+                  animation: 'spinReverse 1.5s linear infinite',
+                  '@keyframes spinReverse': {
+                    '0%': { transform: 'translate(-50%, -50%) rotate(360deg)' },
+                    '100%': { transform: 'translate(-50%, -50%) rotate(0deg)' },
+                  },
+                }}
+              />
+              
+              {/* Inner Ring */}
+              <CircularProgress
+                size={60}
+                thickness={4}
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: '#FF7A00',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+
+              {/* Center Dot */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #FF7A00 0%, #FF9500 100%)',
+                  boxShadow: `0 0 20px ${theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.8)' : 'rgba(255, 122, 0, 0.5)'}`,
+                  animation: 'pulseDot 1.5s ease-in-out infinite',
+                  '@keyframes pulseDot': {
+                    '0%, 100%': {
+                      transform: 'translate(-50%, -50%) scale(1)',
+                      opacity: 1,
+                    },
+                    '50%': {
+                      transform: 'translate(-50%, -50%) scale(1.3)',
+                      opacity: 0.7,
+                    },
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Loading Text with Animation */}
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 700,
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, #FF7A00 0%, #FF9500 50%, #FFB84D 100%)'
+                    : 'linear-gradient(135deg, #FF7A00 0%, #FF9500 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mb: 1,
+                  animation: 'fadeInUp 0.8s ease-out',
+                  '@keyframes fadeInUp': {
+                    '0%': {
+                      opacity: 0,
+                      transform: 'translateY(20px)',
+                    },
+                    '100%': {
+                      opacity: 1,
+                      transform: 'translateY(0)',
+                    },
+                  },
+                }}
+              >
+                Đang tải thông tin...
+              </Typography>
+              
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mt: 1,
+                  animation: 'fadeInUp 0.8s ease-out 0.2s both',
+                  opacity: 0.7,
+                }}
+              >
+                Vui lòng đợi trong giây lát
+              </Typography>
+
+              {/* Animated Dots */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 0.5,
+                  mt: 2,
+                  '& > *': {
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.6)' : 'rgba(255, 122, 0, 0.4)',
+                  },
+                }}
+              >
+                {[...Array(3)].map((_, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      animation: `bounce 1.4s ease-in-out infinite`,
+                      animationDelay: `${i * 0.2}s`,
+                      '@keyframes bounce': {
+                        '0%, 80%, 100%': {
+                          transform: 'scale(0.8)',
+                          opacity: 0.5,
+                        },
+                        '40%': {
+                          transform: 'scale(1.2)',
+                          opacity: 1,
+                        },
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
 
           </Stack>
 

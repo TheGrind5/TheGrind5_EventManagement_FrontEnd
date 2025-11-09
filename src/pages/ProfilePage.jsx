@@ -7,11 +7,13 @@ import Header from '../components/layout/Header';
 import AIHistory from '../components/ai/AIHistory';
 import config from '../config/environment';
 import Cropper from 'react-easy-crop';
+import { Box, Stack, Typography, CircularProgress, useTheme } from '@mui/material';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
   const { refreshProfile, user } = useAuth();
   const navigate = useNavigate();
+  const theme = useTheme();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -374,12 +376,247 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="profile-page">
+      <Box sx={{ 
+        backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
+        width: '100%',
+        height: '100vh',
+        overflow: 'hidden',
+        position: 'relative'
+      }}>
         <Header />
-        <div className="profile-loading">
-          <div className="loading-spinner">Đang tải thông tin...</div>
-        </div>
-      </div>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: 'calc(100vh - 64px)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Animated Background Gradient */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: theme.palette.mode === 'dark' 
+                ? 'radial-gradient(circle at 50% 50%, rgba(255, 122, 0, 0.1) 0%, transparent 70%)'
+                : 'radial-gradient(circle at 50% 50%, rgba(255, 122, 0, 0.05) 0%, transparent 70%)',
+              animation: 'pulse 3s ease-in-out infinite',
+              '@keyframes pulse': {
+                '0%, 100%': {
+                  opacity: 0.5,
+                  transform: 'scale(1)',
+                },
+                '50%': {
+                  opacity: 1,
+                  transform: 'scale(1.1)',
+                },
+              },
+            }}
+          />
+
+          {/* Floating Particles */}
+          {[...Array(6)].map((_, i) => (
+            <Box
+              key={i}
+              sx={{
+                position: 'absolute',
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FF7A00 0%, #FF9500 100%)',
+                opacity: 0.6,
+                animation: `float${i} ${3 + i * 0.5}s ease-in-out infinite`,
+                animationDelay: `${i * 0.3}s`,
+                left: `${20 + i * 15}%`,
+                top: `${30 + i * 10}%`,
+                '@keyframes float0': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(-30px) translateX(20px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float1': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(30px) translateX(-20px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float2': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(-40px) translateX(-15px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float3': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(40px) translateX(15px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float4': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(-25px) translateX(25px) scale(1.2)', opacity: 1 },
+                },
+                '@keyframes float5': {
+                  '0%, 100%': { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0.6 },
+                  '50%': { transform: 'translateY(25px) translateX(-25px) scale(1.2)', opacity: 1 },
+                },
+              }}
+            />
+          ))}
+
+          <Stack alignItems="center" spacing={4} sx={{ position: 'relative', zIndex: 1 }}>
+            {/* Multi-Ring Loading Animation */}
+            <Box sx={{ position: 'relative', width: 120, height: 120 }}>
+              {/* Outer Ring */}
+              <CircularProgress
+                size={120}
+                thickness={2}
+                sx={{
+                  position: 'absolute',
+                  color: theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.3)' : 'rgba(255, 122, 0, 0.2)',
+                  animation: 'spin 2s linear infinite',
+                  '@keyframes spin': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' },
+                  },
+                }}
+              />
+              
+              {/* Middle Ring */}
+              <CircularProgress
+                size={90}
+                thickness={3}
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.6)' : 'rgba(255, 122, 0, 0.4)',
+                  animation: 'spinReverse 1.5s linear infinite',
+                  '@keyframes spinReverse': {
+                    '0%': { transform: 'translate(-50%, -50%) rotate(360deg)' },
+                    '100%': { transform: 'translate(-50%, -50%) rotate(0deg)' },
+                  },
+                }}
+              />
+              
+              {/* Inner Ring */}
+              <CircularProgress
+                size={60}
+                thickness={4}
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: '#FF7A00',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+
+              {/* Center Dot */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #FF7A00 0%, #FF9500 100%)',
+                  boxShadow: `0 0 20px ${theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.8)' : 'rgba(255, 122, 0, 0.5)'}`,
+                  animation: 'pulseDot 1.5s ease-in-out infinite',
+                  '@keyframes pulseDot': {
+                    '0%, 100%': {
+                      transform: 'translate(-50%, -50%) scale(1)',
+                      opacity: 1,
+                    },
+                    '50%': {
+                      transform: 'translate(-50%, -50%) scale(1.3)',
+                      opacity: 0.7,
+                    },
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Loading Text with Animation */}
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 700,
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, #FF7A00 0%, #FF9500 50%, #FFB84D 100%)'
+                    : 'linear-gradient(135deg, #FF7A00 0%, #FF9500 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mb: 1,
+                  animation: 'fadeInUp 0.8s ease-out',
+                  '@keyframes fadeInUp': {
+                    '0%': {
+                      opacity: 0,
+                      transform: 'translateY(20px)',
+                    },
+                    '100%': {
+                      opacity: 1,
+                      transform: 'translateY(0)',
+                    },
+                  },
+                }}
+              >
+                Đang tải thông tin...
+              </Typography>
+              
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mt: 1,
+                  animation: 'fadeInUp 0.8s ease-out 0.2s both',
+                  opacity: 0.7,
+                }}
+              >
+                Vui lòng đợi trong giây lát
+              </Typography>
+
+              {/* Animated Dots */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 0.5,
+                  mt: 2,
+                  '& > *': {
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.6)' : 'rgba(255, 122, 0, 0.4)',
+                  },
+                }}
+              >
+                {[...Array(3)].map((_, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      animation: `bounce 1.4s ease-in-out infinite`,
+                      animationDelay: `${i * 0.2}s`,
+                      '@keyframes bounce': {
+                        '0%, 80%, 100%': {
+                          transform: 'scale(0.8)',
+                          opacity: 0.5,
+                        },
+                        '40%': {
+                          transform: 'scale(1.2)',
+                          opacity: 1,
+                        },
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </Stack>
+        </Box>
+      </Box>
     );
   }
 
@@ -501,9 +738,31 @@ const ProfilePage = () => {
                 </h3>
                 
                 {subscriptionLoading ? (
-                  <div className="subscription-loading">
-                    <div className="loading-spinner">Đang tải...</div>
-                  </div>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    py: 4 
+                  }}>
+                    <Stack alignItems="center" spacing={2}>
+                      <CircularProgress 
+                        size={40}
+                        thickness={4}
+                        sx={{ 
+                          color: theme.palette.mode === 'dark' 
+                            ? 'rgba(255, 122, 0, 0.8)' 
+                            : 'rgba(255, 122, 0, 0.9)',
+                        }} 
+                      />
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ opacity: 0.7 }}
+                      >
+                        Đang tải...
+                      </Typography>
+                    </Stack>
+                  </Box>
                 ) : subscription ? (() => {
                   const planType = subscription.PlanType ?? subscription.planType ?? '';
                   const isActive = (subscription.Status === 'Active' || subscription.status === 'Active');

@@ -17,6 +17,7 @@ import {
   Chip,
   TextField,
   InputAdornment,
+  CircularProgress,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -515,13 +516,28 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
               
               {/* Wallet Balance */}
               <Chip
-                icon={<Wallet sx={{ fontSize: '1.2rem' }} />}
-                label={balanceLoading ? "Loading..." : formatCurrency(walletBalance)}
+                icon={
+                  balanceLoading ? (
+                    <CircularProgress 
+                      size={16} 
+                      thickness={4}
+                      sx={{ 
+                        color: theme.palette.mode === 'dark' 
+                          ? 'rgba(255, 122, 0, 0.8)' 
+                          : 'rgba(255, 122, 0, 0.9)',
+                      }} 
+                    />
+                  ) : (
+                    <Wallet sx={{ fontSize: '1.2rem' }} />
+                  )
+                }
+                label={balanceLoading ? "Đang tải..." : formatCurrency(walletBalance)}
                 component={Link}
                 to="/wallet"
                 clickable
                 color="primary"
                 variant="outlined"
+                disabled={balanceLoading}
                 sx={{ 
                   borderRadius: 2,
                   fontWeight: 700,
@@ -532,14 +548,18 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
                   borderColor: theme.palette.mode === 'dark' 
                     ? 'rgba(255, 122, 0, 0.4)' 
                     : 'rgba(255, 122, 0, 0.6)',
+                  opacity: balanceLoading ? 0.7 : 1,
                   '&:hover': {
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    borderColor: 'primary.main',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 12px rgba(255, 122, 0, 0.25)',
+                    backgroundColor: balanceLoading ? 'transparent' : 'primary.main',
+                    color: balanceLoading ? 'inherit' : 'white',
+                    borderColor: balanceLoading 
+                      ? (theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.4)' : 'rgba(255, 122, 0, 0.6)')
+                      : 'primary.main',
+                    transform: balanceLoading ? 'none' : 'translateY(-2px)',
+                    boxShadow: balanceLoading ? 'none' : '0 6px 12px rgba(255, 122, 0, 0.25)',
                   },
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  cursor: balanceLoading ? 'wait' : 'pointer'
                 }}
               />
               
