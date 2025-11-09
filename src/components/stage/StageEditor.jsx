@@ -17,7 +17,8 @@ import {
   Slider,
   Tooltip,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Alert
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -536,14 +537,85 @@ const StageEditor = ({ layout, onChange, ticketTypes }) => {
                   />
                 </Box>
                 
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Sức chứa (tùy chọn)"
-                  value={selectedArea.capacity || ''}
-                  onChange={(e) => setSelectedArea({ ...selectedArea, capacity: e.target.value ? parseInt(e.target.value) : null })}
-                  sx={{ mb: 2 }}
-                />
+                {/* Tính toán validation sức chứa */}
+                {(() => {
+                  if (!selectedArea.ticketTypeId) {
+                    return null;
+                  }
+                  
+                  const ticketType = ticketTypes?.find(t => Number(t?.ticketTypeId) === Number(selectedArea.ticketTypeId));
+                  if (!ticketType) {
+                    return null;
+                  }
+                  
+                  // Tính tổng sức chứa của tất cả các khu vực liên kết với cùng loại vé
+                  const currentCapacity = selectedArea.capacity || 0;
+                  const otherAreasCapacity = areas
+                    .filter(a => a.id !== selectedArea.id && a.ticketTypeId === selectedArea.ticketTypeId)
+                    .reduce((sum, a) => sum + (a.capacity || 0), 0);
+                  
+                  const totalCapacity = currentCapacity + otherAreasCapacity;
+                  const ticketQuantity = ticketType.quantity || 0;
+                  const remainingCapacity = ticketQuantity - totalCapacity;
+                  
+                  return (
+                    <Box sx={{ mb: 2 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Sức chứa"
+                        value={selectedArea.capacity || ''}
+                        onChange={(e) => {
+                          const newCapacity = e.target.value ? parseInt(e.target.value) : null;
+                          setSelectedArea({ ...selectedArea, capacity: newCapacity });
+                        }}
+                        inputProps={{ min: 0 }}
+                        error={totalCapacity > ticketQuantity}
+                        helperText={
+                          totalCapacity > ticketQuantity
+                            ? `Tổng sức chứa (${totalCapacity}) vượt quá số lượng vé (${ticketQuantity})`
+                            : remainingCapacity > 0
+                            ? `Còn lại cần phân bổ: ${remainingCapacity} vé`
+                            : remainingCapacity === 0
+                            ? 'Đã phân bổ đủ số lượng vé'
+                            : `Thừa: ${Math.abs(remainingCapacity)} vé`
+                        }
+                      />
+                      {totalCapacity !== ticketQuantity && (
+                        <Alert 
+                          severity={totalCapacity > ticketQuantity ? "error" : "warning"} 
+                          sx={{ mt: 1 }}
+                        >
+                          <Typography variant="body2">
+                            <strong>Tổng sức chứa:</strong> {totalCapacity} / {ticketQuantity} vé
+                            {remainingCapacity !== 0 && (
+                              <span> ({remainingCapacity > 0 ? `Còn thiếu ${remainingCapacity}` : `Thừa ${Math.abs(remainingCapacity)}`} vé)</span>
+                            )}
+                          </Typography>
+                        </Alert>
+                      )}
+                      {totalCapacity === ticketQuantity && (
+                        <Alert severity="success" sx={{ mt: 1 }}>
+                          <Typography variant="body2">
+                            Tổng sức chứa đã khớp với số lượng vé ({ticketQuantity} vé)
+                          </Typography>
+                        </Alert>
+                      )}
+                    </Box>
+                  );
+                })()}
+                
+                {/* Nếu không có loại vé, hiển thị input sức chứa bình thường */}
+                {!selectedArea.ticketTypeId && (
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Sức chứa (tùy chọn)"
+                    value={selectedArea.capacity || ''}
+                    onChange={(e) => setSelectedArea({ ...selectedArea, capacity: e.target.value ? parseInt(e.target.value) : null })}
+                    sx={{ mb: 2 }}
+                  />
+                )}
                 
                 <Button
                   fullWidth

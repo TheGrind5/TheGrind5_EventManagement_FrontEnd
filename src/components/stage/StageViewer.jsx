@@ -1,4 +1,5 @@
 ﻿import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Stage, Layer, Rect, Text, Group } from 'react-konva';
 import {
   Box,
@@ -21,7 +22,8 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 
-const StageViewer = ({ layout, ticketTypes, onAreaClick }) => {
+const StageViewer = ({ layout, ticketTypes, onAreaClick, eventId }) => {
+  const navigate = useNavigate();
   const [selectedArea, setSelectedArea] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(0);
@@ -38,6 +40,22 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick }) => {
   }
 
   const handleAreaClick = (area) => {
+    // Nếu có callback onAreaClick (dùng trong TicketSelectionPage), ưu tiên sử dụng callback
+    if (onAreaClick) {
+      onAreaClick({
+        area: area,
+        quantity: 0
+      });
+      return;
+    }
+    
+    // Nếu không có callback và khu vực đã liên kết với loại vé và có eventId, navigate đến trang mua vé (dùng trong EventDetailsPage)
+    if (area.ticketTypeId && eventId) {
+      navigate(`/ticket-selection/${eventId}?ticketType=${area.ticketTypeId}`);
+      return;
+    }
+    
+    // Nếu không có callback và không có eventId hoặc chưa liên kết loại vé, hiển thị dialog thông tin
     setSelectedArea(area);
     setDialogOpen(true);
     setQuantity(0);

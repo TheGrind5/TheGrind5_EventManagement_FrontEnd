@@ -852,9 +852,21 @@ const CreateEventPage = () => {
             
             const minOrder = parseInt(ticket.minOrder) || 1;
             const maxOrder = parseInt(ticket.maxOrder) || 10;
+            const quantity = parseInt(ticket.quantity) || 0;
             
-            if (minOrder > maxOrder) {
-              throw new Error(`Đơn hàng tối thiểu không thể lớn hơn đơn hàng tối đa cho vé ${index + 1}`);
+            // Kiểm tra đơn hàng tối thiểu không được vượt quá hoặc bằng đơn hàng tối đa
+            if (maxOrder > 0 && minOrder >= maxOrder) {
+              throw new Error(`Đơn hàng tối thiểu phải nhỏ hơn đơn hàng tối đa cho vé ${index + 1}`);
+            }
+            
+            // Kiểm tra đơn hàng tối thiểu không được vượt quá số lượng vé
+            if (minOrder > quantity) {
+              throw new Error(`Đơn hàng tối thiểu không được vượt quá số lượng vé cho vé ${index + 1}`);
+            }
+            
+            // Kiểm tra đơn hàng tối đa không được vượt quá số lượng vé
+            if (maxOrder > quantity) {
+              throw new Error(`Đơn hàng tối đa không được vượt quá số lượng vé cho vé ${index + 1}`);
             }
             
             // Đảm bảo SaleStart và SaleEnd có giá trị hợp lệ
@@ -1474,7 +1486,23 @@ const CreateEventPage = () => {
             const hasValidQty = !isNaN(qtyNum) && qtyNum >= 1;
             const minOrderNum = Number(ticket.minOrder);
             const hasMinOrder = !isNaN(minOrderNum) && minOrderNum >= 1;
-            return hasName && hasValidPrice && hasValidQty && hasMinOrder;
+            
+            // Kiểm tra các điều kiện validation mới
+            const quantity = parseInt(ticket.quantity) || 0;
+            const minOrder = parseInt(ticket.minOrder) || 0;
+            const maxOrder = parseInt(ticket.maxOrder) || 0;
+            
+            // Đơn hàng tối thiểu phải nhỏ hơn đơn hàng tối đa (chỉ kiểm tra nếu maxOrder > 0)
+            const validMinMaxOrder = maxOrder === 0 || minOrder < maxOrder;
+            
+            // Đơn hàng tối thiểu không được vượt quá số lượng vé (chỉ kiểm tra nếu quantity > 0)
+            const validMinOrderQuantity = quantity === 0 || minOrder <= quantity;
+            
+            // Đơn hàng tối đa không được vượt quá số lượng vé (chỉ kiểm tra nếu quantity > 0 và maxOrder > 0)
+            const validMaxOrderQuantity = maxOrder === 0 || quantity === 0 || maxOrder <= quantity;
+            
+            return hasName && hasValidPrice && hasValidQty && hasMinOrder && 
+                   validMinMaxOrder && validMinOrderQuantity && validMaxOrderQuantity;
           });
         
         // Start < End (không cho bằng hoặc đảo ngược)

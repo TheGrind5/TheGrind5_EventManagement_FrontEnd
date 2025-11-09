@@ -636,6 +636,7 @@ const EventDetailsPage = () => {
                           id: t.ticketTypeId,
                           ...t
                         }))}
+                        eventId={id}
                       />
                     </Box>
                   );
