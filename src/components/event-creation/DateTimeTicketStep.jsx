@@ -49,6 +49,36 @@ const DateTimeTicketStep = ({ data, onChange, step1Data }) => {
     return null; // Không có lỗi
   };
 
+  // Validate ticket order quantities - returns object with minOrderError and maxOrderError
+  const validateTicketOrder = (ticket) => {
+    const quantity = parseInt(ticket.quantity) || 0;
+    const minOrder = parseInt(ticket.minOrder) || 0;
+    const maxOrder = parseInt(ticket.maxOrder) || 0;
+
+    const errors = {
+      minOrderError: null,
+      maxOrderError: null
+    };
+
+    // Kiểm tra đơn hàng tối thiểu không được vượt quá hoặc bằng đơn hàng tối đa
+    if (maxOrder > 0 && minOrder >= maxOrder) {
+      errors.minOrderError = 'Đơn hàng tối thiểu phải nhỏ hơn đơn hàng tối đa';
+      errors.maxOrderError = 'Đơn hàng tối đa phải lớn hơn đơn hàng tối thiểu';
+    }
+
+    // Kiểm tra đơn hàng tối thiểu không được vượt quá số lượng vé
+    if (minOrder > quantity && quantity > 0) {
+      errors.minOrderError = 'Đơn hàng tối thiểu không được vượt quá số lượng vé';
+    }
+
+    // Kiểm tra đơn hàng tối đa không được vượt quá số lượng vé
+    if (maxOrder > quantity && quantity > 0) {
+      errors.maxOrderError = 'Đơn hàng tối đa không được vượt quá số lượng vé';
+    }
+
+    return errors;
+  };
+
   // Validate thời gian bắt đầu/kết thúc
   const startDate = data.startTime ? new Date(data.startTime) : null;
   const endDate = data.endTime ? new Date(data.endTime) : null;
@@ -288,6 +318,8 @@ const DateTimeTicketStep = ({ data, onChange, step1Data }) => {
                           fullWidth
                           required
                           inputProps={{ min: 1 }}
+                          error={!!validateTicketOrder(ticket).minOrderError}
+                          helperText={validateTicketOrder(ticket).minOrderError || ''}
                         />
                       </Grid>
                       
@@ -299,6 +331,8 @@ const DateTimeTicketStep = ({ data, onChange, step1Data }) => {
                           onChange={(e) => handleTicketTypeChange(index, 'maxOrder', parseInt(e.target.value) || 10)}
                           fullWidth
                           inputProps={{ min: 1 }}
+                          error={!!validateTicketOrder(ticket).maxOrderError}
+                          helperText={validateTicketOrder(ticket).maxOrderError || ''}
                         />
                       </Grid>
                     </Grid>
