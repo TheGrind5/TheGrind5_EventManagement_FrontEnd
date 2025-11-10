@@ -32,6 +32,7 @@ import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
 import StageViewer from '../components/stage/StageViewer';
 import AIChatbot from '../components/ai/AIChatbot';
+import FeedbackSection from '../components/common/FeedbackSection';
 import { eventsAPI, ticketsAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { decodeText } from '../utils/textDecoder';
@@ -914,6 +915,9 @@ const EventDetailsPage = () => {
                   </Card>
                 </Box>
             )}
+
+            {/* Feedback Section */}
+            <FeedbackSection eventId={id} />
           </CardContent>
         </Card>
       </Container>

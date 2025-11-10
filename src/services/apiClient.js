@@ -564,4 +564,35 @@ export const announcementAPI = {
   }
 };
 
+// Comment API
+export const commentsAPI = {
+  create: async (eventId, content, parentCommentId = null) => {
+    return api.post('/Comment', {
+      eventId,
+      content,
+      parentCommentId
+    });
+  },
+  
+  getByEventId: async (eventId, page = 1, pageSize = 20) => {
+    return api.get(`/Comment/event/${eventId}?page=${page}&pageSize=${pageSize}`);
+  },
+  
+  getById: async (commentId) => {
+    return api.get(`/Comment/${commentId}`);
+  },
+  
+  update: async (commentId, content) => {
+    return api.put(`/Comment/${commentId}`, { content });
+  },
+  
+  delete: async (commentId) => {
+    return api.delete(`/Comment/${commentId}`);
+  },
+  
+  toggleReaction: async (commentId, reactionType) => {
+    return api.post(`/Comment/${commentId}/reaction`, { reactionType });
+  }
+};
+
 export default apiClient;
