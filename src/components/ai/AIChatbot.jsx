@@ -125,10 +125,14 @@ const AIChatbot = ({ eventId = null }) => {
           bottom: 24,
           right: 24,
           zIndex: 1000,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
+          boxShadow: '0 4px 12px rgba(255, 122, 0, 0.4), 0 0 20px rgba(255, 122, 0, 0.2)',
           '&:hover': {
-            background: 'linear-gradient(135deg, #5568d3 0%, #65368d 100%)'
-          }
+            background: 'linear-gradient(135deg, #FF8A00 0%, #FF9A20 100%)',
+            boxShadow: '0 6px 16px rgba(255, 122, 0, 0.5), 0 0 30px rgba(255, 122, 0, 0.3)',
+            transform: 'translateY(-2px)'
+          },
+          transition: 'all 0.3s ease'
         }}
       >
         <AIIcon />
@@ -147,14 +151,35 @@ const AIChatbot = ({ eventId = null }) => {
           }
         }}
       >
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Avatar sx={{ bgcolor: '#667eea' }}>
+        <Box sx={{ 
+          p: 2, 
+          borderBottom: 1, 
+          borderColor: 'divider', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          background: 'linear-gradient(135deg, rgba(255, 122, 0, 0.1) 0%, rgba(255, 138, 0, 0.05) 100%)'
+        }}>
+          <Avatar sx={{ 
+            bgcolor: '#FF7A00',
+            background: 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
+            boxShadow: '0 2px 8px rgba(255, 122, 0, 0.3)'
+          }}>
             <AIIcon />
           </Avatar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
             AI Assistant
           </Typography>
-          <IconButton onClick={() => setOpen(false)} size="small">
+          <IconButton 
+            onClick={() => setOpen(false)} 
+            size="small"
+            sx={{
+              '&:hover': {
+                backgroundColor: 'rgba(255, 122, 0, 0.1)',
+                color: '#FF7A00'
+              }
+            }}
+          >
             <CloseIcon />
           </IconButton>
         </Box>
@@ -187,11 +212,21 @@ const AIChatbot = ({ eventId = null }) => {
                   bgcolor: message.isBot
                     ? message.isError
                       ? 'error.dark'
-                      : 'grey.800'
-                    : 'primary.dark',
-                  color: message.isBot ? 'grey.100' : 'white',
+                      : 'rgba(26, 26, 26, 0.9)'
+                    : 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
+                  background: message.isBot && !message.isError
+                    ? 'rgba(26, 26, 26, 0.9)'
+                    : message.isBot && message.isError
+                    ? undefined
+                    : 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
+                  color: message.isBot ? '#E5E5E5' : 'white',
                   borderRadius: 2,
-                  boxShadow: 1
+                  boxShadow: message.isBot 
+                    ? '0 2px 8px rgba(0, 0, 0, 0.2)'
+                    : '0 2px 8px rgba(255, 122, 0, 0.3)',
+                  border: message.isBot 
+                    ? '1px solid rgba(255, 122, 0, 0.1)'
+                    : 'none'
                 }}
               >
                 <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -212,8 +247,16 @@ const AIChatbot = ({ eventId = null }) => {
 
           {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.800', borderRadius: 2 }}>
-                <CircularProgress size={16} sx={{ color: 'grey.300' }} />
+              <Paper 
+                elevation={0} 
+                sx={{ 
+                  p: 1.5, 
+                  bgcolor: 'rgba(26, 26, 26, 0.9)', 
+                  borderRadius: 2,
+                  border: '1px solid rgba(255, 122, 0, 0.1)'
+                }}
+              >
+                <CircularProgress size={16} sx={{ color: '#FF7A00' }} />
               </Paper>
             </Box>
           )}
@@ -221,7 +264,14 @@ const AIChatbot = ({ eventId = null }) => {
           <div ref={messagesEndRef} />
         </Box>
 
-        <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1 }}>
+        <Box sx={{ 
+          p: 2, 
+          borderTop: 1, 
+          borderColor: 'divider', 
+          display: 'flex', 
+          gap: 1,
+          background: 'rgba(18, 18, 18, 0.5)'
+        }}>
           <TextField
             fullWidth
             size="small"
@@ -230,11 +280,47 @@ const AIChatbot = ({ eventId = null }) => {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             disabled={loading}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'rgba(26, 26, 26, 0.8)',
+                color: '#E5E5E5',
+                '& fieldset': {
+                  borderColor: 'rgba(255, 122, 0, 0.2)',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'rgba(255, 122, 0, 0.4)',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#FF7A00',
+                  boxShadow: '0 0 0 2px rgba(255, 122, 0, 0.1)'
+                },
+              },
+              '& .MuiInputBase-input::placeholder': {
+                color: 'rgba(165, 165, 165, 0.7)',
+                opacity: 1
+              }
+            }}
           />
           <IconButton
-            color="primary"
             onClick={handleSend}
             disabled={!inputValue.trim() || loading}
+            sx={{
+              bgcolor: '#FF7A00',
+              background: 'linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%)',
+              color: 'white',
+              boxShadow: '0 2px 8px rgba(255, 122, 0, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #FF8A00 0%, #FF9A20 100%)',
+                boxShadow: '0 4px 12px rgba(255, 122, 0, 0.4)',
+                transform: 'translateY(-1px)'
+              },
+              '&:disabled': {
+                bgcolor: 'rgba(255, 122, 0, 0.3)',
+                background: 'rgba(255, 122, 0, 0.3)',
+                color: 'rgba(255, 255, 255, 0.5)'
+              },
+              transition: 'all 0.2s ease'
+            }}
           >
             <SendIcon />
           </IconButton>

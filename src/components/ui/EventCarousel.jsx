@@ -68,9 +68,9 @@ const EventCarousel = ({
   }
 
   return (
-    <div className="mb-16 md:mb-20">
+    <div className="mb-6 md:mb-8">
       {/* Section Header - Cải thiện spacing */}
-      <div className="flex items-center justify-between mb-8 px-4 md:px-0">
+      <div className="flex items-center justify-between mb-2 px-4 md:px-0">
         <div className="flex items-center gap-3">
           {icon && <span className="text-orange-500">{icon}</span>}
           <h2 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h2>
@@ -107,7 +107,7 @@ const EventCarousel = ({
       </div>
 
       {/* Carousel */}
-      <div className="relative" style={{ overflow: 'visible', paddingBottom: '24px' }}>
+      <div className="relative" style={{ overflow: 'visible', paddingBottom: '8px' }}>
         <Swiper
           modules={[Navigation, Autoplay]}
           spaceBetween={24}
@@ -120,35 +120,35 @@ const EventCarousel = ({
           onSwiper={(swiper) => {
             swiperRef.current = swiper;
           }}
-          style={{ overflow: 'visible', paddingBottom: '24px' }}
+          style={{ overflow: 'visible', paddingBottom: '8px' }}
           breakpoints={{
             320: {
               slidesPerView: 1.2,
-              spaceBetween: 12,
+              spaceBetween: 10,
             },
             480: {
               slidesPerView: 1.5,
-              spaceBetween: 16,
+              spaceBetween: 12,
             },
             640: {
               slidesPerView: 2,
-              spaceBetween: 20,
+              spaceBetween: 16,
             },
             768: {
               slidesPerView: 2.5,
-              spaceBetween: 24,
+              spaceBetween: 18,
             },
             1024: {
               slidesPerView: 3.5,
-              spaceBetween: 28,
+              spaceBetween: 20,
             },
             1280: {
               slidesPerView: 4.5,
-              spaceBetween: 32,
+              spaceBetween: 22,
             },
             1536: {
               slidesPerView: 5,
-              spaceBetween: 36,
+              spaceBetween: 24,
             },
           }}
           className="event-carousel"
@@ -174,7 +174,7 @@ const EventCarousel = ({
                 }}
               >
                 {/* Event Card - Responsive và không bị cắt - Fixed height để đồng đều */}
-                <div className={`relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] h-[520px] rounded-lg overflow-hidden border hover:border-orange-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl mb-2 flex flex-col ${
+                <div className={`relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] h-[520px] rounded-lg overflow-hidden border hover:border-orange-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl mb-1 flex flex-col ${
                   isDark 
                     ? 'bg-gray-900 border-gray-800' 
                     : 'bg-white border-gray-200'
