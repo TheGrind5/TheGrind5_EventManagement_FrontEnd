@@ -17,6 +17,7 @@ import {
   Chip,
   TextField,
   InputAdornment,
+  CircularProgress,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -415,13 +416,79 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
                       const { subscriptionAPI } = await import('../../services/subscriptionService');
                       const response = await subscriptionAPI.checkStatus();
                       
-                      if (!response.data.canCreateEvent) {
+                      console.log('[Header] Subscription check response:', response.data);
+                      console.log('[Header] Full response object:', response);
+                      
+                      // Check response data structure - handle nested response
+                      const responseData = response.data || response;
+                      let canCreate = responseData?.canCreateEvent ?? responseData?.CanCreateEvent ?? false;
+                      const hasSubscription = responseData?.hasActiveSubscription ?? responseData?.HasActiveSubscription ?? false;
+                      const remainingEvents = responseData?.remainingEvents ?? responseData?.RemainingEvents ?? 0;
+                      const activeSubscription = responseData?.activeSubscription ?? responseData?.ActiveSubscription;
+                      
+                      // Get plan details
+                      const planType = activeSubscription?.planType ?? activeSubscription?.PlanType ?? '';
+                      const status = activeSubscription?.status ?? activeSubscription?.Status ?? '';
+                      const maxEventsAllowed = activeSubscription?.maxEventsAllowed ?? activeSubscription?.MaxEventsAllowed ?? 0;
+                      const eventsCreated = activeSubscription?.eventsCreated ?? activeSubscription?.EventsCreated ?? 0;
+                      
+                      console.log('[Header] Subscription details:', {
+                        canCreate,
+                        hasSubscription,
+                        remainingEvents,
+                        planType,
+                        status,
+                        maxEventsAllowed,
+                        eventsCreated,
+                        message: responseData?.message ?? responseData?.Message
+                      });
+                      
+                      // Special handling for Professional plan with unlimited events
+                      const isProfessional = planType === 'Professional';
+                      // Check if unlimited: int.MaxValue = 2147483647, or -1, or remainingEvents is very large
+                      const isUnlimited = maxEventsAllowed === 2147483647 || 
+                                         remainingEvents === 2147483647 || 
+                                         remainingEvents === -1 ||
+                                         (typeof remainingEvents === 'string' && remainingEvents.toLowerCase() === 'unlimited');
+                      
+                      console.log('[Header] Plan check:', {
+                        isProfessional,
+                        isUnlimited,
+                        maxEventsAllowed,
+                        remainingEvents,
+                        hasSubscription,
+                        status,
+                        originalCanCreate: canCreate
+                      });
+                      
+                      // Override canCreate for Professional plan - Professional always has unlimited events
+                      // Don't rely on isUnlimited check as subscription might have been created before fix
+                      if (isProfessional && hasSubscription && status === 'Active') {
+                        console.log('[Header] ✅ Professional plan detected - allowing unlimited event creation');
+                        canCreate = true;
+                      }
+                      
+                      // Final check
+                      if (!canCreate) {
+                        console.warn('[Header] Cannot create event - redirecting to subscription plans', {
+                          canCreate,
+                          isProfessional,
+                          isUnlimited,
+                          hasSubscription,
+                          status,
+                          remainingEvents,
+                          maxEventsAllowed,
+                          planType
+                        });
                         // Redirect to subscription plans
                         navigate('/subscriptions/plans');
                         return;
                       }
+                      
+                      console.log('[Header] ✅ Allowed to create event');
                     } catch (err) {
-                      console.error('Error checking subscription:', err);
+                      console.error('[Header] Error checking subscription:', err);
+                      console.error('[Header] Error details:', err.response?.data || err.message);
                       // If error, still allow navigation (don't block user)
                     }
                   }
@@ -449,13 +516,28 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
               
               {/* Wallet Balance */}
               <Chip
-                icon={<Wallet sx={{ fontSize: '1.2rem' }} />}
-                label={balanceLoading ? "Loading..." : formatCurrency(walletBalance)}
+                icon={
+                  balanceLoading ? (
+                    <CircularProgress 
+                      size={16} 
+                      thickness={4}
+                      sx={{ 
+                        color: theme.palette.mode === 'dark' 
+                          ? 'rgba(255, 122, 0, 0.8)' 
+                          : 'rgba(255, 122, 0, 0.9)',
+                      }} 
+                    />
+                  ) : (
+                    <Wallet sx={{ fontSize: '1.2rem' }} />
+                  )
+                }
+                label={balanceLoading ? "Đang tải..." : formatCurrency(walletBalance)}
                 component={Link}
                 to="/wallet"
                 clickable
                 color="primary"
                 variant="outlined"
+                disabled={balanceLoading}
                 sx={{ 
                   borderRadius: 2,
                   fontWeight: 700,
@@ -466,14 +548,18 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
                   borderColor: theme.palette.mode === 'dark' 
                     ? 'rgba(255, 122, 0, 0.4)' 
                     : 'rgba(255, 122, 0, 0.6)',
+                  opacity: balanceLoading ? 0.7 : 1,
                   '&:hover': {
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    borderColor: 'primary.main',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 12px rgba(255, 122, 0, 0.25)',
+                    backgroundColor: balanceLoading ? 'transparent' : 'primary.main',
+                    color: balanceLoading ? 'inherit' : 'white',
+                    borderColor: balanceLoading 
+                      ? (theme.palette.mode === 'dark' ? 'rgba(255, 122, 0, 0.4)' : 'rgba(255, 122, 0, 0.6)')
+                      : 'primary.main',
+                    transform: balanceLoading ? 'none' : 'translateY(-2px)',
+                    boxShadow: balanceLoading ? 'none' : '0 6px 12px rgba(255, 122, 0, 0.25)',
                   },
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  cursor: balanceLoading ? 'wait' : 'pointer'
                 }}
               />
               

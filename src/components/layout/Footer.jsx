@@ -56,7 +56,7 @@ const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: <Facebook />, url: '#', label: 'Facebook' },
+    { icon: <Facebook />, url: 'https://www.facebook.com/FUTicket', label: 'Facebook' },
     { icon: <Twitter />, url: '#', label: 'Twitter' },
     { icon: <Instagram />, url: '#', label: 'Instagram' },
     { icon: <LinkedIn />, url: '#', label: 'LinkedIn' },
@@ -271,7 +271,10 @@ const Footer = () => {
               {socialLinks.map((social) => (
                 <IconButton
                   key={social.label}
+                  component="a"
                   href={social.url}
+                  target={social.url !== '#' ? '_blank' : undefined}
+                  rel={social.url !== '#' ? 'noopener noreferrer' : undefined}
                   aria-label={social.label}
                   sx={{
                     color: 'text.secondary',

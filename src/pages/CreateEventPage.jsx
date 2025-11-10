@@ -271,9 +271,71 @@ const CreateEventPage = () => {
       try {
         setSubscriptionCheckLoading(true);
         const response = await subscriptionAPI.checkStatus();
-        const canCreate = response.data.canCreateEvent;
         
+        console.log('[CreateEventPage] Subscription check response:', response.data);
+        console.log('[CreateEventPage] Full response object:', response);
+        
+        // Check response data structure - handle nested response
+        const responseData = response.data || response;
+        let canCreate = responseData?.canCreateEvent ?? responseData?.CanCreateEvent ?? false;
+        const hasSubscription = responseData?.hasActiveSubscription ?? responseData?.HasActiveSubscription ?? false;
+        const remainingEvents = responseData?.remainingEvents ?? responseData?.RemainingEvents ?? 0;
+        const activeSubscription = responseData?.activeSubscription ?? responseData?.ActiveSubscription;
+        
+        // Get plan details
+        const planType = activeSubscription?.planType ?? activeSubscription?.PlanType ?? '';
+        const status = activeSubscription?.status ?? activeSubscription?.Status ?? '';
+        const maxEventsAllowed = activeSubscription?.maxEventsAllowed ?? activeSubscription?.MaxEventsAllowed ?? 0;
+        const eventsCreated = activeSubscription?.eventsCreated ?? activeSubscription?.EventsCreated ?? 0;
+        
+        console.log('[CreateEventPage] Subscription details:', {
+          canCreate,
+          hasSubscription,
+          remainingEvents,
+          planType,
+          status,
+          maxEventsAllowed,
+          eventsCreated,
+          message: responseData?.message ?? responseData?.Message
+        });
+        
+        // Special handling for Professional plan with unlimited events
+        const isProfessional = planType === 'Professional';
+        // Check if unlimited: int.MaxValue = 2147483647, or -1, or remainingEvents is very large
+        const isUnlimited = maxEventsAllowed === 2147483647 || 
+                           remainingEvents === 2147483647 || 
+                           remainingEvents === -1 ||
+                           (typeof remainingEvents === 'string' && remainingEvents.toLowerCase() === 'unlimited');
+        
+        console.log('[CreateEventPage] Plan check:', {
+          isProfessional,
+          isUnlimited,
+          maxEventsAllowed,
+          remainingEvents,
+          hasSubscription,
+          status,
+          originalCanCreate: canCreate
+        });
+        
+        // Override canCreate for Professional plan - Professional always has unlimited events
+        // Don't rely on isUnlimited check as subscription might have been created before fix
+        if (isProfessional && hasSubscription && status === 'Active') {
+          console.log('[CreateEventPage] ✅ Professional plan detected - allowing unlimited event creation');
+          canCreate = true;
+        }
+        
+        // Final check
         if (!canCreate) {
+          console.warn('[CreateEventPage] Cannot create event - redirecting to subscription plans', {
+            canCreate,
+            isProfessional,
+            isUnlimited,
+            hasSubscription,
+            status,
+            remainingEvents,
+            maxEventsAllowed,
+            planType
+          });
           // Redirect to subscription plans page
           navigate('/subscriptions/plans', { 
             replace: true,
@@ -281,8 +343,11 @@ const CreateEventPage = () => {
           });
           return;
         }
+        
+        console.log('[CreateEventPage] ✅ Allowed to create event');
       } catch (err) {
-        console.error('Error checking subscription:', err);
+        console.error('[CreateEventPage] Error checking subscription:', err);
+        console.error('[CreateEventPage] Error details:', err.response?.data || err.message);
         // If error, still allow access (don't block user)
       } finally {
         setSubscriptionCheckLoading(false);
@@ -787,9 +852,21 @@ const CreateEventPage = () => {
             
             const minOrder = parseInt(ticket.minOrder) || 1;
             const maxOrder = parseInt(ticket.maxOrder) || 10;
+            const quantity = parseInt(ticket.quantity) || 0;
             
-            if (minOrder > maxOrder) {
-              throw new Error(`Đơn hàng tối thiểu không thể lớn hơn đơn hàng tối đa cho vé ${index + 1}`);
+            // Kiểm tra đơn hàng tối thiểu không được vượt quá hoặc bằng đơn hàng tối đa
+            if (maxOrder > 0 && minOrder >= maxOrder) {
+              throw new Error(`Đơn hàng tối thiểu phải nhỏ hơn đơn hàng tối đa cho vé ${index + 1}`);
+            }
+            
+            // Kiểm tra đơn hàng tối thiểu không được vượt quá số lượng vé
+            if (minOrder > quantity) {
+              throw new Error(`Đơn hàng tối thiểu không được vượt quá số lượng vé cho vé ${index + 1}`);
+            }
+            
+            // Kiểm tra đơn hàng tối đa không được vượt quá số lượng vé
+            if (maxOrder > quantity) {
+              throw new Error(`Đơn hàng tối đa không được vượt quá số lượng vé cho vé ${index + 1}`);
             }
             
             // Đảm bảo SaleStart và SaleEnd có giá trị hợp lệ
@@ -1409,7 +1486,23 @@ const CreateEventPage = () => {
             const hasValidQty = !isNaN(qtyNum) && qtyNum >= 1;
             const minOrderNum = Number(ticket.minOrder);
             const hasMinOrder = !isNaN(minOrderNum) && minOrderNum >= 1;
-            return hasName && hasValidPrice && hasValidQty && hasMinOrder;
+            
+            // Kiểm tra các điều kiện validation mới
+            const quantity = parseInt(ticket.quantity) || 0;
+            const minOrder = parseInt(ticket.minOrder) || 0;
+            const maxOrder = parseInt(ticket.maxOrder) || 0;
+            
+            // Đơn hàng tối thiểu phải nhỏ hơn đơn hàng tối đa (chỉ kiểm tra nếu maxOrder > 0)
+            const validMinMaxOrder = maxOrder === 0 || minOrder < maxOrder;
+            
+            // Đơn hàng tối thiểu không được vượt quá số lượng vé (chỉ kiểm tra nếu quantity > 0)
+            const validMinOrderQuantity = quantity === 0 || minOrder <= quantity;
+            
+            // Đơn hàng tối đa không được vượt quá số lượng vé (chỉ kiểm tra nếu quantity > 0 và maxOrder > 0)
+            const validMaxOrderQuantity = maxOrder === 0 || quantity === 0 || maxOrder <= quantity;
+            
+            return hasName && hasValidPrice && hasValidQty && hasMinOrder && 
+                   validMinMaxOrder && validMinOrderQuantity && validMaxOrderQuantity;
           });
         
         // Start < End (không cho bằng hoặc đảo ngược)
