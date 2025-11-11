@@ -33,7 +33,8 @@ export const AuthProvider = ({ children }) => {
             // Fallback nếu không fetch được profile
             const userData = JSON.parse(savedUser);
             if (userData.avatar && userData.avatar.startsWith("/")) {
-              userData.avatar = `${config.BASE_URL}${userData.avatar}`;
+              const cacheKey = Date.now();
+              userData.avatar = `${config.BASE_URL}${userData.avatar}?v=${cacheKey}`;
             }
             setUser(userData);
           }
@@ -73,7 +74,8 @@ export const AuthProvider = ({ children }) => {
             // Fallback nếu không fetch được profile
             const userData = { ...loginData.user };
             if (userData.avatar && userData.avatar.startsWith("/")) {
-              userData.avatar = `${config.BASE_URL}${userData.avatar}`;
+              const cacheKey = Date.now();
+              userData.avatar = `${config.BASE_URL}${userData.avatar}?v=${cacheKey}`;
             }
             setUser(userData);
             localStorage.setItem('user', JSON.stringify(userData));
@@ -83,7 +85,8 @@ export const AuthProvider = ({ children }) => {
           // Fallback nếu không fetch được profile
           const userData = { ...loginData.user };
           if (userData.avatar && userData.avatar.startsWith("/")) {
-            userData.avatar = `${config.BASE_URL}${userData.avatar}`;
+            const cacheKey = Date.now();
+            userData.avatar = `${config.BASE_URL}${userData.avatar}?v=${cacheKey}`;
           }
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
@@ -199,7 +202,8 @@ export const AuthProvider = ({ children }) => {
       
       // ✅ Fix đường dẫn avatar tuyệt đối
       if (profile.avatar && profile.avatar.startsWith("/")) {
-        profile.avatar = `${config.BASE_URL}${profile.avatar}`;
+        const cacheKey = profile.updatedAt ? new Date(profile.updatedAt).getTime() : Date.now();
+        profile.avatar = `${config.BASE_URL}${profile.avatar}?v=${cacheKey}`;
       }
       
       return profile;

@@ -69,6 +69,57 @@
   height: fit-content;
 }
 
+.profile-right-column {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.change-password-card {
+  align-self: stretch;
+  min-height: 320px; /* gần tương đương chiều cao card avatar để cân đối */
+  display: flex;
+  flex-direction: column;
+}
+
+.change-password-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.cp-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* Make change password card stretch underneath the avatar column */
+.change-password-card--full {
+  width: calc(100% + 344px); /* 320px left column + 24px gap */
+  margin-left: -344px;
+}
+
+@media (max-width: 1200px) {
+  .change-password-card--full {
+    width: calc(100% + 320px);
+    margin-left: -320px;
+  }
+}
+
+@media (max-width: 968px) {
+  .change-password-card--full {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 968px) {
+  .change-password-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 968px) {
   .profile-content {
     grid-template-columns: 1fr;
@@ -179,6 +230,18 @@
   margin-bottom: 32px;
   padding-bottom: 16px;
   border-bottom: 2px solid rgba(255, 122, 0, 0.2);
+}
+
+/* Balance header actions inside details cards */
+.profile-details-card .profile-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.profile-details-card .profile-header-actions .profile-btn {
+  min-width: 140px;
 }
 
 .profile-details-grid {

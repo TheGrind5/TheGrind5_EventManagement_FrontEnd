@@ -158,6 +158,10 @@ export const authAPI = {
     return api.put('/Auth/profile', profileData);
   },
   
+  changePassword: async (oldPassword, newPassword) => {
+    return api.post('/Auth/change-password', { oldPassword, newPassword });
+  },
+  
   uploadAvatar: async (file) => {
     const formData = new FormData();
     formData.append('avatar', file);
