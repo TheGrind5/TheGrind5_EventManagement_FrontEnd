@@ -21,7 +21,8 @@ const EventCarousel = ({
   title = "Sự kiện", 
   events = [], 
   icon = null,
-  showAutoPlay = true 
+  showAutoPlay = true,
+  bottomTight = false
 }) => {
   const swiperRef = useRef(null);
   const { isDark } = useTheme();
@@ -68,9 +69,9 @@ const EventCarousel = ({
   }
 
   return (
-    <div className="mb-16 md:mb-20">
+    <div className={bottomTight ? "mb-1 md:mb-2" : "mb-3 md:mb-4"}>
       {/* Section Header - Cải thiện spacing */}
-      <div className="flex items-center justify-between mb-8 px-4 md:px-0">
+      <div className="flex items-center justify-between mb-2 px-4 md:px-0">
         <div className="flex items-center gap-3">
           {icon && <span className="text-orange-500">{icon}</span>}
           <h2 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h2>
@@ -107,7 +108,7 @@ const EventCarousel = ({
       </div>
 
       {/* Carousel */}
-      <div className="relative" style={{ overflow: 'visible', paddingBottom: '24px' }}>
+      <div className="relative" style={{ overflow: 'visible', paddingBottom: '16px' }}>
         <Swiper
           modules={[Navigation, Autoplay]}
           spaceBetween={24}
@@ -120,7 +121,7 @@ const EventCarousel = ({
           onSwiper={(swiper) => {
             swiperRef.current = swiper;
           }}
-          style={{ overflow: 'visible', paddingBottom: '24px' }}
+          style={{ overflow: 'visible', paddingBottom: '16px' }}
           breakpoints={{
             320: {
               slidesPerView: 1.2,
@@ -174,7 +175,7 @@ const EventCarousel = ({
                 }}
               >
                 {/* Event Card - Responsive và không bị cắt - Fixed height để đồng đều */}
-                <div className={`relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] h-[520px] rounded-lg overflow-hidden border hover:border-orange-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl mb-2 flex flex-col ${
+                <div className={`relative w-full min-w-[240px] max-w-[320px] sm:w-[280px] md:w-[300px] lg:w-[320px] h-[420px] rounded-lg overflow-hidden border hover:border-orange-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl mb-2 flex flex-col ${
                   isDark 
                     ? 'bg-gray-900 border-gray-800' 
                     : 'bg-white border-gray-200'
@@ -301,19 +302,19 @@ const EventCarousel = ({
                   </div>
 
                   {/* Card Content - Cải thiện padding và spacing */}
-                  <div className={`p-5 flex-1 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+                  <div className={`p-3 flex-1 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
                     {/* Title - Bold hơn để nổi bật - Increased to 3 lines to show full title */}
                     <h3
-                      className={`text-lg md:text-xl font-extrabold mb-4 line-clamp-3 group-hover:text-orange-400 transition-colors duration-300 leading-tight ${
+                      className={`text-lg md:text-xl font-extrabold mb-3 line-clamp-2 group-hover:text-orange-400 transition-colors duration-300 leading-tight ${
                         isDark ? 'text-white' : 'text-gray-900'
                       }`}
                       style={{
                         display: '-webkit-box',
-                        WebkitLineClamp: 3,
+                        WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                         fontWeight: 800,
-                        minHeight: '80px', // Fixed height for 3 lines
+                        minHeight: '48px', // Fixed height for 2 lines
                         lineHeight: '1.3',
                       }}
                     >
@@ -323,7 +324,7 @@ const EventCarousel = ({
                     {/* Event Details - Icons rõ ràng hơn và contrast tốt hơn */}
                     <div className="space-y-3 text-sm flex-1">
                       {/* Location - Icon lớn hơn và rõ ràng - Fixed height */}
-                      <div className="flex items-start gap-2.5 min-h-[48px]">
+                      <div className="flex items-start gap-2 min-h-[36px]">
                         <LocationOn 
                           className="text-orange-500 flex-shrink-0 mt-0.5" 
                           style={{ fontSize: 18 }}
@@ -345,7 +346,7 @@ const EventCarousel = ({
                       </div>
 
                       {/* Time - Icon lớn hơn và rõ ràng - Fixed height */}
-                      <div className="flex items-start gap-2.5 min-h-[24px]">
+                      <div className="flex items-start gap-2 min-h-[20px]">
                         <AccessTime 
                           className="text-orange-500 flex-shrink-0 mt-0.5" 
                           style={{ fontSize: 18 }}
@@ -360,7 +361,7 @@ const EventCarousel = ({
                     </div>
 
                     {/* Host - Always visible with fixed height for uniformity */}
-                    <div className={`mt-auto pt-3 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} min-h-[32px]`}>
+                    <div className={`mt-auto pt-2 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} min-h-[20px]`}>
                       <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                         Host: <span className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                           {event.hostName || 'N/A'}
