@@ -16,6 +16,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoginModal from './components/common/LoginModal';
 import RegisterModal from './components/common/RegisterModal';
+import ForgotPasswordModal from './components/common/ForgotPasswordModal';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -41,6 +42,8 @@ import NotificationsPage from './pages/NotificationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import HostDashboard from './pages/HostDashboard';
 import SubscriptionPlansPage from './pages/SubscriptionPlansPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -78,6 +81,8 @@ function AppRoutes() {
           ) : <RegisterPage />
         } 
       />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/event/:id" element={<EventDetailsPage />} />
       <Route path="/wishlist" element={<WishlistPage />} />
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
@@ -240,6 +245,7 @@ export default function App() {
                     <AppRoutes />
                     <LoginModal />
                     <RegisterModal />
+                    <ForgotPasswordModal />
                   </div>
                 </Router>
               </WishlistProvider>

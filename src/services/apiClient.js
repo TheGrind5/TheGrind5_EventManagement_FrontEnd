@@ -168,6 +168,15 @@ export const authAPI = {
     return api.upload('/Auth/upload-avatar', formData);
   },
   
+  // Forgot/Reset password
+  forgotPassword: async (email) => {
+    return api.post('/Auth/forgot-password', { email });
+  },
+
+  resetPassword: async (email, token, newPassword) => {
+    return api.post('/Auth/reset-password', { email, token, newPassword });
+  },
+  
   getAvatar: (fileName) => {
     return `${config.BASE_URL}/Auth/avatar/${fileName}`;
   }

@@ -13,10 +13,12 @@ export const useModal = () => {
 export const ModalProvider = ({ children }) => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
 
   const openLoginModal = () => {
     setIsLoginModalOpen(true);
     setIsRegisterModalOpen(false);
+    setIsForgotPasswordModalOpen(false);
   };
 
   const closeLoginModal = () => {
@@ -26,19 +28,33 @@ export const ModalProvider = ({ children }) => {
   const openRegisterModal = () => {
     setIsRegisterModalOpen(true);
     setIsLoginModalOpen(false);
+    setIsForgotPasswordModalOpen(false);
   };
 
   const closeRegisterModal = () => {
     setIsRegisterModalOpen(false);
   };
 
+  const openForgotPasswordModal = () => {
+    setIsForgotPasswordModalOpen(true);
+    setIsLoginModalOpen(false);
+    setIsRegisterModalOpen(false);
+  };
+
+  const closeForgotPasswordModal = () => {
+    setIsForgotPasswordModalOpen(false);
+  };
+
   const value = {
     isLoginModalOpen,
     isRegisterModalOpen,
+    isForgotPasswordModalOpen,
     openLoginModal,
     closeLoginModal,
     openRegisterModal,
-    closeRegisterModal
+    closeRegisterModal,
+    openForgotPasswordModal,
+    closeForgotPasswordModal
   };
 
   return (
