@@ -74,6 +74,7 @@ import EventCard from '../components/ui/EventCard';
 
 import HeroEvents from '../components/ui/HeroEvents';
 import EventCarousel from '../components/ui/EventCarousel';
+import AIChatbot from '../components/ai/AIChatbot';
 import { eventsAPI } from '../services/apiClient';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -2030,7 +2031,7 @@ const HomePage = () => {
       )}
 
       {/* Filter Bar Section - Positioned between Hero and "Sự kiện nổi bật" */}
-      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 3, md: 4 }, px: { xs: 2, md: 4 }, borderTop: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 1, md: 2 }, px: { xs: 2, md: 4 }, borderTop: `1px solid ${theme.palette.divider}` }}>
         <Container maxWidth="xl">
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
@@ -2052,7 +2053,7 @@ const HomePage = () => {
             backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
           }}
         >
-          <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
+          <Container maxWidth="xl" sx={{ py: { xs: 1, md: 2 } }}>
             {/* Events Grid - Only shows filtered results or "not found" message */}
             {renderEventsGrid()}
           </Container>
@@ -2061,7 +2062,7 @@ const HomePage = () => {
 
       {/* Sự kiện nổi bật - Hiển thị sau filter bar */}
       {featuredEventsForHero.length > 0 && (
-        <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 4, md: 8 }, px: { xs: 2, md: 4 } }}>
+        <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 2, md: 3 }, px: { xs: 2, md: 4 } }}>
           <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
             <EventCarousel
               title="🔥 Sự kiện nổi bật"
@@ -2074,7 +2075,7 @@ const HomePage = () => {
       )}
 
       {/* Event Carousels Section - FPT Play Style - Cải thiện spacing */}
-      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 4, md: 8 }, px: { xs: 2, md: 4 } }}>
+      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 2, md: 3 }, px: { xs: 2, md: 4 } }}>
         <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
           {/* Sự kiện xu hướng */}
           {trendingEvents.length > 0 && (
@@ -2144,6 +2145,9 @@ const HomePage = () => {
       {/* Footer */}
 
       <Footer />
+
+      {/* AI Chatbot */}
+      <AIChatbot />
 
     </Box>
 
