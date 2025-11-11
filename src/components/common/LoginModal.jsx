@@ -4,7 +4,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { Link, useNavigate } from 'react-router-dom';
 
 const LoginModal = () => {
-  const { isLoginModalOpen, closeLoginModal, openRegisterModal } = useModal();
+  const { isLoginModalOpen, closeLoginModal, openRegisterModal, openForgotPasswordModal } = useModal();
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -294,8 +294,8 @@ const LoginModal = () => {
               <button
                 type="button"
                 onClick={() => {
-                  // TODO: Implement forgot password
-                  alert('Tính năng quên mật khẩu sẽ được triển khai sớm');
+                  closeLoginModal();
+                  openForgotPasswordModal();
                 }}
                 style={{
                   background: 'none',
