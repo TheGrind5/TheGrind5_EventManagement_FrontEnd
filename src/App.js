@@ -50,8 +50,27 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">Loading...</div>
+      <div className="loading-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'transparent' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" style={{ transformOrigin: 'center', animation: 'appSpinnerRotate 1s linear infinite' }}>
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              fill="none"
+              stroke="#FF7A00"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray="7 10"
+            />
+          </svg>
+          <style>{`
+            @keyframes appSpinnerRotate {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
       </div>
     );
   }
@@ -59,7 +78,26 @@ function AppRoutes() {
   return (
     <Suspense fallback={
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" style={{ transformOrigin: 'center', animation: 'appSpinnerRotate 1s linear infinite' }}>
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              fill="none"
+              stroke="#FF7A00"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray="7 10"
+            />
+          </svg>
+          <style>{`
+            @keyframes appSpinnerRotate {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
       </Box>
     }>
       <Routes>

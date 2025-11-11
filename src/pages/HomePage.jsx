@@ -1628,15 +1628,17 @@ const HomePage = () => {
     // Build proper image URL with fallback
     let imageUrl = null;
     if (rawImage && rawImage.trim() !== '') {
+      // Normalize Windows-style backslashes and trim quotes/spaces
+      const normalized = String(rawImage).trim().replace(/^"+|"+$/g, '').replace(/\\/g, '/');
       if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
         // Already a full URL
-        imageUrl = rawImage;
-      } else if (rawImage.startsWith('/')) {
+        imageUrl = normalized;
+      } else if (normalized.startsWith('/')) {
         // Relative path starting with /
-        imageUrl = `http://localhost:5000${rawImage}`;
+        imageUrl = `http://localhost:5000${normalized}`;
       } else {
         // Relative path without leading /
-        imageUrl = `http://localhost:5000/${rawImage}`;
+        imageUrl = `http://localhost:5000/${normalized}`;
       }
     }
     

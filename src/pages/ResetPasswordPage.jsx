@@ -37,6 +37,11 @@ const ResetPasswordPage = () => {
       setError('Mật khẩu mới phải có ít nhất 8 ký tự');
       return;
     }
+    const strongPwd = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    if (!strongPwd.test(newPassword)) {
+      setError('Mật khẩu mới phải có ít nhất 1 chữ hoa, 1 số, 1 ký tự đặc biệt và tối thiểu 8 ký tự');
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setError('Xác nhận mật khẩu không khớp');
       return;
