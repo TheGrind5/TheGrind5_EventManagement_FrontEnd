@@ -31,7 +31,8 @@ import {
   RemoveCircle as RemoveIcon,
   CheckCircle as CheckIcon,
   CalendarToday,
-  ArrowBack
+  ArrowBack,
+  ShoppingCart
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import VoucherSelector from '../components/common/VoucherSelector';
@@ -60,6 +61,7 @@ const TicketSelectionPage = () => {
   const [selectedArea, setSelectedArea] = useState(null);
   const [products, setProducts] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState({}); // { productId: quantity }
+  const [imageErrors, setImageErrors] = useState(new Set());
 
   const isFromWishlist = location.state?.fromWishlist || false;
   const selectedWishlistItems = location.state?.selectedWishlistItems || [];
@@ -114,10 +116,30 @@ const TicketSelectionPage = () => {
         // Fetch products
         try {
           const productsResponse = await productsAPI.getByEvent(eventId);
-          const productsArray = productsResponse?.data || [];
+          console.log('Products response in TicketSelection:', productsResponse);
+          // Handle both direct array and wrapped response
+          let productsArray = [];
+          if (productsResponse?.data) {
+            if (Array.isArray(productsResponse.data)) {
+              productsArray = productsResponse.data;
+            } else if (Array.isArray(productsResponse.data.data)) {
+              productsArray = productsResponse.data.data;
+            } else if (productsResponse.data.data && typeof productsResponse.data.data === 'object') {
+              // Handle single product object
+              productsArray = [productsResponse.data.data];
+            }
+          }
+          console.log('Products array:', productsArray);
           setProducts(productsArray);
         } catch (productsError) {
-          console.log('No products available or error fetching products:', productsError);
+          // 404 is OK - just means no products exist for this event
+          if (productsError?.response?.status === 404 || productsError?.code === 404) {
+            console.log('No products found for event (404) - this is normal if event has no accessories');
+            setProducts([]);
+          } else {
+            console.error('Error fetching products:', productsError);
+            setProducts([]);
+          }
         }
 
         const ticketTypeFromUrl = searchParams.get('ticketType');
@@ -203,17 +225,29 @@ const TicketSelectionPage = () => {
       return;
     }
 
+    // Validate products quantity
+    const selectedProductsArray = Object.keys(selectedProducts)
+      .filter(productId => selectedProducts[productId] > 0)
+      .map(productId => ({
+        productId: parseInt(productId),
+        quantity: selectedProducts[productId]
+      }));
+
+    for (const selectedProduct of selectedProductsArray) {
+      const product = products.find(p => p.productId === selectedProduct.productId);
+      if (!product) {
+        setError(`Phụ kiện không tồn tại`);
+        return;
+      }
+      if (selectedProduct.quantity > product.quantity) {
+        setError(`Số lượng phụ kiện "${product.name}" không đủ. Chỉ còn ${product.quantity} sản phẩm.`);
+        return;
+      }
+    }
+
     try {
       setCreatingOrder(true);
       setError(null);
-
-      // Prepare selected products
-      const selectedProductsArray = Object.keys(selectedProducts)
-        .filter(productId => selectedProducts[productId] > 0)
-        .map(productId => ({
-          productId: parseInt(productId),
-          quantity: selectedProducts[productId]
-        }));
 
       const orderData = {
         EventId: parseInt(eventId),
@@ -528,109 +562,161 @@ const TicketSelectionPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Products Selection */}
-                <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3, mt: 2 }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Typography variant="body2" fontWeight={700} gutterBottom sx={{ mb: 2 }}>
-                      Chọn phụ kiện
-                    </Typography>
-                    {products.length === 0 ? (
-                      <Alert severity="info" sx={{ mt: 1 }}>
-                        Sự kiện này chưa có phụ kiện nào
-                      </Alert>
-                    ) : (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        {products.map((product) => {
-                          const productQuantity = selectedProducts[product.productId] || 0;
-                          return (
-                            <Box
-                              key={product.productId}
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1.5,
-                                p: 1.5,
-                                borderRadius: 1,
-                                backgroundColor: productQuantity > 0
-                                  ? theme.palette.mode === 'dark'
-                                    ? 'rgba(61, 190, 41, 0.1)'
-                                    : 'rgba(61, 190, 41, 0.05)'
-                                  : 'transparent',
-                                border: `1px solid ${
-                                  productQuantity > 0 ? theme.palette.primary.main : 'transparent'
-                                }`
-                              }}
-                            >
-                              {product.image && (
+                {/* Products Selection - Chỉ hiển thị khi đã chọn vé */}
+                {selectedTicketType && quantity > 0 && (
+                  <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3, mt: 2 }}>
+                    <CardContent sx={{ p: 2.5 }}>
+                      <Typography variant="body2" fontWeight={700} gutterBottom sx={{ mb: 2 }}>
+                        Chọn phụ kiện (phải mua vé trước)
+                      </Typography>
+                      {products.length === 0 ? (
+                        <Alert severity="info" sx={{ mt: 1 }}>
+                          Sự kiện này chưa có phụ kiện nào
+                        </Alert>
+                      ) : (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                          {products.map((product) => {
+                            const productQuantity = selectedProducts[product.productId] || 0;
+                            const availableQuantity = product.quantity || 0;
+                            const isOutOfStock = availableQuantity <= 0;
+                            
+                            // Xử lý đường dẫn ảnh
+                            const getImageUrl = () => {
+                              if (!product.image) return null;
+                              if (product.image.startsWith('http')) return product.image;
+                              const imagePath = product.image.startsWith('/') ? product.image : `/${product.image}`;
+                              return `http://localhost:5000${imagePath}`;
+                            };
+                            
+                            const imageUrl = getImageUrl();
+                            const hasImageError = imageErrors.has(product.productId);
+                            const showPlaceholder = !imageUrl || hasImageError;
+                            
+                            return (
+                              <Box
+                                key={product.productId}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1.5,
+                                  p: 1.5,
+                                  borderRadius: 1,
+                                  backgroundColor: productQuantity > 0
+                                    ? theme.palette.mode === 'dark'
+                                      ? 'rgba(61, 190, 41, 0.1)'
+                                      : 'rgba(61, 190, 41, 0.05)'
+                                    : 'transparent',
+                                  border: `1px solid ${
+                                    productQuantity > 0 ? theme.palette.primary.main : 'transparent'
+                                  }`,
+                                  opacity: isOutOfStock ? 0.6 : 1
+                                }}
+                              >
                                 <Box
-                                  component="img"
-                                  src={product.image}
-                                  alt={product.name}
                                   sx={{
                                     width: 50,
                                     height: 50,
-                                    objectFit: 'cover',
                                     borderRadius: 1,
-                                    flexShrink: 0
+                                    flexShrink: 0,
+                                    bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    overflow: 'hidden'
                                   }}
-                                />
-                              )}
-                              <Box sx={{ flex: 1 }}>
-                                <Typography variant="body2" fontWeight={600}>
-                                  {product.name}
-                                </Typography>
-                                <Typography variant="caption" color="primary.main" fontWeight={600}>
-                                  {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
-                                </Typography>
-                              </Box>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <IconButton
-                                  disabled={productQuantity <= 0}
-                                  onClick={() => {
-                                    setSelectedProducts(prev => ({
-                                      ...prev,
-                                      [product.productId]: Math.max(0, productQuantity - 1)
-                                    }));
-                                  }}
-                                  size="small"
-                                  sx={{ width: 28, height: 28 }}
                                 >
-                                  <RemoveIcon fontSize="small" />
-                                </IconButton>
-                                <TextField
-                                  type="number"
-                                  value={productQuantity}
-                                  onChange={(e) => {
-                                    const val = parseInt(e.target.value) || 0;
-                                    setSelectedProducts(prev => ({
-                                      ...prev,
-                                      [product.productId]: val
-                                    }));
-                                  }}
-                                  inputProps={{ min: 0 }}
-                                  sx={{ width: 50 }}
-                                  size="small"
-                                />
-                                <IconButton
-                                  onClick={() => {
-                                    setSelectedProducts(prev => ({
-                                      ...prev,
-                                      [product.productId]: productQuantity + 1
-                                    }));
-                                  }}
-                                  size="small"
-                                  sx={{ width: 28, height: 28 }}
-                                >
-                                  <AddIcon fontSize="small" />
-                                </IconButton>
+                                  {!showPlaceholder ? (
+                                    <Box
+                                      component="img"
+                                      src={imageUrl}
+                                      alt={product.name}
+                                      sx={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover'
+                                      }}
+                                      onError={() => {
+                                        setImageErrors(prev => new Set([...prev, product.productId]));
+                                      }}
+                                    />
+                                  ) : (
+                                    <ShoppingCart 
+                                      sx={{ 
+                                        fontSize: 24, 
+                                        color: theme.palette.mode === 'dark' ? 'grey.500' : 'grey.400'
+                                      }} 
+                                    />
+                                  )}
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography variant="body2" fontWeight={600}>
+                                    {product.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="primary.main" fontWeight={600}>
+                                    {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
+                                  </Typography>
+                                  {isOutOfStock && (
+                                    <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                                      Hết hàng
+                                    </Typography>
+                                  )}
+                                  {!isOutOfStock && (
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                      Còn lại: {availableQuantity}
+                                    </Typography>
+                                  )}
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <IconButton
+                                    disabled={productQuantity <= 0 || isOutOfStock}
+                                    onClick={() => {
+                                      setSelectedProducts(prev => ({
+                                        ...prev,
+                                        [product.productId]: Math.max(0, productQuantity - 1)
+                                      }));
+                                    }}
+                                    size="small"
+                                    sx={{ width: 28, height: 28 }}
+                                  >
+                                    <RemoveIcon fontSize="small" />
+                                  </IconButton>
+                                  <TextField
+                                    type="number"
+                                    value={productQuantity}
+                                    onChange={(e) => {
+                                      const val = Math.min(Math.max(0, parseInt(e.target.value) || 0), availableQuantity);
+                                      setSelectedProducts(prev => ({
+                                        ...prev,
+                                        [product.productId]: val
+                                      }));
+                                    }}
+                                    inputProps={{ min: 0, max: availableQuantity }}
+                                    sx={{ width: 50 }}
+                                    size="small"
+                                    disabled={isOutOfStock}
+                                  />
+                                  <IconButton
+                                    disabled={isOutOfStock || productQuantity >= availableQuantity}
+                                    onClick={() => {
+                                      setSelectedProducts(prev => ({
+                                        ...prev,
+                                        [product.productId]: Math.min(productQuantity + 1, availableQuantity)
+                                      }));
+                                    }}
+                                    size="small"
+                                    sx={{ width: 28, height: 28 }}
+                                  >
+                                    <AddIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
                               </Box>
-                            </Box>
-                          );
-                        })}
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
+                            );
+                          })}
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Voucher Selector */}
                 {selectedTicketType && quantity > 0 && pricing && (
@@ -853,126 +939,177 @@ const TicketSelectionPage = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Products Selection Card */}
-                  <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3 }}>
-                    <CardContent sx={{ p: 3 }}>
-                      <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                        Chọn phụ kiện
-                      </Typography>
+                  {/* Products Selection Card - Chỉ hiển thị khi đã chọn vé */}
+                  {selectedTicketType && quantity > 0 && (
+                    <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3 }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+                          Chọn phụ kiện (phải mua vé trước)
+                        </Typography>
 
-                      <Divider sx={{ mb: 3 }} />
+                        <Divider sx={{ mb: 3 }} />
 
-                      {products.length === 0 ? (
-                        <Alert severity="info">
-                          Sự kiện này chưa có phụ kiện nào
-                        </Alert>
-                      ) : (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          {products.map((product, index) => {
-                            const productQuantity = selectedProducts[product.productId] || 0;
+                        {products.length === 0 ? (
+                          <Alert severity="info">
+                            Sự kiện này chưa có phụ kiện nào
+                          </Alert>
+                        ) : (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {products.map((product, index) => {
+                              const productQuantity = selectedProducts[product.productId] || 0;
+                              const availableQuantity = product.quantity || 0;
+                              const isOutOfStock = availableQuantity <= 0;
+                              
+                              // Xử lý đường dẫn ảnh
+                              const getImageUrl = () => {
+                                if (!product.image) return null;
+                                if (product.image.startsWith('http')) return product.image;
+                                const imagePath = product.image.startsWith('/') ? product.image : `/${product.image}`;
+                                return `http://localhost:5000${imagePath}`;
+                              };
+                              
+                              const imageUrl = getImageUrl();
+                              const hasImageError = imageErrors.has(product.productId);
+                              const showPlaceholder = !imageUrl || hasImageError;
 
-                            return (
-                              <Box key={product.productId}>
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    gap: 2,
-                                    p: 2,
-                                    borderRadius: 2,
-                                    backgroundColor: productQuantity > 0
-                                      ? theme.palette.mode === 'dark'
-                                        ? 'rgba(61, 190, 41, 0.15)'
-                                        : 'rgba(61, 190, 41, 0.05)'
-                                      : 'transparent',
-                                    border: `1px solid ${
-                                      productQuantity > 0 ? theme.palette.primary.main : theme.palette.divider
-                                    }`,
-                                    transition: 'all 0.2s ease'
-                                  }}
-                                >
-                                  {product.image && (
+                              return (
+                                <Box key={product.productId}>
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      gap: 2,
+                                      p: 2,
+                                      borderRadius: 2,
+                                      backgroundColor: productQuantity > 0
+                                        ? theme.palette.mode === 'dark'
+                                          ? 'rgba(61, 190, 41, 0.15)'
+                                          : 'rgba(61, 190, 41, 0.05)'
+                                        : 'transparent',
+                                      border: `1px solid ${
+                                        productQuantity > 0 ? theme.palette.primary.main : theme.palette.divider
+                                      }`,
+                                      transition: 'all 0.2s ease',
+                                      opacity: isOutOfStock ? 0.6 : 1
+                                    }}
+                                  >
                                     <Box
-                                      component="img"
-                                      src={product.image}
-                                      alt={product.name}
                                       sx={{
                                         width: 60,
                                         height: 60,
-                                        objectFit: 'cover',
                                         borderRadius: 1,
-                                        flexShrink: 0
+                                        flexShrink: 0,
+                                        bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden'
                                       }}
-                                    />
-                                  )}
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body1" fontWeight={600} sx={{ mb: 0.5 }}>
-                                      {product.name}
-                                    </Typography>
-                                    <Typography variant="body2" fontWeight={700} color="primary.main">
-                                      {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
-                                    </Typography>
-                                  </Box>
+                                    >
+                                      {!showPlaceholder ? (
+                                        <Box
+                                          component="img"
+                                          src={imageUrl}
+                                          alt={product.name}
+                                          sx={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover'
+                                          }}
+                                          onError={() => {
+                                            setImageErrors(prev => new Set([...prev, product.productId]));
+                                          }}
+                                        />
+                                      ) : (
+                                        <ShoppingCart 
+                                          sx={{ 
+                                            fontSize: 30, 
+                                            color: theme.palette.mode === 'dark' ? 'grey.500' : 'grey.400'
+                                          }} 
+                                        />
+                                      )}
+                                    </Box>
+                                    <Box sx={{ flex: 1 }}>
+                                      <Typography variant="body1" fontWeight={600} sx={{ mb: 0.5 }}>
+                                        {product.name}
+                                      </Typography>
+                                      <Typography variant="body2" fontWeight={700} color="primary.main">
+                                        {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
+                                      </Typography>
+                                      {isOutOfStock && (
+                                        <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                                          Hết hàng
+                                        </Typography>
+                                      )}
+                                      {!isOutOfStock && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                          Còn lại: {availableQuantity}
+                                        </Typography>
+                                      )}
+                                    </Box>
 
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <IconButton
-                                      disabled={productQuantity <= 0}
-                                      onClick={() => {
-                                        setSelectedProducts(prev => ({
-                                          ...prev,
-                                          [product.productId]: Math.max(0, productQuantity - 1)
-                                        }));
-                                      }}
-                                      color="primary"
-                                      size="small"
-                                      sx={{
-                                        border: `1px solid ${theme.palette.primary.main}`,
-                                        width: 32,
-                                        height: 32
-                                      }}
-                                    >
-                                      <RemoveIcon />
-                                    </IconButton>
-                                    <TextField
-                                      type="number"
-                                      value={productQuantity}
-                                      onChange={(e) => {
-                                        const val = parseInt(e.target.value) || 0;
-                                        setSelectedProducts(prev => ({
-                                          ...prev,
-                                          [product.productId]: val
-                                        }));
-                                      }}
-                                      inputProps={{ min: 0 }}
-                                      sx={{ width: 60 }}
-                                      size="small"
-                                    />
-                                    <IconButton
-                                      onClick={() => {
-                                        setSelectedProducts(prev => ({
-                                          ...prev,
-                                          [product.productId]: productQuantity + 1
-                                        }));
-                                      }}
-                                      color="primary"
-                                      size="small"
-                                      sx={{
-                                        border: `1px solid ${theme.palette.primary.main}`,
-                                        width: 32,
-                                        height: 32
-                                      }}
-                                    >
-                                      <AddIcon />
-                                    </IconButton>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <IconButton
+                                        disabled={productQuantity <= 0 || isOutOfStock}
+                                        onClick={() => {
+                                          setSelectedProducts(prev => ({
+                                            ...prev,
+                                            [product.productId]: Math.max(0, productQuantity - 1)
+                                          }));
+                                        }}
+                                        color="primary"
+                                        size="small"
+                                        sx={{
+                                          border: `1px solid ${theme.palette.primary.main}`,
+                                          width: 32,
+                                          height: 32
+                                        }}
+                                      >
+                                        <RemoveIcon />
+                                      </IconButton>
+                                      <TextField
+                                        type="number"
+                                        value={productQuantity}
+                                        onChange={(e) => {
+                                          const val = Math.min(Math.max(0, parseInt(e.target.value) || 0), availableQuantity);
+                                          setSelectedProducts(prev => ({
+                                            ...prev,
+                                            [product.productId]: val
+                                          }));
+                                        }}
+                                        inputProps={{ min: 0, max: availableQuantity }}
+                                        sx={{ width: 60 }}
+                                        size="small"
+                                        disabled={isOutOfStock}
+                                      />
+                                      <IconButton
+                                        disabled={isOutOfStock || productQuantity >= availableQuantity}
+                                        onClick={() => {
+                                          setSelectedProducts(prev => ({
+                                            ...prev,
+                                            [product.productId]: Math.min(productQuantity + 1, availableQuantity)
+                                          }));
+                                        }}
+                                        color="primary"
+                                        size="small"
+                                        sx={{
+                                          border: `1px solid ${theme.palette.primary.main}`,
+                                          width: 32,
+                                          height: 32
+                                        }}
+                                      >
+                                        <AddIcon />
+                                      </IconButton>
+                                    </Box>
                                   </Box>
+                                  {index < products.length - 1 && <Divider sx={{ my: 2 }} />}
                                 </Box>
-                                {index < products.length - 1 && <Divider sx={{ my: 2 }} />}
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      )}
-                    </CardContent>
-                  </Card>
+                              );
+                            })}
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
                 </Box>
               </Grid>
 
@@ -1039,107 +1176,159 @@ const TicketSelectionPage = () => {
                         </Alert>
                       )}
 
-                      {/* Products Selection */}
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" fontWeight={700} gutterBottom sx={{ mb: 1.5 }}>
-                          Chọn phụ kiện
-                        </Typography>
-                        {products.length === 0 ? (
-                          <Alert severity="info">
-                            Sự kiện này chưa có phụ kiện nào
-                          </Alert>
-                        ) : (
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            {products.map((product) => {
-                              const productQuantity = selectedProducts[product.productId] || 0;
-                              return (
-                                <Box
-                                  key={product.productId}
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1.5,
-                                    p: 1.5,
-                                    borderRadius: 1,
-                                    backgroundColor: productQuantity > 0
-                                      ? theme.palette.mode === 'dark'
-                                        ? 'rgba(61, 190, 41, 0.1)'
-                                        : 'rgba(61, 190, 41, 0.05)'
-                                      : 'transparent',
-                                    border: `1px solid ${
-                                      productQuantity > 0 ? theme.palette.primary.main : 'transparent'
-                                    }`
-                                  }}
-                                >
-                                  {product.image && (
+                      {/* Products Selection - Chỉ hiển thị khi đã chọn vé */}
+                      {selectedTicketType && quantity > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" fontWeight={700} gutterBottom sx={{ mb: 1.5 }}>
+                            Chọn phụ kiện (phải mua vé trước)
+                          </Typography>
+                          {products.length === 0 ? (
+                            <Alert severity="info">
+                              Sự kiện này chưa có phụ kiện nào
+                            </Alert>
+                          ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              {products.map((product) => {
+                                const productQuantity = selectedProducts[product.productId] || 0;
+                                const availableQuantity = product.quantity || 0;
+                                const isOutOfStock = availableQuantity <= 0;
+                                
+                                // Xử lý đường dẫn ảnh
+                                const getImageUrl = () => {
+                                  if (!product.image) return null;
+                                  if (product.image.startsWith('http')) return product.image;
+                                  const imagePath = product.image.startsWith('/') ? product.image : `/${product.image}`;
+                                  return `http://localhost:5000${imagePath}`;
+                                };
+                                
+                                const imageUrl = getImageUrl();
+                                const hasImageError = imageErrors.has(product.productId);
+                                const showPlaceholder = !imageUrl || hasImageError;
+                                
+                                return (
+                                  <Box
+                                    key={product.productId}
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 1.5,
+                                      p: 1.5,
+                                      borderRadius: 1,
+                                      backgroundColor: productQuantity > 0
+                                        ? theme.palette.mode === 'dark'
+                                          ? 'rgba(61, 190, 41, 0.1)'
+                                          : 'rgba(61, 190, 41, 0.05)'
+                                        : 'transparent',
+                                      border: `1px solid ${
+                                        productQuantity > 0 ? theme.palette.primary.main : 'transparent'
+                                      }`,
+                                      opacity: isOutOfStock ? 0.6 : 1
+                                    }}
+                                  >
                                     <Box
-                                      component="img"
-                                      src={product.image}
-                                      alt={product.name}
                                       sx={{
                                         width: 50,
                                         height: 50,
-                                        objectFit: 'cover',
                                         borderRadius: 1,
-                                        flexShrink: 0
+                                        flexShrink: 0,
+                                        bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden'
                                       }}
-                                    />
-                                  )}
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" fontWeight={600}>
-                                      {product.name}
-                                    </Typography>
-                                    <Typography variant="caption" color="primary.main" fontWeight={600}>
-                                      {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
-                                    </Typography>
-                                  </Box>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <IconButton
-                                      disabled={productQuantity <= 0}
-                                      onClick={() => {
-                                        setSelectedProducts(prev => ({
-                                          ...prev,
-                                          [product.productId]: Math.max(0, productQuantity - 1)
-                                        }));
-                                      }}
-                                      size="small"
-                                      sx={{ width: 28, height: 28 }}
                                     >
-                                      <RemoveIcon fontSize="small" />
-                                    </IconButton>
-                                    <TextField
-                                      type="number"
-                                      value={productQuantity}
-                                      onChange={(e) => {
-                                        const val = parseInt(e.target.value) || 0;
-                                        setSelectedProducts(prev => ({
-                                          ...prev,
-                                          [product.productId]: val
-                                        }));
-                                      }}
-                                      inputProps={{ min: 0 }}
-                                      sx={{ width: 50 }}
-                                      size="small"
-                                    />
-                                    <IconButton
-                                      onClick={() => {
-                                        setSelectedProducts(prev => ({
-                                          ...prev,
-                                          [product.productId]: productQuantity + 1
-                                        }));
-                                      }}
-                                      size="small"
-                                      sx={{ width: 28, height: 28 }}
-                                    >
-                                      <AddIcon fontSize="small" />
-                                    </IconButton>
+                                      {!showPlaceholder ? (
+                                        <Box
+                                          component="img"
+                                          src={imageUrl}
+                                          alt={product.name}
+                                          sx={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover'
+                                          }}
+                                          onError={() => {
+                                            setImageErrors(prev => new Set([...prev, product.productId]));
+                                          }}
+                                        />
+                                      ) : (
+                                        <ShoppingCart 
+                                          sx={{ 
+                                            fontSize: 24, 
+                                            color: theme.palette.mode === 'dark' ? 'grey.500' : 'grey.400'
+                                          }} 
+                                        />
+                                      )}
+                                    </Box>
+                                    <Box sx={{ flex: 1 }}>
+                                      <Typography variant="body2" fontWeight={600}>
+                                        {product.name}
+                                      </Typography>
+                                      <Typography variant="caption" color="primary.main" fontWeight={600}>
+                                        {product.price === 0 ? 'Miễn phí' : formatCurrency(product.price)}
+                                      </Typography>
+                                      {isOutOfStock && (
+                                        <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                                          Hết hàng
+                                        </Typography>
+                                      )}
+                                      {!isOutOfStock && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                          Còn lại: {availableQuantity}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                      <IconButton
+                                        disabled={productQuantity <= 0 || isOutOfStock}
+                                        onClick={() => {
+                                          setSelectedProducts(prev => ({
+                                            ...prev,
+                                            [product.productId]: Math.max(0, productQuantity - 1)
+                                          }));
+                                        }}
+                                        size="small"
+                                        sx={{ width: 28, height: 28 }}
+                                      >
+                                        <RemoveIcon fontSize="small" />
+                                      </IconButton>
+                                      <TextField
+                                        type="number"
+                                        value={productQuantity}
+                                        onChange={(e) => {
+                                          const val = Math.min(Math.max(0, parseInt(e.target.value) || 0), availableQuantity);
+                                          setSelectedProducts(prev => ({
+                                            ...prev,
+                                            [product.productId]: val
+                                          }));
+                                        }}
+                                        inputProps={{ min: 0, max: availableQuantity }}
+                                        sx={{ width: 50 }}
+                                        size="small"
+                                        disabled={isOutOfStock}
+                                      />
+                                      <IconButton
+                                        disabled={isOutOfStock || productQuantity >= availableQuantity}
+                                        onClick={() => {
+                                          setSelectedProducts(prev => ({
+                                            ...prev,
+                                            [product.productId]: Math.min(productQuantity + 1, availableQuantity)
+                                          }));
+                                        }}
+                                        size="small"
+                                        sx={{ width: 28, height: 28 }}
+                                      >
+                                        <AddIcon fontSize="small" />
+                                      </IconButton>
+                                    </Box>
                                   </Box>
-                                </Box>
-                              );
-                            })}
-                          </Box>
-                        )}
-                      </Box>
+                                );
+                              })}
+                            </Box>
+                          )}
+                        </Box>
+                      )}
 
                       {/* Voucher Selector */}
                       {selectedTicketType && quantity > 0 && pricing && (
