@@ -78,6 +78,12 @@ const RegisterModal = () => {
       setError('Mật khẩu phải có ít nhất 8 ký tự');
       return false;
     }
+    // At least 1 uppercase, 1 digit, 1 special char, min 8 chars
+    const strongPwd = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    if (!strongPwd.test(formData.password)) {
+      setError('Mật khẩu phải có ít nhất 1 chữ hoa, 1 số, 1 ký tự đặc biệt và tối thiểu 8 ký tự');
+      return false;
+    }
     if (!formData.phone.trim()) {
       setError('Số điện thoại không được để trống');
       return false;

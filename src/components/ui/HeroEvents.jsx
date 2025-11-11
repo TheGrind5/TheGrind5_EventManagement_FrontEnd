@@ -32,10 +32,11 @@ const HeroEvents = memo(({ events = [] }) => {
     
     // Get backgroundImage (1280x720) - main display image for all pages
     // eventImage (720x958) is saved but not displayed
-    const imageUrl = event.image || 
+    const raw = event.image || 
                      event.backgroundImage ||
                      event.eventDetails?.backgroundImage ||
                      '';
+    const imageUrl = typeof raw === 'string' ? raw.replace(/\\/g, '/').trim().replace(/^"+|"+$/g, '') : '';
     
     // If no image found, use fallback
     if (!imageUrl || imageUrl.trim() === '') {
@@ -75,13 +76,57 @@ const HeroEvents = memo(({ events = [] }) => {
     }
   }, []);
 
+  // Prefetch utility (silent) for smoother slide transitions
+  const prefetchImage = useCallback((url) => {
+    if (!url) return;
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      img.loading = 'eager';
+      img.src = url;
+      // Try decode if supported; ignore errors
+      if (img.decode) {
+        img.decode().catch(() => {});
+      }
+    } catch (_) {}
+  }, []);
+
   // Reset image state when slide changes
   useEffect(() => {
     if (currentEvent) {
+      // ensure a minimum spinner time to avoid flicker
+      const minStart = performance.now();
       setImageLoading(true);
       setImageError(false);
+
+      // Safety timeout: if image doesn't load within 2s, stop loading (fallback already handled in onError)
+      const timeout = setTimeout(() => {
+        if (imageLoading) {
+          setImageError(false);
+          setImageLoading(false);
+        }
+      }, 2000);
+
+      // Prefetch adjacent slides for smoother transitions
+      const nextIndex = (currentIndex + 1) % events.length;
+      const prevIndex = (currentIndex - 1 + events.length) % events.length;
+      const nextUrl = getImageUrl(events[nextIndex]);
+      const prevUrl = getImageUrl(events[prevIndex]);
+      prefetchImage(nextUrl);
+      prefetchImage(prevUrl);
+
+      return () => {
+        clearTimeout(timeout);
+        // keep spinner for at least 150ms to avoid flash
+        const elapsed = performance.now() - minStart;
+        if (elapsed < 150) {
+          const wait = 150 - elapsed;
+          const id = setTimeout(() => {}, wait);
+          clearTimeout(id);
+        }
+      };
     }
-  }, [currentIndex, currentEvent]);
+  }, [currentIndex, currentEvent]); 
 
   // Format date helper - Format ngày/tháng/năm
   const formatDate = (dateString) => {
@@ -204,6 +249,7 @@ const HeroEvents = memo(({ events = [] }) => {
             src={imageUrl || fallbackImage}
             alt={currentEvent?.title ? `Hero banner: ${currentEvent.title}` : 'Event hero banner'}
             className="absolute inset-0 w-full h-full object-cover"
+            fetchPriority="high"
             initial={{ opacity: 0, scale: 1.1 }}
             animate={{ 
               opacity: imageLoading || isTransitioning ? 0 : 1,
@@ -222,6 +268,8 @@ const HeroEvents = memo(({ events = [] }) => {
               height: '100%',
               objectFit: 'cover',
               objectPosition: 'center',
+              willChange: 'opacity, transform',
+              transform: 'translateZ(0)',
             }}
           />
         </AnimatePresence>

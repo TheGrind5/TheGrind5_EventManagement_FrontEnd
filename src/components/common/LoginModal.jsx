@@ -324,12 +324,20 @@ const LoginModal = () => {
               }}
             >
               {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <svg className="loading-spinner" width="20" height="20" viewBox="0 0 20 20" style={{ animation: 'spin 1s linear infinite' }}>
-                    <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeDashoffset="24" opacity="0.3" />
-                    <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeDashoffset="24" />
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" style={{ transformOrigin: 'center', animation: 'spinnerRotate 1s linear infinite' }}>
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      fill="none"
+                      stroke="#FF7A00"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="6 10"
+                    />
                   </svg>
-                  Đang đăng nhập...
+                  <span>Đang đăng nhập...</span>
                 </span>
               ) : (
                 'Tiếp tục'
@@ -397,6 +405,11 @@ const LoginModal = () => {
             transform: translateY(0);
             opacity: 1;
           }
+        }
+
+        @keyframes spinnerRotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         .modal-overlay::-webkit-scrollbar {
