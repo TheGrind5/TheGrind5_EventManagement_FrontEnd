@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/apiClient';
@@ -31,6 +31,12 @@ const ProfilePage = () => {
   const [avatarKey, setAvatarKey] = useState(0); // Key để force re-render avatar
   const [subscription, setSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [cpOld, setCpOld] = useState('');
+  const [cpNew, setCpNew] = useState('');
+  const [cpConfirm, setCpConfirm] = useState('');
+  const [cpLoading, setCpLoading] = useState(false);
+  const [cpMessage, setCpMessage] = useState('');
+  const [cpError, setCpError] = useState('');
   
   // Crop states
   const [showCropModal, setShowCropModal] = useState(false);
@@ -38,6 +44,7 @@ const ProfilePage = () => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const avatarClickInputRef = useRef(null);
 
   useEffect(() => {
     loadProfile();
@@ -69,7 +76,8 @@ const ProfilePage = () => {
       
       // Fix avatar URL nếu cần
       if (profileData.avatar && profileData.avatar.startsWith("/")) {
-        profileData.avatar = `${config.BASE_URL}${profileData.avatar}`;
+        const cacheKey = profileData.updatedAt ? new Date(profileData.updatedAt).getTime() : Date.now();
+        profileData.avatar = `${config.BASE_URL}${profileData.avatar}?v=${cacheKey}`;
       }
       
       setProfile(profileData);
@@ -226,7 +234,8 @@ const ProfilePage = () => {
       // Fix avatar URL nếu cần
       const updatedUser = result.data.user;
       if (updatedUser.avatar && updatedUser.avatar.startsWith("/")) {
-        updatedUser.avatar = `${config.BASE_URL}${updatedUser.avatar}`;
+        const cacheKey = updatedUser.updatedAt ? new Date(updatedUser.updatedAt).getTime() : Date.now();
+        updatedUser.avatar = `${config.BASE_URL}${updatedUser.avatar}?v=${cacheKey}`;
       }
       
       setProfile(updatedUser);
@@ -257,6 +266,40 @@ const ProfilePage = () => {
     setEditing(false);
     setMessage('');
     setError('');
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    try {
+      setCpError('');
+      setCpMessage('');
+
+      if (!cpOld || !cpNew || !cpConfirm) {
+        setCpError('Vui lòng nhập đầy đủ các trường');
+        return;
+      }
+      if (cpNew.length < 8) {
+        setCpError('Mật khẩu mới phải có ít nhất 8 ký tự');
+        return;
+      }
+      if (cpNew !== cpConfirm) {
+        setCpError('Xác nhận mật khẩu không khớp');
+        return;
+      }
+
+      setCpLoading(true);
+      await authAPI.changePassword(cpOld, cpNew);
+      setCpMessage('Đổi mật khẩu thành công!');
+      setCpOld('');
+      setCpNew('');
+      setCpConfirm('');
+    } catch (err) {
+      // Ưu tiên hiển thị thông báo cụ thể từ backend (ví dụ: Mật khẩu cũ không đúng)
+      const msg = err?.message || err?.response?.data?.message || 'Đổi mật khẩu thất bại';
+      setCpError(msg);
+    } finally {
+      setCpLoading(false);
+    }
   };
 
   // Crop functions
@@ -645,44 +688,7 @@ const ProfilePage = () => {
       <Header />
       
       <div className="main-content">
-        {/* Header */}
-        <div className="profile-header">
-          <div className="profile-header-content">
-            <div>
-              <h1 className="profile-header-title">
-                Profile
-              </h1>
-              <p className="profile-header-subtitle">
-                Quản lý thông tin cá nhân của bạn
-              </p>
-            </div>
-            <div className="profile-header-actions">
-              {!editing ? (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="profile-btn profile-btn-primary"
-                >
-                  ✏️ Chỉnh sửa
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleCancel}
-                    className="profile-btn profile-btn-secondary"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    className="profile-btn profile-btn-primary"
-                  >
-                    💾 Lưu thay đổi
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Bỏ Header phía trên vì đã chuyển nút chỉnh sửa xuống bên dưới */}
 
         {/* Messages */}
         {message && (
@@ -704,7 +710,16 @@ const ProfilePage = () => {
           <div className="profile-left-column">
             {/* Avatar Section */}
             <div className="profile-avatar-card">
-              <div className="profile-avatar-wrapper">
+              <div
+                className="profile-avatar-wrapper"
+                onClick={() => {
+                  if (editing && avatarClickInputRef?.current) {
+                    avatarClickInputRef.current.click();
+                  }
+                }}
+                title={editing ? 'Nhấn để chọn ảnh mới' : ''}
+                style={{ cursor: editing ? 'pointer' : 'default' }}
+              >
                 {avatarPreview || profile?.avatar ? (
                   <img 
                     key={avatarKey}
@@ -718,6 +733,14 @@ const ProfilePage = () => {
                   </span>
                 )}
               </div>
+              {/* Hidden input to trigger when clicking avatar (only effective in edit mode) */}
+              <input
+                ref={avatarClickInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                style={{ display: 'none' }}
+              />
               <h3 className="profile-name">
                 {profile?.fullName || 'Chưa có tên'}
               </h3>
@@ -882,11 +905,40 @@ const ProfilePage = () => {
             )}
           </div>
 
+          {/* Right Column Wrapper */}
+          <div className="profile-right-column">
           {/* Profile Details */}
           <div className="profile-details-card">
-            <h3 className="profile-details-title">
-              Thông tin chi tiết
+            <div className="profile-details-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <h3 className="profile-details-heading" style={{ margin: 0 }}>
+                Profile
             </h3>
+              <div className="profile-header-actions">
+                {!editing ? (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="profile-btn profile-btn-primary"
+                  >
+                    ✏️ Chỉnh sửa
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleCancel}
+                      className="profile-btn profile-btn-secondary"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      className="profile-btn profile-btn-primary"
+                    >
+                      💾 Lưu thay đổi
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
             <form onSubmit={handleSubmit}>
               <div className="profile-details-grid">
                     {/* Full Name */}
@@ -918,9 +970,6 @@ const ProfilePage = () => {
                       <div className="profile-field-value profile-field-value-disabled">
                         {profile?.email}
                       </div>
-                      <p className="profile-field-hint">
-                        Email không thể thay đổi
-                      </p>
                     </div>
 
                     {/* Phone */}
@@ -944,50 +993,7 @@ const ProfilePage = () => {
                       )}
                     </div>
 
-                    {/* Avatar */}
-                    <div className="profile-field">
-                      <label className="profile-field-label">
-                        Ảnh đại diện
-                      </label>
-                      {editing ? (
-                        <div>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAvatarChange}
-                            className="profile-avatar-upload"
-                            id="avatar-upload"
-                          />
-                          <label
-                            htmlFor="avatar-upload"
-                            className="profile-avatar-upload-label"
-                          >
-                            <div className="profile-avatar-upload-icon">📷</div>
-                            <div>Chọn ảnh từ máy tính</div>
-                            <div className="profile-avatar-upload-hint">
-                              Hỗ trợ: JPG, PNG, GIF (tối đa 5MB)
-                            </div>
-                          </label>
-                          
-                          {avatarPreview && (
-                            <div className="profile-avatar-preview">
-                              <span className="profile-avatar-preview-label">
-                                Xem trước:
-                              </span>
-                              <img 
-                                src={avatarPreview} 
-                                alt="Avatar Preview" 
-                                className="profile-avatar-preview-img"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="profile-field-value">
-                          {profile?.avatar ? 'Đã cập nhật' : 'Chưa cập nhật'}
-                        </div>
-                      )}
-                    </div>
+                    {/* Avatar field hidden in detail section */}
 
                     {/* Date of Birth */}
                     <div className="profile-field">
@@ -1050,18 +1056,96 @@ const ProfilePage = () => {
                       )}
                     </div>
 
-                    {/* Role */}
-                    <div className="profile-field">
-                      <label className="profile-field-label">
-                        Vai trò
-                      </label>
-                      <div className="profile-field-value profile-field-value-disabled">
-                        {profile?.role}
-                      </div>
-                    </div>
+                    {/* Role field hidden in detail section */}
 
               </div>
             </form>
+            </div>
+
+            {/* Change Password Section - moved below Profile card */}
+            <div className="profile-details-card change-password-card change-password-card--full">
+              <div className="profile-details-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <h3 className="profile-details-heading" style={{ margin: 0 }}>
+                  Đổi mật khẩu
+                </h3>
+              </div>
+
+              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  {cpMessage && (
+                    <div className="profile-alert profile-alert-success" style={{ marginTop: 12 }}>
+                      <span>✓</span>{cpMessage}
+                    </div>
+                  )}
+                  {cpError && (
+                    <div className="profile-alert profile-alert-error" style={{ marginTop: 12 }}>
+                      <span>✕</span>{cpError}
+                    </div>
+                  )}
+                  <div className="profile-details-grid change-password-grid">
+                    <div className="profile-field">
+                      <label className="profile-field-label">
+                        Mật khẩu cũ
+                      </label>
+                      <input
+                        type="password"
+                        value={cpOld}
+                        onChange={(e) => setCpOld(e.target.value)}
+                        className="profile-field-input"
+                        placeholder="Nhập mật khẩu cũ"
+                        autoComplete="current-password"
+                      />
+                    </div>
+
+                    <div className="profile-field">
+                      <label className="profile-field-label">
+                        Mật khẩu mới
+                      </label>
+                      <input
+                        type="password"
+                        value={cpNew}
+                        onChange={(e) => setCpNew(e.target.value)}
+                        className="profile-field-input"
+                        placeholder="Ít nhất 8 ký tự"
+                        autoComplete="new-password"
+                      />
+                    </div>
+
+                    <div className="profile-field">
+                      <label className="profile-field-label">
+                        Xác nhận mật khẩu mới
+                      </label>
+                      <input
+                        type="password"
+                        value={cpConfirm}
+                        onChange={(e) => setCpConfirm(e.target.value)}
+                        className="profile-field-input"
+                        placeholder="Nhập lại mật khẩu mới"
+                        autoComplete="new-password"
+                      />
+                    </div>
+                  </div>
+                  <div className="cp-actions">
+                    <button
+                      type="button"
+                      className="profile-btn profile-btn-secondary"
+                      onClick={() => {
+                        setCpOld(''); setCpNew(''); setCpConfirm(''); setCpError(''); setCpMessage('');
+                      }}
+                      disabled={cpLoading}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      className="profile-btn profile-btn-primary"
+                      disabled={cpLoading}
+                    >
+                      {cpLoading ? 'Đang đổi...' : 'Đổi mật khẩu'}
+                    </button>
+              </div>
+            </form>
+            </div>
+
           </div>
 
           {/* AI History Section - Commented out for now due to AISuggestion table issue */}
