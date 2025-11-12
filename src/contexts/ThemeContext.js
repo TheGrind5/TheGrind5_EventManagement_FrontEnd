@@ -214,21 +214,28 @@ export const CustomThemeProvider = ({ children }) => {
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
+    const html = document.documentElement;
     
     if (themeMode === 'dark') {
       root.classList.add('dark-theme');
       root.classList.remove('light-theme');
       body.classList.add('dark-theme');
       body.classList.remove('light-theme');
+      html.classList.add('dark-theme');
+      html.classList.remove('light-theme');
       body.style.background = '#0D0D0D';
-      body.style.color = '#FFFFFF';
+      body.style.color = '#F5F5F5';
+      html.style.background = '#0D0D0D';
     } else {
       root.classList.add('light-theme');
       root.classList.remove('dark-theme');
       body.classList.add('light-theme');
       body.classList.remove('dark-theme');
-      body.style.background = '#FFFFFF';
-      body.style.color = '#0D0D0D';
+      html.classList.add('light-theme');
+      html.classList.remove('dark-theme');
+      body.style.background = '#F8F9FA';
+      body.style.color = '#2C3E50';
+      html.style.background = '#F8F9FA';
     }
 
     // Lưu theme vào localStorage

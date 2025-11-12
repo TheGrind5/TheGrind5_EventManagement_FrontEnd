@@ -1,12 +1,16 @@
 .admin-dashboard-container {
   display: flex;
   min-height: 100vh;
-  background: #F5F5F5;
+  background: #F8F9FA;
   transition: background-color 0.3s ease;
 }
 
 .dark-theme .admin-dashboard-container {
   background: #0D0D0D;
+}
+
+.light-theme .admin-dashboard-container {
+  background: #F8F9FA;
 }
 
 .admin-main-content {
