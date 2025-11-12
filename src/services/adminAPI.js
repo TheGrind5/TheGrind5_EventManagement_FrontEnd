@@ -42,8 +42,23 @@ export const adminAPI = {
     return api.delete(`/Event/${eventId}/admin`);
   },
 
-  // Future admin endpoints can be added here
-  // deleteUser, updateUser, etc.
+  // System Settings
+  getSystemSettings: async () => {
+    return api.get('/Admin/settings/system');
+  },
+
+  updateSystemSettings: async (settings) => {
+    return api.put('/Admin/settings/system', settings);
+  },
+
+  // Admin Notification Settings
+  getAdminNotificationSettings: async () => {
+    return api.get('/Admin/settings/notifications');
+  },
+
+  updateAdminNotificationSettings: async (settings) => {
+    return api.put('/Admin/settings/notifications', settings);
+  }
 };
 
 export default adminAPI;
