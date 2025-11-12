@@ -100,8 +100,12 @@ const NotificationIcon = () => {
     switch (type) {
       case 'EventReminder': return '📅';
       case 'EventUpdate': return '📢';
-      case 'EventCancelled': return '❌';
-      case 'OrderConfirmation': return '✓';
+      case 'EventCancelled': 
+      case 'EventRejected':
+        return '❌';
+      case 'OrderConfirmation': 
+      case 'EventApproved':
+        return '✅';
       case 'PaymentSuccess': return '💰';
       case 'Refund': return '💸';
       case 'EventReport': return '🚩';
@@ -113,8 +117,12 @@ const NotificationIcon = () => {
     switch (type) {
       case 'EventReminder': return '#28a745';
       case 'EventUpdate': return '#ffc107';
-      case 'EventCancelled': return '#dc3545';
-      case 'OrderConfirmation': return '#17a2b8';
+      case 'EventCancelled': 
+      case 'EventRejected':
+        return '#dc3545';
+      case 'OrderConfirmation': 
+      case 'EventApproved':
+        return '#17a2b8';
       case 'PaymentSuccess': return '#28a745';
       case 'Refund': return '#6f42c1';
       case 'EventReport': return '#f44336';

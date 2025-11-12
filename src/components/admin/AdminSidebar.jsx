@@ -9,7 +9,8 @@ import {
   Logout,
   AdminPanelSettings,
   LocalOffer,
-  Notifications
+  Notifications,
+  CheckCircle
 } from '@mui/icons-material';
 import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
@@ -28,6 +29,7 @@ const AdminSidebar = ({ onLogout }) => {
     { path: '/admin/orders', icon: <Receipt />, label: 'Quản Lý Orders' },
     { path: '/admin/vouchers', icon: <LocalOffer />, label: 'Quản Lý Vouchers' },
     { path: '/admin/announcements', icon: <Notifications />, label: 'Thêm Thông Báo' },
+    { path: '/admin/event-approval', icon: <CheckCircle />, label: 'Duyệt Sự Kiện' },
     { path: '/admin/settings', icon: <Settings />, label: 'Cài Đặt' },
   ];
 
