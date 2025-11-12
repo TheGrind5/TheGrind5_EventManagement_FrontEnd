@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import UserManagement from '../components/admin/UserManagement';
-import EventManagement from '../components/admin/EventManagement';
+import EventCalendar from '../components/admin/EventCalendar';
 import AdminOrdersPage from './admin/AdminOrdersPage';
 import AdminEventsPage from './admin/AdminEventsPage';
 import AdminVouchersPage from './admin/AdminVouchersPage';
@@ -11,7 +11,6 @@ import AdminAnnouncementsPage from './admin/AdminAnnouncementsPage';
 import AdminEventApprovalPage from './admin/AdminEventApprovalPage';
 import AdminSettingsPage from './admin/AdminSettingsPage';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -33,6 +32,7 @@ const AdminDashboard = () => {
           <Route path="/dashboard" element={<Navigate to="/admin/users" replace />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/events" element={<AdminEventsPage />} />
+          <Route path="/events/calendar" element={<EventCalendar />} />
           <Route path="/orders" element={<AdminOrdersPage />} />
           <Route path="/vouchers" element={<AdminVouchersPage />} />
           <Route path="/announcements" element={<AdminAnnouncementsPage />} />

@@ -246,6 +246,20 @@ const adminService = {
       console.error(`Error approving event ${eventId}:`, error);
       throw error;
     }
+  },
+
+  /**
+   * Từ chối duyệt sự kiện (chuyển status từ Pending sang Cancelled và gửi thông báo)
+   * @param {number} eventId - ID của sự kiện
+   */
+  async rejectEvent(eventId) {
+    try {
+      const response = await apiClient.post(`/admin/events/${eventId}/reject`);
+      return response;
+    } catch (error) {
+      console.error(`Error rejecting event ${eventId}:`, error);
+      throw error;
+    }
   }
 };
 

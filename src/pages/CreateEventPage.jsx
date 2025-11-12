@@ -1232,8 +1232,8 @@ const CreateEventPage = () => {
             console.log('Event updated successfully with ID:', eventId);
             
             // Xử lý products: xóa cũ và tạo mới
-            try {
-              const { productsAPI } = await import('../services/apiClient');
+              try {
+                const { productsAPI } = await import('../services/apiClient');
               
               // Lấy danh sách products hiện có
               const existingProductsResponse = await productsAPI.getByEvent(eventId);
@@ -1274,9 +1274,9 @@ const CreateEventPage = () => {
               } else {
                 console.log('No products to create');
               }
-            } catch (productError) {
+              } catch (productError) {
               console.error('Error updating products:', productError);
-              // Không throw error vì products là optional
+                // Không throw error vì products là optional
             }
             
             // Xóa dữ liệu tạm trong localStorage

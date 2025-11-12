@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -20,9 +20,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  DialogContentText
+  DialogContentText,
+  IconButton,
+  ButtonGroup
 } from '@mui/material';
-import { Search, Event, CalendarToday, LocationOn, Person } from '@mui/icons-material';
+import { Search, Event, CalendarToday, LocationOn, Person, ArrowBackIos, ArrowForwardIos } from '@mui/icons-material';
 import adminAPI from '../../services/adminAPI';
 import { useAuth } from '../../contexts/AuthContext';
 import './EventManagement.css';
@@ -43,6 +45,13 @@ const EventManagement = () => {
     open: false,
     event: null
   });
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [calendarDialog, setCalendarDialog] = useState({
+    open: false,
+    dateLabel: '',
+    events: []
+  });
+  const [viewMode, setViewMode] = useState('list');
 
   useEffect(() => {
     fetchEvents();
@@ -154,6 +163,72 @@ const EventManagement = () => {
     }
   };
 
+  const handleMonthChange = (direction) => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + direction, 1));
+  };
+
+  const eventsByDate = useMemo(() => {
+    const grouped = {};
+    events.forEach((event) => {
+      if (!event?.startTime) return;
+      const date = new Date(event.startTime);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(event);
+    });
+    return grouped;
+  }, [events]);
+
+  const generateCalendarCells = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startOffset = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    return Array.from({ length: 35 }, (_, index) => {
+      const dayNumber = index - startOffset + 1;
+      const cellDate = new Date(year, month, dayNumber);
+      const inCurrentMonth = dayNumber > 0 && dayNumber <= daysInMonth;
+      const key = `${cellDate.getFullYear()}-${String(cellDate.getMonth() + 1).padStart(2, '0')}-${String(cellDate.getDate()).padStart(2, '0')}`;
+      return {
+        key,
+        label: cellDate.getDate(),
+        date: cellDate,
+        isCurrentMonth: inCurrentMonth,
+        events: eventsByDate[key] || []
+      };
+    });
+  }, [currentMonth, eventsByDate]);
+
+  const handleDayClick = (cell) => {
+    const dateLabel = cell.date.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    setCalendarDialog({
+      open: true,
+      dateLabel,
+      events: cell.events
+    });
+  };
+
+  const closeCalendarDialog = () => {
+    setCalendarDialog({
+      open: false,
+      dateLabel: '',
+      events: []
+    });
+  };
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+  };
+
 
   if (loading) {
     return (
@@ -261,99 +336,168 @@ const EventManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Events Table */}
-      <Card className="table-card">
-        <TableContainer component={Paper} elevation={0}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Sự Kiện</TableCell>
-                <TableCell>Danh Mục</TableCell>
-                <TableCell>Địa Điểm</TableCell>
-                <TableCell>Thời Gian</TableCell>
-                <TableCell>Host</TableCell>
-                <TableCell>Trạng Thái</TableCell>
-                <TableCell>Xóa</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredEvents.length === 0 ? (
+      <div className="view-toggle-container">
+        <ButtonGroup className="view-toggle" variant="contained">
+          <Button
+            onClick={() => handleViewModeChange('list')}
+            className={viewMode === 'list' ? 'view-toggle__button view-toggle__button--active' : 'view-toggle__button'}
+          >
+            Danh sách
+          </Button>
+          <Button
+            onClick={() => handleViewModeChange('calendar')}
+            className={viewMode === 'calendar' ? 'view-toggle__button view-toggle__button--active' : 'view-toggle__button'}
+          >
+            Lịch
+          </Button>
+        </ButtonGroup>
+      </div>
+
+      {viewMode === 'list' && (
+        <Card className="table-card">
+          <TableContainer component={Paper} elevation={0}>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography variant="body1" color="textSecondary">
-                      Không tìm thấy sự kiện nào
-                    </Typography>
-                  </TableCell>
+                  <TableCell>Sự Kiện</TableCell>
+                  <TableCell>Danh Mục</TableCell>
+                  <TableCell>Địa Điểm</TableCell>
+                  <TableCell>Thời Gian</TableCell>
+                  <TableCell>Host</TableCell>
+                  <TableCell>Trạng Thái</TableCell>
+                  <TableCell>Xóa</TableCell>
                 </TableRow>
-              ) : (
-                filteredEvents.map((event) => (
-                  <TableRow key={event.eventId} hover>
-                    <TableCell>
-                      <div className="event-cell">
-                        <div>
-                          <Typography variant="body1" fontWeight={500}>
-                            {event.title}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            ID: {event.eventId}
-                          </Typography>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={event.category}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="location-cell">
-                        <LocationOn fontSize="small" />
-                        {event.location || 'N/A'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="date-cell">
-                        <CalendarToday fontSize="small" />
-                        {formatDate(event.startTime)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="host-cell">
-                        <Person fontSize="small" />
-                        {event.hostName || 'N/A'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={event.status}
-                        color={getStatusColor(event.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="contained"
-                        color="error"
-                        size="small"
-                        onClick={() => handleDeleteClick(event)}
-                        sx={{ 
-                          minWidth: '100px',
-                          fontWeight: 600,
-                          textTransform: 'none'
-                        }}
-                      >
-                        Xóa
-                      </Button>
+              </TableHead>
+              <TableBody>
+                {filteredEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      <Typography variant="body1" color="textSecondary">
+                        Không tìm thấy sự kiện nào
+                      </Typography>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ) : (
+                  filteredEvents.map((event) => (
+                    <TableRow key={event.eventId} hover>
+                      <TableCell>
+                        <div className="event-cell">
+                          <div>
+                            <Typography variant="body1" fontWeight={500}>
+                              {event.title}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              ID: {event.eventId}
+                            </Typography>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={event.category}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="location-cell">
+                          <LocationOn fontSize="small" />
+                          {event.location || 'N/A'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="date-cell">
+                          <CalendarToday fontSize="small" />
+                          {formatDate(event.startTime)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="host-cell">
+                          <Person fontSize="small" />
+                          {event.hostName || 'N/A'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={event.status}
+                          color={getStatusColor(event.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDeleteClick(event)}
+                          sx={{ 
+                            minWidth: '100px',
+                            fontWeight: 600,
+                            textTransform: 'none'
+                          }}
+                        >
+                          Xóa
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      )}
+
+      {viewMode === 'calendar' && (
+      <Card className="calendar-card">
+        <CardContent>
+          <div className="calendar-header">
+            <IconButton onClick={() => handleMonthChange(-1)} size="small">
+              <ArrowBackIos fontSize="small" />
+            </IconButton>
+            <Typography variant="h6" className="calendar-title">
+              {currentMonth.toLocaleDateString('vi-VN', {
+                month: 'long',
+                year: 'numeric'
+              })}
+            </Typography>
+            <IconButton onClick={() => handleMonthChange(1)} size="small">
+              <ArrowForwardIos fontSize="small" />
+            </IconButton>
+          </div>
+          <div className="calendar-grid">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+              <div key={day} className="calendar-weekday">
+                {day}
+              </div>
+            ))}
+            {generateCalendarCells.map((cell) => (
+              <button
+                key={cell.key}
+                type="button"
+                className={`calendar-cell ${cell.isCurrentMonth ? '' : 'calendar-cell--faded'} ${cell.events.length ? 'calendar-cell--has-events' : ''}`}
+                onClick={() => handleDayClick(cell)}
+              >
+                <span className="calendar-day-number">{cell.label}</span>
+                <div className="calendar-events-preview">
+                  {cell.events.slice(0, 3).map((event) => (
+                    <Chip
+                      key={event.eventId}
+                      label={event.title}
+                      size="small"
+                      className="calendar-event-chip"
+                    />
+                  ))}
+                  {cell.events.length > 3 && (
+                    <span className="calendar-more-events">+{cell.events.length - 3} sự kiện</span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </CardContent>
       </Card>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onClose={handleCloseDeleteDialog}>
@@ -376,6 +520,34 @@ const EventManagement = () => {
           >
             Xóa sự kiện
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Calendar Events Dialog */}
+      <Dialog open={calendarDialog.open} onClose={closeCalendarDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>{calendarDialog.dateLabel}</DialogTitle>
+        <DialogContent dividers>
+          {calendarDialog.events.map((event) => (
+            <Box key={event.eventId} className="calendar-dialog-event">
+              <Typography variant="subtitle1" fontWeight={600}>
+                {event.title}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                {formatDate(event.startTime)} - {event.location || 'Địa điểm chưa cập nhật'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Trạng thái: {event.status}
+              </Typography>
+            </Box>
+          ))}
+          {!calendarDialog.events.length && (
+            <Typography variant="body2" color="textSecondary">
+              Không có sự kiện nào trong ngày này.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeCalendarDialog}>Đóng</Button>
         </DialogActions>
       </Dialog>
 
