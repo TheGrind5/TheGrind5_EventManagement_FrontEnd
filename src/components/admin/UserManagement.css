@@ -1,7 +1,33 @@
 .user-management {
   padding: 30px;
-  background: #f7fafc;
+  background: #F8F9FA;
   min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme .user-management {
+  background: #0D0D0D;
+}
+
+.light-theme .user-management {
+  background: #F8F9FA;
+}
+
+/* Override Material-UI Paper/Card background in dark mode */
+.dark-theme .user-management .MuiPaper-root {
+  background-color: #1A1A1A !important;
+}
+
+.dark-theme .user-management .MuiCard-root {
+  background-color: #1A1A1A !important;
+}
+
+.light-theme .user-management .MuiPaper-root {
+  background-color: #FEFEFE !important;
+}
+
+.light-theme .user-management .MuiCard-root {
+  background-color: #FEFEFE !important;
 }
 
 .page-header {
@@ -47,14 +73,30 @@
 
 .stat-card {
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
-  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease !important;
+  border: 1px solid #E8E9EA !important;
+  background: #FEFEFE !important;
+}
+
+.dark-theme .stat-card {
+  background: #1A1A1A !important;
+  border: 1px solid #2A2A2A !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.light-theme .stat-card {
+  background: #FEFEFE !important;
+  border: 1px solid #E8E9EA !important;
 }
 
 .stat-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-4px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark-theme .stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
 }
 
 .stat-content {
@@ -94,50 +136,132 @@
 .stat-details h4 {
   margin: 0;
   font-weight: 700;
-  color: #ffffff;
+  color: #2C3E50;
   font-size: 36px;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .stat-details h4 {
+  color: #F5F5F5;
+}
+
+.light-theme .stat-details h4 {
+  color: #2C3E50;
 }
 
 .stat-details .MuiTypography-body2 {
-  color: #ffffff !important;
+  color: #737373 !important;
   font-weight: 600 !important;
   font-size: 14px !important;
+  transition: color 0.3s ease !important;
+}
+
+.dark-theme .stat-details .MuiTypography-body2 {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .stat-details .MuiTypography-body2 {
+  color: #737373 !important;
 }
 
 .search-card {
   margin-bottom: 20px;
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid #E8E9EA !important;
+  background: #FEFEFE !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+.dark-theme .search-card {
+  background: #1A1A1A !important;
+  border: 1px solid #2A2A2A !important;
+}
+
+.light-theme .search-card {
+  background: #FEFEFE !important;
+  border: 1px solid #E8E9EA !important;
 }
 
 .search-card .MuiInputBase-input {
-  color: #ffffff !important;
+  color: #2C3E50 !important;
   font-weight: 500 !important;
+  transition: color 0.3s ease !important;
+}
+
+.dark-theme .search-card .MuiInputBase-input {
+  color: #F5F5F5 !important;
+}
+
+.light-theme .search-card .MuiInputBase-input {
+  color: #2C3E50 !important;
 }
 
 .search-card .MuiInputBase-input::placeholder {
-  color: #cbd5e0 !important;
+  color: #737373 !important;
   opacity: 1 !important;
+  transition: color 0.3s ease !important;
+}
+
+.dark-theme .search-card .MuiInputBase-input::placeholder {
+  color: #858585 !important;
+}
+
+.light-theme .search-card .MuiInputBase-input::placeholder {
+  color: #737373 !important;
 }
 
 .search-card .MuiSvgIcon-root {
-  color: #cbd5e0 !important;
+  color: #737373 !important;
+  transition: color 0.3s ease !important;
+}
+
+.dark-theme .search-card .MuiSvgIcon-root {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .search-card .MuiSvgIcon-root {
+  color: #737373 !important;
 }
 
 .search-card .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-color: #E5E5E5 !important;
+  transition: border-color 0.3s ease !important;
+}
+
+.dark-theme .search-card .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.light-theme .search-card .MuiOutlinedInput-notchedOutline {
+  border-color: #E5E5E5 !important;
 }
 
 .search-card .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(255, 255, 255, 0.5) !important;
+  border-color: #FF7A00 !important;
+}
+
+.dark-theme .search-card .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 122, 0, 0.5) !important;
 }
 
 .table-card {
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
   overflow: hidden;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid #E8E9EA !important;
+  background: #FEFEFE !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+.dark-theme .table-card {
+  background: #1A1A1A !important;
+  border: 1px solid #2A2A2A !important;
+}
+
+.light-theme .table-card {
+  background: #FEFEFE !important;
+  border: 1px solid #E8E9EA !important;
 }
 
 .user-cell {
@@ -146,25 +270,65 @@
 }
 
 .user-cell .MuiTypography-body1 {
-  color: #ffffff !important;
+  color: #2C3E50 !important;
   font-weight: 600 !important;
+  transition: color 0.3s ease !important;
+}
+
+.dark-theme .user-cell .MuiTypography-body1 {
+  color: #F5F5F5 !important;
+}
+
+.light-theme .user-cell .MuiTypography-body1 {
+  color: #2C3E50 !important;
 }
 
 .user-cell .MuiTypography-caption {
-  color: #cbd5e0 !important;
+  color: #737373 !important;
+  transition: color 0.3s ease !important;
+}
+
+.dark-theme .user-cell .MuiTypography-caption {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .user-cell .MuiTypography-caption {
+  color: #737373 !important;
 }
 
 .wallet-cell, .date-cell {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #ffffff;
+  color: #2C3E50;
   font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .wallet-cell,
+.dark-theme .date-cell {
+  color: #F5F5F5;
+}
+
+.light-theme .wallet-cell,
+.light-theme .date-cell {
+  color: #2C3E50;
 }
 
 .wallet-cell svg, .date-cell svg {
   font-size: 16px;
-  color: #cbd5e0;
+  color: #737373;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .wallet-cell svg,
+.dark-theme .date-cell svg {
+  color: #B0B0B0;
+}
+
+.light-theme .wallet-cell svg,
+.light-theme .date-cell svg {
+  color: #737373;
 }
 
 /* Table Styling */
@@ -186,20 +350,43 @@
 }
 
 .MuiTableBody-root .MuiTableRow-root:hover {
-  background: #edf2f7 !important;
+  background: #F5F5F5 !important;
   transform: scale(1.01);
 }
 
-.MuiTableBody-root .MuiTableCell-root {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-  font-size: 14px !important;
-  color: #ffffff !important;
-  font-weight: 500 !important;
+.dark-theme .MuiTableBody-root .MuiTableRow-root:hover {
+  background: #2A2A2A !important;
 }
 
-/* Đảm bảo email cũng là chữ trắng */
-.MuiTableBody-root .MuiTableCell-root:nth-child(2) {
-  color: #e2e8f0 !important;
+.light-theme .MuiTableBody-root .MuiTableRow-root:hover {
+  background: #F5F5F5 !important;
+}
+
+.MuiTableBody-root .MuiTableCell-root {
+  border-bottom: 1px solid #E8E9EA !important;
+  font-size: 14px !important;
+  color: #2C3E50 !important;
+  font-weight: 500 !important;
+  transition: color 0.3s ease, border-color 0.3s ease !important;
+}
+
+.dark-theme .MuiTableBody-root .MuiTableCell-root {
+  border-bottom: 1px solid #2A2A2A !important;
+  color: #F5F5F5 !important;
+}
+
+.light-theme .MuiTableBody-root .MuiTableCell-root {
+  border-bottom: 1px solid #E8E9EA !important;
+  color: #2C3E50 !important;
+}
+
+/* Đảm bảo email cũng có màu đúng */
+.dark-theme .MuiTableBody-root .MuiTableCell-root:nth-child(2) {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .MuiTableBody-root .MuiTableCell-root:nth-child(2) {
+  color: #737373 !important;
 }
 
 /* Số dư ví format */
@@ -209,7 +396,16 @@
 
 /* Empty state message */
 .MuiTableBody-root .MuiTypography-body1 {
-  color: #cbd5e0 !important;
+  color: #737373 !important;
+  transition: color 0.3s ease !important;
+}
+
+.dark-theme .MuiTableBody-root .MuiTypography-body1 {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .MuiTableBody-root .MuiTypography-body1 {
+  color: #737373 !important;
 }
 
 /* Responsive */
