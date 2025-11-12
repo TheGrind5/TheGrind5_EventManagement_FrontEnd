@@ -549,6 +549,49 @@ const CreateEventPage = () => {
         layout: eventData.venueLayout || null
       });
       
+      // Load step 4 data - products
+      try {
+        const { productsAPI } = await import('../services/apiClient');
+        const productsResponse = await productsAPI.getByEvent(parseInt(editEventId));
+        console.log('Products response:', productsResponse);
+        
+        // Handle both direct array and wrapped response
+        let productsArray = [];
+        if (productsResponse?.data) {
+          if (Array.isArray(productsResponse.data)) {
+            productsArray = productsResponse.data;
+          } else if (Array.isArray(productsResponse.data.data)) {
+            productsArray = productsResponse.data.data;
+          } else if (productsResponse.data.data && typeof productsResponse.data.data === 'object') {
+            productsArray = [productsResponse.data.data];
+          }
+        }
+        
+        // Convert products to form format
+        const formProducts = productsArray.map(p => ({
+          name: p.name || '',
+          image: p.image || '',
+          price: p.price || 0,
+          quantity: p.quantity || 0,
+          isFree: (p.price === 0 || p.price === null),
+          productId: p.productId // Keep ID for update/delete
+        }));
+        
+        setStep4Data({
+          enableProducts: formProducts.length > 0,
+          products: formProducts
+        });
+        
+        console.log('Loaded products for edit:', formProducts);
+      } catch (productErr) {
+        console.warn('Error loading products for edit:', productErr);
+        // Set empty products if error
+        setStep4Data({
+          enableProducts: false,
+          products: []
+        });
+      }
+      
       setEditModeLoading(false);
     } catch (err) {
       console.error('Error loading event data:', err);
@@ -1188,25 +1231,52 @@ const CreateEventPage = () => {
             
             console.log('Event updated successfully with ID:', eventId);
             
-            // Tạo products nếu có
-            if (step4Data?.products && step4Data.products.length > 0) {
-              try {
-                const { productsAPI } = await import('../services/apiClient');
+            // Xử lý products: xóa cũ và tạo mới
+            try {
+              const { productsAPI } = await import('../services/apiClient');
+              
+              // Lấy danh sách products hiện có
+              const existingProductsResponse = await productsAPI.getByEvent(eventId);
+              let existingProducts = [];
+              if (existingProductsResponse?.data) {
+                if (Array.isArray(existingProductsResponse.data)) {
+                  existingProducts = existingProductsResponse.data;
+                } else if (Array.isArray(existingProductsResponse.data.data)) {
+                  existingProducts = existingProductsResponse.data.data;
+                }
+              }
+              
+              // Xóa tất cả products cũ
+              for (const existingProduct of existingProducts) {
+                try {
+                  await productsAPI.delete(existingProduct.productId);
+                  console.log(`Deleted old product: ${existingProduct.productId}`);
+                } catch (deleteError) {
+                  console.error(`Error deleting product ${existingProduct.productId}:`, deleteError);
+                  // Continue với product tiếp theo
+                }
+              }
+              
+              // Tạo products mới nếu có
+              if (step4Data?.products && step4Data.products.length > 0) {
                 for (const product of step4Data.products) {
                   if (product.name && product.name.trim()) {
                     await productsAPI.create({
                       eventId: eventId,
                       name: product.name,
                       image: product.image || '',
-                      price: product.isFree ? 0 : (product.price || 0)
+                      price: product.isFree ? 0 : (product.price || 0),
+                      quantity: product.quantity || 0
                     });
                   }
                 }
-                console.log('Products created successfully');
-              } catch (productError) {
-                console.error('Error creating products:', productError);
-                // Không throw error vì products là optional
+                console.log('Products updated successfully');
+              } else {
+                console.log('No products to create');
               }
+            } catch (productError) {
+              console.error('Error updating products:', productError);
+              // Không throw error vì products là optional
             }
             
             // Xóa dữ liệu tạm trong localStorage
@@ -1289,7 +1359,8 @@ const CreateEventPage = () => {
                     eventId: newEventId,
                     name: product.name,
                     image: product.image || '',
-                    price: product.isFree ? 0 : (product.price || 0)
+                    price: product.isFree ? 0 : (product.price || 0),
+                    quantity: product.quantity || 0
                   });
                 }
               }

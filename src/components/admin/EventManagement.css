@@ -1,12 +1,16 @@
 .event-management {
   padding: 30px;
-  background: #F5F5F5;
+  background: #F8F9FA;
   min-height: 100vh;
   transition: background-color 0.3s ease;
 }
 
 .dark-theme .event-management {
   background: #0D0D0D;
+}
+
+.light-theme .event-management {
+  background: #F8F9FA;
 }
 
 .page-header {
@@ -44,10 +48,10 @@
 
 .stat-card {
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
   transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease !important;
-  border: 1px solid #E0E0E0 !important;
-  background: #FFFFFF !important;
+  border: 1px solid #E8E9EA !important;
+  background: #FEFEFE !important;
 }
 
 .stat-card .MuiCardContent-root {
@@ -58,7 +62,12 @@
 .dark-theme .stat-card {
   background: #1A1A1A !important;
   border: 1px solid #2A2A2A !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.light-theme .stat-card {
+  background: #FEFEFE !important;
+  border: 1px solid #E8E9EA !important;
 }
 
 .stat-card:hover {
@@ -103,13 +112,17 @@
 .stat-details h4 {
   margin: 0;
   font-weight: 700;
-  color: #2D3748;
+  color: #2C3E50;
   font-size: 36px;
   transition: color 0.3s ease;
 }
 
 .dark-theme .stat-details h4 {
-  color: #FFFFFF;
+  color: #F5F5F5;
+}
+
+.light-theme .stat-details h4 {
+  color: #2C3E50;
 }
 
 .stat-details .MuiTypography-body2 {
@@ -126,9 +139,9 @@
 .search-card {
   margin-bottom: 20px;
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
-  border: 1px solid #E0E0E0 !important;
-  background: #FFFFFF !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid #E8E9EA !important;
+  background: #FEFEFE !important;
   transition: background-color 0.3s ease, border-color 0.3s ease !important;
 }
 
@@ -137,14 +150,23 @@
   border: 1px solid #2A2A2A !important;
 }
 
+.light-theme .search-card {
+  background: #FEFEFE !important;
+  border: 1px solid #E8E9EA !important;
+}
+
 .search-card .MuiInputBase-input {
-  color: #2D3748 !important;
+  color: #2C3E50 !important;
   font-weight: 500 !important;
   transition: color 0.3s ease !important;
 }
 
 .dark-theme .search-card .MuiInputBase-input {
-  color: #FFFFFF !important;
+  color: #F5F5F5 !important;
+}
+
+.light-theme .search-card .MuiInputBase-input {
+  color: #2C3E50 !important;
 }
 
 .search-card .MuiInputBase-input::placeholder {
@@ -185,10 +207,10 @@
 
 .table-card {
   border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
   overflow: hidden;
-  border: 1px solid #E0E0E0 !important;
-  background: #FFFFFF !important;
+  border: 1px solid #E8E9EA !important;
+  background: #FEFEFE !important;
   transition: background-color 0.3s ease, border-color 0.3s ease !important;
 }
 
@@ -197,19 +219,28 @@
   border: 1px solid #2A2A2A !important;
 }
 
+.light-theme .table-card {
+  background: #FEFEFE !important;
+  border: 1px solid #E8E9EA !important;
+}
+
 .event-cell {
   display: flex;
   align-items: center;
 }
 
 .event-cell .MuiTypography-body1 {
-  color: #2D3748 !important;
+  color: #2C3E50 !important;
   font-weight: 600 !important;
   transition: color 0.3s ease !important;
 }
 
 .dark-theme .event-cell .MuiTypography-body1 {
-  color: #FFFFFF !important;
+  color: #F5F5F5 !important;
+}
+
+.light-theme .event-cell .MuiTypography-body1 {
+  color: #2C3E50 !important;
 }
 
 .event-cell .MuiTypography-caption {
@@ -225,7 +256,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #2D3748;
+  color: #2C3E50;
   font-weight: 500;
   transition: color 0.3s ease;
 }
@@ -233,7 +264,13 @@
 .dark-theme .location-cell,
 .dark-theme .date-cell,
 .dark-theme .host-cell {
-  color: #FFFFFF;
+  color: #F5F5F5;
+}
+
+.light-theme .location-cell,
+.light-theme .date-cell,
+.light-theme .host-cell {
+  color: #2C3E50;
 }
 
 .location-cell svg, .date-cell svg, .host-cell svg {
@@ -267,7 +304,7 @@
 }
 
 .MuiTableBody-root .MuiTableRow-root:hover {
-  background: #edf2f7 !important;
+  background: #F5F5F5 !important;
   transform: scale(1.01);
 }
 
@@ -275,17 +312,26 @@
   background: #2A2A2A !important;
 }
 
+.light-theme .MuiTableBody-root .MuiTableRow-root:hover {
+  background: #F5F5F5 !important;
+}
+
 .MuiTableBody-root .MuiTableCell-root {
-  border-bottom: 1px solid #E8E8E8 !important;
+  border-bottom: 1px solid #E8E9EA !important;
   font-size: 14px !important;
-  color: #2D3748 !important;
+  color: #2C3E50 !important;
   font-weight: 500 !important;
   transition: color 0.3s ease, border-color 0.3s ease !important;
 }
 
 .dark-theme .MuiTableBody-root .MuiTableCell-root {
   border-bottom: 1px solid #2A2A2A !important;
-  color: #FFFFFF !important;
+  color: #F5F5F5 !important;
+}
+
+.light-theme .MuiTableBody-root .MuiTableCell-root {
+  border-bottom: 1px solid #E8E9EA !important;
+  color: #2C3E50 !important;
 }
 
 /* Empty state message */

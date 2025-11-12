@@ -7,7 +7,7 @@ const ThemeToggle = ({ className = '' }) => {
   const { theme, toggleTheme, isDark } = useTheme();
 
   return (
-    <Tooltip title={`Switch to ${isDark ? 'light' : 'dark'} theme`}>
+    <Tooltip title={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}>
       <IconButton
         onClick={toggleTheme}
         color="inherit"

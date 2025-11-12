@@ -74,7 +74,6 @@ import EventCard from '../components/ui/EventCard';
 
 import HeroEvents from '../components/ui/HeroEvents';
 import EventCarousel from '../components/ui/EventCarousel';
-import AIChatbot from '../components/ai/AIChatbot';
 import { eventsAPI } from '../services/apiClient';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -654,9 +653,9 @@ const HomePage = () => {
 
       sx={{ 
 
-        p: { xs: 2, md: 3 }, 
+        p: { xs: 1, md: 1.5 }, 
 
-        mb: 3,
+        mb: 1,
 
         borderRadius: 2,
 
@@ -670,10 +669,10 @@ const HomePage = () => {
 
     >
 
-      <Stack spacing={3}>
+      <Stack spacing={2}>
 
         {/* Filter bar (dòng dưới Search) - Cải thiện labels và icons */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-start', mb: 2 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-start', mb: 1 }}>
           {/* Dropdown Danh mục riêng biệt - Có icon và label rõ ràng */}
           <FormControl 
             sx={{ 
@@ -1629,15 +1628,17 @@ const HomePage = () => {
     // Build proper image URL with fallback
     let imageUrl = null;
     if (rawImage && rawImage.trim() !== '') {
+      // Normalize Windows-style backslashes and trim quotes/spaces
+      const normalized = String(rawImage).trim().replace(/^"+|"+$/g, '').replace(/\\/g, '/');
       if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
         // Already a full URL
-        imageUrl = rawImage;
-      } else if (rawImage.startsWith('/')) {
+        imageUrl = normalized;
+      } else if (normalized.startsWith('/')) {
         // Relative path starting with /
-        imageUrl = `http://localhost:5000${rawImage}`;
+        imageUrl = `http://localhost:5000${normalized}`;
       } else {
         // Relative path without leading /
-        imageUrl = `http://localhost:5000/${rawImage}`;
+        imageUrl = `http://localhost:5000/${normalized}`;
       }
     }
     
@@ -2029,7 +2030,7 @@ const HomePage = () => {
       )}
 
       {/* Filter Bar Section - Positioned between Hero and "Sự kiện nổi bật" */}
-      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 1, md: 2 }, px: { xs: 2, md: 4 }, borderTop: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 1, md: 1 }, px: { xs: 2, md: 4 }, borderTop: `1px solid ${theme.palette.divider}` }}>
         <Container maxWidth="xl">
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
@@ -2051,7 +2052,7 @@ const HomePage = () => {
             backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF',
           }}
         >
-          <Container maxWidth="xl" sx={{ py: { xs: 1, md: 2 } }}>
+          <Container maxWidth="xl" sx={{ py: { xs: 1, md: 3 } }}>
             {/* Events Grid - Only shows filtered results or "not found" message */}
             {renderEventsGrid()}
           </Container>
@@ -2060,7 +2061,7 @@ const HomePage = () => {
 
       {/* Sự kiện nổi bật - Hiển thị sau filter bar */}
       {featuredEventsForHero.length > 0 && (
-        <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 2, md: 3 }, px: { xs: 2, md: 4 } }}>
+        <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 1, md: 1 }, px: { xs: 2, md: 4 } }}>
           <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
             <EventCarousel
               title="🔥 Sự kiện nổi bật"
@@ -2073,7 +2074,7 @@ const HomePage = () => {
       )}
 
       {/* Event Carousels Section - FPT Play Style - Cải thiện spacing */}
-      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 2, md: 3 }, px: { xs: 2, md: 4 } }}>
+      <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 1, md: 1 }, px: { xs: 2, md: 4 } }}>
         <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
           {/* Sự kiện xu hướng */}
           {trendingEvents.length > 0 && (
@@ -2122,6 +2123,7 @@ const HomePage = () => {
               events={recommendedEvents.map(convertEventForDisplay)}
               icon={<Event sx={{ fontSize: 32 }} />}
               showAutoPlay={true}
+              bottomTight={true}
             />
           )}
 
@@ -2143,9 +2145,6 @@ const HomePage = () => {
       {/* Footer */}
 
       <Footer />
-
-      {/* AI Chatbot */}
-      <AIChatbot />
 
     </Box>
 

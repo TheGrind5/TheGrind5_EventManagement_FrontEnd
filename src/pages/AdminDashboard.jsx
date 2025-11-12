@@ -9,6 +9,7 @@ import AdminEventsPage from './admin/AdminEventsPage';
 import AdminVouchersPage from './admin/AdminVouchersPage';
 import AdminAnnouncementsPage from './admin/AdminAnnouncementsPage';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -41,23 +42,28 @@ const AdminDashboard = () => {
 };
 
 // Temporary placeholder component
-const ComingSoon = ({ title }) => (
-  <div style={{ 
-    padding: '30px', 
-    textAlign: 'center',
-    background: '#f5f7fa',
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center'
-  }}>
-    <h2 style={{ color: '#262B40', marginBottom: '16px' }}>{title}</h2>
-    <p style={{ color: '#6c757d', fontSize: '18px' }}>
-      Chức năng đang được phát triển... 🚧
-    </p>
-  </div>
-);
+const ComingSoon = ({ title }) => {
+  const { isDark } = useTheme();
+  
+  return (
+    <div style={{ 
+      padding: '30px', 
+      textAlign: 'center',
+      background: isDark ? '#0D0D0D' : '#FFFFFF',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'background-color 0.3s ease'
+    }}>
+      <h2 style={{ color: isDark ? '#F5F5F5' : '#1A1A1A', marginBottom: '16px', transition: 'color 0.3s ease' }}>{title}</h2>
+      <p style={{ color: isDark ? '#B0B0B0' : '#737373', fontSize: '18px', transition: 'color 0.3s ease' }}>
+        Chức năng đang được phát triển... 🚧
+      </p>
+    </div>
+  );
+};
 
 export default AdminDashboard;
 

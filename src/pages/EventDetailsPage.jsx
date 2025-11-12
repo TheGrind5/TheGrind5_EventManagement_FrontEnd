@@ -33,7 +33,7 @@ import WishlistButton from '../components/common/WishlistButton';
 import StageViewer from '../components/stage/StageViewer';
 import AIChatbot from '../components/ai/AIChatbot';
 import FeedbackSection from '../components/common/FeedbackSection';
-import { eventsAPI, ticketsAPI } from '../services/apiClient';
+import { eventsAPI, ticketsAPI, productsAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { decodeText } from '../utils/textDecoder';
 
@@ -45,8 +45,10 @@ const EventDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
+  const [products, setProducts] = useState([]);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [hasReported, setHasReported] = useState(false);
+  const [imageErrors, setImageErrors] = useState(new Set());
   const currentUserId = user && (user.userId ?? user.id);
   const reportedKey = currentUserId && id ? `reported:${currentUserId}:${id}` : null;
   const [isReporting, setIsReporting] = useState(false);
@@ -110,6 +112,33 @@ const EventDetailsPage = () => {
         } catch (ticketErr) {
           console.warn('Failed to fetch ticket types, using empty array:', ticketErr);
           setTicketTypes([]);
+        }
+
+        // Fetch products from API
+        try {
+          const productsResponse = await productsAPI.getByEvent(id);
+          console.log('Products response:', productsResponse);
+          // Handle both direct array and wrapped response
+          let productsArray = [];
+          if (productsResponse?.data) {
+            if (Array.isArray(productsResponse.data)) {
+              productsArray = productsResponse.data;
+            } else if (Array.isArray(productsResponse.data.data)) {
+              productsArray = productsResponse.data.data;
+            } else if (productsResponse.data.data && typeof productsResponse.data.data === 'object') {
+              // Handle single product object
+              productsArray = [productsResponse.data.data];
+            }
+          }
+          setProducts(productsArray);
+        } catch (productErr) {
+          // 404 is OK - just means no products exist for this event
+          if (productErr?.response?.status === 404 || productErr?.code === 404) {
+            console.log('No products found for event (404) - this is normal if event has no accessories');
+          } else {
+            console.warn('Failed to fetch products, using empty array:', productErr);
+          }
+          setProducts([]);
         }
       } catch (err) {
         setError('Failed to load event details');
@@ -193,6 +222,23 @@ const EventDetailsPage = () => {
     }).format(price) + ' ₫';
   };
 
+  // Format: "20:00 - 23:00, 13 Tháng 11, 2025"
+  const formatTimeRangeVN = (start, end) => {
+    if (!start || !end) return '';
+    const s = new Date(start);
+    const e = new Date(end);
+    const hoursMinutes = (d) =>
+      `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    const day = s.getDate();
+    const month = s.getMonth() + 1;
+    const year = s.getFullYear();
+    const monthVN = [
+      '', 'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+      'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
+    ][month];
+    return `${hoursMinutes(s)} - ${hoursMinutes(e)}, ${day} ${monthVN}, ${year}`;
+  };
+
   const handleBuyNow = (ticket) => {
     // Navigate directly to order creation page
     navigate(`/event/${id}/order/create?ticketTypeId=${ticket.ticketTypeId}&quantity=1`);
@@ -271,95 +317,269 @@ const EventDetailsPage = () => {
         width: '100%', 
         maxWidth: '1280px', 
         margin: '0 auto',
-        px: { xs: 2, md: 0 }
+        px: { xs: 2, md: 0 },
+        mt: { xs: 2, md: 4 }
       }}>
-        {/* Event Image Header - Tỉ lệ 1280x720 (16:9) */}
-        <Box sx={{ 
-          width: '100%',
-          aspectRatio: '16/9',
-          position: 'relative',
-          overflow: 'hidden',
-          backgroundColor: 'grey.100',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-            {/* Placeholder khi không có ảnh */}
-            {!imageToUse && (
-              <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                width: '100%'
-              }}>
-                <Typography variant="h2" sx={{ fontSize: '4rem', fontWeight: 700, mb: 2 }}>
-                  EVENT
-                </Typography>
-                <Typography variant="h5" sx={{ opacity: 0.9 }}>
+        {/* Ticket-style header: banner left (60%), info right (40%) */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 3, md: 3.5 },
+            borderRadius: '24px',
+            position: 'relative',
+            overflow: 'visible',
+            backgroundColor: '#1f1f22',
+            color: '#ffffff',
+            border: '1px solid rgba(255,255,255,0.05)',
+            boxShadow: '0 28px 70px rgba(0,0,0,0.55)',
+            mb: 4,
+            fontFamily: `"Inter","Poppins",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`
+          }}
+        >
+          <Grid container spacing={0} alignItems="stretch" columns={{ xs: 12, sm: 12 }} wrap="nowrap">
+            <Grid item xs={12} sm={5} sx={{ minWidth: 0 }}>
+              <Stack
+                spacing={2}
+                sx={{
+                  height: { xs: 240, md: 360 }, // force same height as image
+                  bgcolor: '#2f3034',
+                  borderRadius: '20px 0 0 20px',
+                  p: { xs: 2, md: 3 },
+                  pl: { xs: 2, md: 3 },
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  overflow: 'hidden'
+                }}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 800,
+                    lineHeight: 1.5,
+                    mb: 0.5,
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}
+                >
                   {decodeText(event.title)}
                 </Typography>
-              </Box>
-            )}
-            
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt={decodeText(event.title)}
-                style={{
-                  width: '100%',
+
+                <Stack spacing={2.5}>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                    <AccessTime sx={{ color: '#ff8c29', fontSize: '1.5rem', mt: 0.25, flexShrink: 0 }} />
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,200,150,0.95)', lineHeight: 1.6 }}>
+                      {formatTimeRangeVN(event.startTime, event.endTime)}
+                    </Typography>
+                  </Stack>
+
+                  <Stack spacing={0.5}>
+                    <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                      <LocationOn sx={{ color: '#ff8c29', fontSize: '1.5rem', mt: 0.25, flexShrink: 0 }} />
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 700,
+                          background: 'linear-gradient(90deg, #ffa94d 0%, #ff7a18 50%, #ff4d00 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                          color: 'transparent',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {event.campus || event.eventDetails?.venueName || decodeText(event.location) || 'Địa điểm sẽ cập nhật'}
+                      </Typography>
+                    </Stack>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'rgba(255,255,255,0.7)',
+                        pl: '38px',
+                        lineHeight: 1.6,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {(() => {
+                        const eventDetails = event.eventDetails;
+                        if (eventDetails) {
+                          const addressParts = [];
+                          if (eventDetails.streetAddress) addressParts.push(eventDetails.streetAddress);
+                          if (eventDetails.ward) addressParts.push(eventDetails.ward);
+                          if (eventDetails.district) addressParts.push(eventDetails.district);
+                          if (eventDetails.province) addressParts.push(eventDetails.province);
+                          if (addressParts.length > 0) return addressParts.join(', ');
+                        }
+                        return decodeText(event.location) || 'Địa chỉ sẽ cập nhật';
+                      })()}
+                    </Typography>
+                  </Stack>
+                </Stack>
+
+                <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)', my: 2.5 }} />
+
+                <Stack spacing={1.5} sx={{ mt: 'auto' }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+                      Giá từ
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        fontWeight: 800,
+                        background: 'linear-gradient(90deg, #ffa94d 0%, #ff7a18 50%, #ff4d00 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        color: 'transparent'
+                      }}
+                    >
+                      {getEventPriceSummary() || 'Miễn phí'}
+                    </Typography>
+                  </Stack>
+                  <Button
+                    component={Link}
+                    to={`/ticket-selection/${id}`}
+                    fullWidth
+                    size="large"
+                    sx={{
+                      py: 1.1,
+                      fontWeight: 700,
+                      letterSpacing: 0.3,
+                      color: '#1e1e1e',
+                      background: 'linear-gradient(90deg, #ffce54 0%, #ffa94d 40%, #ff7a18 100%)',
+                      borderRadius: 999,
+                      boxShadow: '0 10px 28px rgba(255, 153, 0, 0.35)',
+                      '&:hover': {
+                        filter: 'brightness(1.03)',
+                        boxShadow: '0 12px 32px rgba(255, 153, 0, 0.45)'
+                      }
+                    }}
+                  >
+                    {getEventPriceSummary() === 'Miễn phí' ? 'Tham gia sự kiện' : 'Mua vé ngay'}
+                  </Button>
+                </Stack>
+              </Stack>
+            </Grid>
+            {/* Perforated divider like a real ticket */}
+            <Grid item sm={1} sx={{ display: { xs: 'none', sm: 'block' }, minWidth: 0 }}>
+              <Box
+                aria-hidden
+                sx={{
                   height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: 'center 45%',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  px: 0.5,
+                  position: 'relative',
                 }}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            )}
-            {/* Overlay with title and chips - chỉ hiển thị khi có ảnh */}
-            {imageToUse && (
-              <Box sx={{ 
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                p: 3,
-                color: 'white'
-              }}>
-                <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
-                  {decodeText(event.title)}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip 
-                    label={decodeText(event.category)} 
-                    color="primary" 
-                    sx={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      color: 'primary.main'
-                    }}
-                  />
-                  <Chip 
-                    label={event.status} 
-                    color={event.status === 'Active' ? 'success' : 
-                           event.status === 'Upcoming' ? 'warning' : 'default'}
-                    sx={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      color: event.status === 'Active' ? 'success.main' : 
-                             event.status === 'Upcoming' ? 'warning.main' : 'text.secondary'
-                    }}
-                  />
-                </Box>
+              >
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 20,
+                    bottom: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    borderLeft: '2px dashed rgba(255,193,7,0.8)'
+                  }}
+                />
+                {/* notch circles */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: 20,
+                    transform: 'translate(-50%, -100%)',
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    backgroundColor: '#111',
+                    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                  }}
+                />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: '50%',
+                    bottom: 20,
+                    transform: 'translate(-50%, 100%)',
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    backgroundColor: '#111',
+                    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                  }}
+                />
               </Box>
-            )}
-          </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} sx={{ pl: { sm: 0.1 }, minWidth: 0 }}>
+              <Box
+                sx={{
+                  height: { xs: 240, md: 360 },
+                  overflow: 'hidden',
+                  borderRadius: '0 24px 24px 0',
+                  position: 'relative',
+                  background:
+                    !imageToUse
+                      ? 'linear-gradient(135deg, #232526 0%, #414345 100%)'
+                      : 'transparent',
+                  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)'
+                }}
+              >
+                {!imageToUse ? (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                      color: 'white',
+                      p: 2,
+                    }}
+                  >
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+                      {decodeText(event.title)}
+                    </Typography>
+                    <Chip label={decodeText(event.category)} color="primary" />
+                  </Box>
+                ) : (
+                  <img
+                    src={imageUrl}
+                    alt={decodeText(event.title)}
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover', 
+                      display: 'block',
+                      borderRadius: '0 24px 24px 0'
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
 
           {/* Nội dung bên dưới ảnh */}
           <Box sx={{ py: 4 }}>
@@ -370,7 +590,21 @@ const EventDetailsPage = () => {
                   {/* Title và Category khi không có ảnh */}
                   {!imageToUse && (
                     <Box>
-                      <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
+                      <Typography
+                        variant="h3"
+                        component="h1"
+                        sx={{
+                          fontWeight: 700,
+                          mb: 2,
+                          whiteSpace: 'normal',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'anywhere',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}
+                      >
                         {decodeText(event.title)}
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
@@ -388,8 +622,8 @@ const EventDetailsPage = () => {
                   )}
 
                   {/* Description - With max height and scroll */}
-                  <Box>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  <Box sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
                   Mô tả
                 </Typography>
                 {(() => {
@@ -465,7 +699,7 @@ const EventDetailsPage = () => {
                                     <Typography 
                                       variant="body1" 
                                       color="text.secondary" 
-                                      sx={{ whiteSpace: 'pre-line' }}
+                                      sx={{ whiteSpace: 'pre-line', lineHeight: 1.75 }}
                                     >
                                       {descriptionExpanded 
                                         ? textPart 
@@ -483,7 +717,7 @@ const EventDetailsPage = () => {
                                   <Typography 
                                     variant="body1" 
                                     color="text.secondary" 
-                                    sx={{ whiteSpace: 'pre-line' }}
+                                    sx={{ whiteSpace: 'pre-line', lineHeight: 1.75 }}
                                   >
                                     {textPart}
                                   </Typography>
@@ -507,7 +741,7 @@ const EventDetailsPage = () => {
                       <Typography 
                         variant="body1" 
                         color="text.secondary" 
-                        sx={{ whiteSpace: 'pre-line' }}
+                        sx={{ whiteSpace: 'pre-line', lineHeight: 1.75 }}
                       >
                         {descriptionExpanded 
                           ? description 
@@ -522,7 +756,7 @@ const EventDetailsPage = () => {
                       </Button>
                     </>
                   ) : (
-                    <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-line', lineHeight: 1.75 }}>
                       {description}
                     </Typography>
                   );
@@ -599,7 +833,7 @@ const EventDetailsPage = () => {
               </Grid>
 
               {/* Host Information */}
-              {event.hostName && (
+              {event.organizerInfo && (event.organizerInfo.organizerName || event.organizerInfo.organizerInfo) && (
                 <Paper sx={{ p: 3, bgcolor: 'background.paper' }}>
                   <Stack spacing={1}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -652,6 +886,107 @@ const EventDetailsPage = () => {
                   );
                 }
               })()}
+
+              {/* Products Section */}
+              {products.length > 0 && (
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                    Phụ kiện sự kiện
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {products.map((product) => {
+                      // Xử lý đường dẫn ảnh
+                      const getImageUrl = () => {
+                        if (!product.image) return null;
+                        if (product.image.startsWith('http')) return product.image;
+                        // Xử lý đường dẫn tương đối
+                        const imagePath = product.image.startsWith('/') ? product.image : `/${product.image}`;
+                        return `http://localhost:5000${imagePath}`;
+                      };
+
+                      const imageUrl = getImageUrl();
+                      const hasImageError = imageErrors.has(product.productId);
+                      const showPlaceholder = !imageUrl || hasImageError;
+
+                      return (
+                        <Grid item xs={12} sm={6} md={4} key={product.productId}>
+                          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <Box
+                              sx={{
+                                width: '100%',
+                                aspectRatio: '4/3',
+                                overflow: 'hidden',
+                                bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                position: 'relative'
+                              }}
+                            >
+                              {!showPlaceholder ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={product.name}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                  }}
+                                  onError={() => {
+                                    setImageErrors(prev => new Set([...prev, product.productId]));
+                                  }}
+                                />
+                              ) : (
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    p: 3,
+                                    textAlign: 'center'
+                                  }}
+                                >
+                                  <ShoppingCart 
+                                    sx={{ 
+                                      fontSize: 48, 
+                                      color: theme.palette.mode === 'dark' ? 'grey.500' : 'grey.400',
+                                      mb: 1
+                                    }} 
+                                  />
+                                  <Typography 
+                                    variant="caption" 
+                                    color="text.secondary"
+                                    sx={{ 
+                                      fontSize: '0.75rem',
+                                      opacity: 0.7
+                                    }}
+                                  >
+                                    Chưa có ảnh
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Box>
+                            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                                {product.name}
+                              </Typography>
+                              <Box sx={{ mt: 'auto', pt: 2 }}>
+                                <Typography variant="h6" color="primary" sx={{ fontWeight: 700, mb: 1 }}>
+                                  {product.price === 0 ? 'Miễn phí' : `${new Intl.NumberFormat('vi-VN').format(product.price)} VND`}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Số lượng còn lại: {product.quantity}
+                                </Typography>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </Box>
+              )}
 
                   {/* ===== HIỂN THỊ GIÁ TỔNG QUÁT ===== */}
                   <Box mb={2}>

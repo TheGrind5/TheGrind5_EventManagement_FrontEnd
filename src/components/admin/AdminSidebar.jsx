@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material';
 import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
+import ThemeToggle from '../common/ThemeToggle';
 import './AdminSidebar.css';
 
 const AdminSidebar = ({ onLogout }) => {
@@ -44,6 +45,9 @@ const AdminSidebar = ({ onLogout }) => {
             style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
           />
           <p className="brand-subtitle" style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>FUTicket</p>
+        </div>
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+          <ThemeToggle />
         </div>
       </div>
 
