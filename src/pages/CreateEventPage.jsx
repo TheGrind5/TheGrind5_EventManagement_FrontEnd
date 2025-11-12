@@ -12,7 +12,12 @@ import {
   Alert,
   CircularProgress,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText
 } from '@mui/material';
 import { ArrowBack, Save } from '@mui/icons-material';
 import Header from '../components/layout/Header';
@@ -47,6 +52,8 @@ const CreateEventPage = () => {
   const [isEventBeingCreated, setIsEventBeingCreated] = useState(false);
   const [shouldBlockNavigation, setShouldBlockNavigation] = useState(false);
   const [subscriptionCheckLoading, setSubscriptionCheckLoading] = useState(!isEditMode);
+  const [showPendingDialog, setShowPendingDialog] = useState(false);
+  const [createdEventId, setCreatedEventId] = useState(null);
 
   // Helper function để check xem có đang trong quá trình tạo event không
   const isInCreationProcess = () => {
@@ -1213,8 +1220,28 @@ const CreateEventPage = () => {
             // QUAN TRỌNG: Đánh dấu event đã được update để HomePage reload
             sessionStorage.setItem('eventUpdated', Date.now().toString());
             
-            // Chuyển đến trang chi tiết event
-            navigate(`/events/${eventId}`);
+            // Kiểm tra status của event sau khi update
+            try {
+              const eventResponse = await eventsAPI.getById(eventId);
+              const eventStatus = eventResponse.data?.status || eventResponse.data?.Status;
+              
+              console.log('Event status after update:', eventStatus);
+              
+              // Nếu status = "Pending", hiển thị dialog thông báo
+              if (eventStatus === 'Pending') {
+                setCreatedEventId(eventId);
+                setShowPendingDialog(true);
+                // Không navigate ngay, đợi user đóng dialog
+              } else {
+                // Nếu status khác Pending, chuyển đến trang chi tiết event
+                navigate(`/event/${eventId}`);
+              }
+            } catch (statusError) {
+              console.error('Error checking event status:', statusError);
+              // Nếu không thể lấy status, giả sử là Pending và hiển thị dialog
+              setCreatedEventId(eventId);
+              setShowPendingDialog(true);
+            }
             
           } catch (updateError) {
             console.error('Error updating event:', updateError);
@@ -1281,8 +1308,28 @@ const CreateEventPage = () => {
           localStorage.removeItem('createEvent_step5');
           localStorage.removeItem('createEvent_step6');
           
-          // Chuyển đến trang chi tiết event
-          navigate(`/events/${newEventId}`);
+          // Kiểm tra status của event vừa tạo
+          try {
+            const eventResponse = await eventsAPI.getById(newEventId);
+            const eventStatus = eventResponse.data?.status || eventResponse.data?.Status;
+            
+            console.log('Event status after creation:', eventStatus);
+            
+            // Nếu status = "Pending", hiển thị dialog thông báo
+            if (eventStatus === 'Pending') {
+              setCreatedEventId(newEventId);
+              setShowPendingDialog(true);
+              // Không navigate ngay, đợi user đóng dialog
+            } else {
+              // Nếu status khác Pending (không nên xảy ra), chuyển đến trang chi tiết event
+              navigate(`/event/${newEventId}`);
+            }
+          } catch (statusError) {
+            console.error('Error checking event status:', statusError);
+            // Nếu không thể lấy status, giả sử là Pending và hiển thị dialog
+            setCreatedEventId(newEventId);
+            setShowPendingDialog(true);
+          }
         }
         
       }
@@ -1751,6 +1798,101 @@ const CreateEventPage = () => {
           </Box>
         </Paper>
       </Container>
+
+      {/* Dialog thông báo sự kiện đang chờ duyệt */}
+      <Dialog
+        open={showPendingDialog}
+        onClose={() => {
+          setShowPendingDialog(false);
+          navigate('/my-events');
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: '#000000',
+            color: '#ffffff',
+            '& .MuiDialogContent-root': {
+              backgroundColor: '#000000',
+              borderTop: 'none !important',
+              '&::before': {
+                display: 'none !important'
+              }
+            },
+            '& .MuiDialogActions-root': {
+              backgroundColor: '#000000',
+              borderTop: 'none !important',
+              '&::before': {
+                display: 'none !important'
+              }
+            },
+            '& .MuiDivider-root': {
+              display: 'none'
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          backgroundColor: '#ff9800', 
+          color: '#ffffff',
+          textAlign: 'center',
+          fontSize: '1.5rem',
+          fontWeight: 'bold'
+        }}>
+          ✅ Sự kiện đã được tạo thành công
+        </DialogTitle>
+        <DialogContent sx={{ 
+          mt: 3, 
+          mb: 2, 
+          backgroundColor: '#000000',
+          borderTop: 'none',
+          '&::before': {
+            display: 'none'
+          }
+        }}>
+          <DialogContentText sx={{ 
+            fontSize: '1.1rem',
+            textAlign: 'center',
+            color: '#ffffff',
+            lineHeight: 1.8
+          }}>
+            Sự kiện đã được gửi đến Admin và đang chờ duyệt. Vui lòng kiên nhẫn chờ đợi.
+            <br />
+            <br />
+            Bạn sẽ nhận được thông báo khi sự kiện được duyệt và đưa lên hệ thống.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ 
+          justifyContent: 'center', 
+          pb: 3, 
+          backgroundColor: '#000000',
+          borderTop: 'none',
+          '&::before': {
+            display: 'none'
+          }
+        }}>
+          <Button
+            onClick={() => {
+              setShowPendingDialog(false);
+              navigate('/my-events');
+            }}
+            variant="contained"
+            color="primary"
+            sx={{
+              backgroundColor: '#ff9800',
+              color: '#ffffff',
+              '&:hover': {
+                backgroundColor: '#f57c00'
+              },
+              minWidth: '150px',
+              fontSize: '1rem',
+              fontWeight: 'bold'
+            }}
+          >
+            Đã hiểu
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
