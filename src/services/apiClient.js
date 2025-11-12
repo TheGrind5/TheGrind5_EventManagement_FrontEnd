@@ -140,6 +140,10 @@ export const authAPI = {
   register: async (userData) => {
     return api.post('/Auth/register', userData);
   },
+
+  checkPhone: async (phone) => {
+    return api.get(`/Auth/check-phone?phone=${encodeURIComponent(phone)}`);
+  },
   
   getCurrentUser: async () => {
     return api.get('/Auth/me');
@@ -513,19 +517,7 @@ export const eventQuestionsAPI = {
 };
 
 // Payment API
-export const paymentAPI = {
-  createVNPayQR: async (orderId) => {
-    return api.post('/Payment/vnpay/create', { orderId });
-  },
-  
-  getStatus: async (paymentId) => {
-    return api.get(`/Payment/status/${paymentId}`);
-  },
-  
-  cancelPayment: async (paymentId) => {
-    return api.post(`/Payment/${paymentId}/cancel`);
-  }
-};
+// VNPay API removed
 
 // Product API
 export const productsAPI = {

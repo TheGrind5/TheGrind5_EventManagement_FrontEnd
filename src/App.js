@@ -30,8 +30,6 @@ import TicketSelectionPage from './pages/TicketSelectionPage';
 import OrderInformationPage from './pages/OrderInformationPage';
 import RecipientInformationPage from './pages/RecipientInformationPage';
 import PaymentPage from './pages/PaymentPage';
-import VNPayPaymentPage from './pages/VNPayPaymentPage';
-import VNPayReturnPage from './pages/VNPayReturnPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
@@ -155,17 +153,7 @@ function AppRoutes() {
         }
       />
       
-      <Route
-        path="/payment/vnpay/:orderId"
-        element={
-          <ProtectedRoute>
-            <VNPayPaymentPage />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* VNPay Return Page - Public route */}
-      <Route path="/payment/vnpay/return" element={<VNPayReturnPage />} />
+      {/* VNPay routes removed */}
       
       <Route 
         path="/order-confirmation/:orderId" 

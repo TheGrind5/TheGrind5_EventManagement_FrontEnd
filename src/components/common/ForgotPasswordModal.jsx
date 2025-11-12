@@ -72,11 +72,6 @@ const ForgotPasswordModal = () => {
   return (
     <div
       className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
       style={{
         position: 'fixed',
         top: 0,
