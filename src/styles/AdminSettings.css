@@ -1,0 +1,384 @@
+/* Admin Settings Page Styles */
+
+.admin-settings-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+  background: #F8F9FA;
+  min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme .admin-settings-page {
+  background: #0D0D0D;
+}
+
+.light-theme .admin-settings-page {
+  background: #F8F9FA;
+}
+
+.settings-header {
+  margin-bottom: 30px;
+}
+
+.page-title {
+  font-weight: 700 !important;
+  color: #2C3E50 !important;
+  margin-bottom: 8px !important;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .page-title {
+  color: #F5F5F5 !important;
+}
+
+.light-theme .page-title {
+  color: #2C3E50 !important;
+}
+
+.page-subtitle {
+  color: #5A6C7D !important;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .page-subtitle {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .page-subtitle {
+  color: #5A6C7D !important;
+}
+
+.settings-container {
+  background: #FEFEFE !important;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #E8E9EA;
+  overflow: hidden;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark-theme .settings-container {
+  background: #1A1A1A !important;
+  border: 1px solid #2A2A2A;
+}
+
+.light-theme .settings-container {
+  background: #FEFEFE !important;
+  border: 1px solid #E8E9EA;
+}
+
+.settings-tabs {
+  background: transparent !important;
+  border-bottom: 1px solid #E8E9EA;
+  padding: 0 20px;
+  transition: border-color 0.3s ease;
+}
+
+.dark-theme .settings-tabs {
+  border-bottom: 1px solid #2A2A2A;
+}
+
+.light-theme .settings-tabs {
+  border-bottom: 1px solid #E8E9EA;
+}
+
+.settings-tabs .MuiTab-root {
+  color: #5A6C7D !important;
+  font-weight: 500;
+  text-transform: none;
+  min-height: 64px;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .settings-tabs .MuiTab-root {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .settings-tabs .MuiTab-root {
+  color: #5A6C7D !important;
+}
+
+.settings-tabs .MuiTab-root.Mui-selected {
+  color: #FF7A00 !important;
+  font-weight: 600;
+}
+
+.settings-tabs .MuiTabs-indicator {
+  background-color: #FF7A00 !important;
+  height: 3px;
+}
+
+.settings-content {
+  padding: 30px;
+}
+
+.settings-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.section-icon {
+  color: #FF7A00 !important;
+  font-size: 28px !important;
+}
+
+.section-title {
+  font-weight: 600 !important;
+  color: #2C3E50 !important;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .section-title {
+  color: #F5F5F5 !important;
+}
+
+.light-theme .section-title {
+  color: #2C3E50 !important;
+}
+
+.section-description {
+  color: #5A6C7D !important;
+  margin-bottom: 24px;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .section-description {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .section-description {
+  color: #5A6C7D !important;
+}
+
+.settings-list {
+  margin-top: 24px;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  transition: background-color 0.3s ease;
+}
+
+.setting-info {
+  flex: 1;
+  margin-right: 20px;
+}
+
+.setting-label {
+  font-weight: 600 !important;
+  color: #2C3E50 !important;
+  margin-bottom: 4px;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .setting-label {
+  color: #F5F5F5 !important;
+}
+
+.light-theme .setting-label {
+  color: #2C3E50 !important;
+}
+
+.setting-description {
+  color: #5A6C7D !important;
+  font-size: 14px;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .setting-description {
+  color: #B0B0B0 !important;
+}
+
+.light-theme .setting-description {
+  color: #5A6C7D !important;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #E8E9EA;
+  transition: border-color 0.3s ease;
+}
+
+.dark-theme .action-buttons {
+  border-top: 1px solid #2A2A2A;
+}
+
+.light-theme .action-buttons {
+  border-top: 1px solid #E8E9EA;
+}
+
+.save-button {
+  background: linear-gradient(135deg, #FF7A00 0%, #FF8A00 100%) !important;
+  color: white !important;
+  padding: 12px 32px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 4px rgba(255, 122, 0, 0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+.save-button:hover {
+  background: linear-gradient(135deg, #FF8A00 0%, #FF9A00 100%) !important;
+  box-shadow: 0 4px 8px rgba(255, 122, 0, 0.3) !important;
+  transform: translateY(-2px);
+}
+
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* TextField Styling */
+.settings-card .MuiTextField-root {
+  margin-bottom: 0;
+}
+
+.settings-card .MuiTextField-root .MuiOutlinedInput-root {
+  background: #FEFEFE;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark-theme .settings-card .MuiTextField-root .MuiOutlinedInput-root {
+  background: #242424;
+  border-color: #3A3A3A;
+}
+
+.light-theme .settings-card .MuiTextField-root .MuiOutlinedInput-root {
+  background: #FEFEFE;
+  border-color: #E8E9EA;
+}
+
+.settings-card .MuiTextField-root .MuiOutlinedInput-root:hover {
+  border-color: #FF7A00;
+}
+
+.settings-card .MuiTextField-root .MuiOutlinedInput-root.Mui-focused {
+  border-color: #FF7A00;
+}
+
+.settings-card .MuiTextField-root .MuiInputLabel-root {
+  color: #5A6C7D;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .settings-card .MuiTextField-root .MuiInputLabel-root {
+  color: #B0B0B0;
+}
+
+.light-theme .settings-card .MuiTextField-root .MuiInputLabel-root {
+  color: #5A6C7D;
+}
+
+.settings-card .MuiTextField-root .MuiInputLabel-root.Mui-focused {
+  color: #FF7A00 !important;
+}
+
+.settings-card .MuiTextField-root .MuiOutlinedInput-input {
+  color: #2C3E50;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .settings-card .MuiTextField-root .MuiOutlinedInput-input {
+  color: #F5F5F5;
+}
+
+.light-theme .settings-card .MuiTextField-root .MuiOutlinedInput-input {
+  color: #2C3E50;
+}
+
+/* Switch Styling */
+.settings-card .MuiSwitch-root {
+  width: 48px;
+  height: 28px;
+  padding: 0;
+}
+
+.settings-card .MuiSwitch-switchBase {
+  padding: 4px;
+  color: #E8E9EA;
+}
+
+.dark-theme .settings-card .MuiSwitch-switchBase {
+  color: #3A3A3A;
+}
+
+.settings-card .MuiSwitch-switchBase.Mui-checked {
+  color: #FF7A00;
+}
+
+.settings-card .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track {
+  background-color: #FF7A00;
+  opacity: 1;
+}
+
+.settings-card .MuiSwitch-track {
+  background-color: #E8E9EA;
+  opacity: 1;
+  border-radius: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme .settings-card .MuiSwitch-track {
+  background-color: #3A3A3A;
+}
+
+/* Divider Styling */
+.settings-card .MuiDivider-root {
+  border-color: #E8E9EA;
+  transition: border-color 0.3s ease;
+}
+
+.dark-theme .settings-card .MuiDivider-root {
+  border-color: #2A2A2A;
+}
+
+.light-theme .settings-card .MuiDivider-root {
+  border-color: #E8E9EA;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-settings-page {
+    padding: 20px;
+  }
+
+  .settings-content {
+    padding: 20px;
+  }
+
+  .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .setting-info {
+    margin-right: 0;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .save-button {
+    width: 100%;
+  }
+}
+
