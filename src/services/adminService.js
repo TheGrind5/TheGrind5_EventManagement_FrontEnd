@@ -211,6 +211,41 @@ const adminService = {
       console.error(`Error admin force delete event ${eventId}:`, error);
       throw error;
     }
+  },
+
+  /**
+   * Lấy danh sách sự kiện chờ duyệt (status = Pending)
+   * @param {Object} params - Query parameters
+   * @param {number} params.pageNumber - Số trang (default: 1)
+   * @param {number} params.pageSize - Số items mỗi trang (default: 10)
+   */
+  async getPendingEvents(params = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+      if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+      const response = await apiClient.get(`/admin/pending-events?${queryParams.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error getting pending events:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Duyệt sự kiện (chuyển status từ Pending sang Open)
+   * @param {number} eventId - ID của sự kiện
+   */
+  async approveEvent(eventId) {
+    try {
+      const response = await apiClient.post(`/admin/events/${eventId}/approve`);
+      return response;
+    } catch (error) {
+      console.error(`Error approving event ${eventId}:`, error);
+      throw error;
+    }
   }
 };
 
