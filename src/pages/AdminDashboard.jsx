@@ -9,6 +9,7 @@ import AdminEventsPage from './admin/AdminEventsPage';
 import AdminVouchersPage from './admin/AdminVouchersPage';
 import AdminAnnouncementsPage from './admin/AdminAnnouncementsPage';
 import AdminEventApprovalPage from './admin/AdminEventApprovalPage';
+import AdminSettingsPage from './admin/AdminSettingsPage';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import './AdminDashboard.css';
@@ -36,7 +37,7 @@ const AdminDashboard = () => {
           <Route path="/vouchers" element={<AdminVouchersPage />} />
           <Route path="/announcements" element={<AdminAnnouncementsPage />} />
           <Route path="/event-approval" element={<AdminEventApprovalPage />} />
-          <Route path="/settings" element={<ComingSoon title="Cài Đặt" />} />
+          <Route path="/settings" element={<AdminSettingsPage />} />
         </Routes>
       </div>
     </div>
