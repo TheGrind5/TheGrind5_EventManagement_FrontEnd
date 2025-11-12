@@ -35,7 +35,10 @@ apiClient.interceptors.response.use(
     const hasPagingKeys = body && typeof body === 'object' && (
       Object.prototype.hasOwnProperty.call(body, 'totalCount') ||
       Object.prototype.hasOwnProperty.call(body, 'page') ||
-      Object.prototype.hasOwnProperty.call(body, 'pageSize')
+      Object.prototype.hasOwnProperty.call(body, 'pageSize') ||
+      Object.prototype.hasOwnProperty.call(body, 'TotalCount') ||
+      Object.prototype.hasOwnProperty.call(body, 'Page') ||
+      Object.prototype.hasOwnProperty.call(body, 'PageSize')
     );
 
     // Handle both camelCase (data) and PascalCase (Data) from .NET serialization
@@ -314,6 +317,19 @@ export const ordersAPI = {
   
   processPayment: async (orderId, paymentData) => {
     return api.post(`/Order/${orderId}/payment`, paymentData);
+  },
+
+  getHostOrders: async ({ page = 1, pageSize = 10, status, eventId, search } = {}) => {
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    if (status) params.append('status', status);
+    if (eventId !== undefined && eventId !== null && !Number.isNaN(eventId)) {
+      params.append('eventId', eventId);
+    }
+    if (search) params.append('search', search);
+
+    return api.get(`/Order/host-orders/summary?${params.toString()}`);
   }
 };
 

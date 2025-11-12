@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box, Paper, Typography, Select, MenuItem, FormControl, InputLabel,
   Button, ButtonGroup, ToggleButton, ToggleButtonGroup, Card, CardContent,
@@ -19,7 +19,10 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
 import { ticketsAPI, eventsAPI } from '../../services/apiClient';
+import { decodeText } from '../../utils/textDecoder';
 import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 // Recharts đã được cài đặt và kích hoạt
 const RECCHARTS_INSTALLED = true;
@@ -32,6 +35,7 @@ const SalesChart = ({ hostEvents = [] }) => {
   const [viewType, setViewType] = useState('day'); // day, week, month
   const [chartType, setChartType] = useState('line'); // line, bar, area, combo
   const [selectedTicketTypes, setSelectedTicketTypes] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState('all');
   
   // Data states
   const [chartData, setChartData] = useState([]);
@@ -45,6 +49,39 @@ const SalesChart = ({ hostEvents = [] }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const normalizeEventId = (event) =>
+    event?.eventId ?? event?.EventId ?? event?.id ?? event?.Id ?? null;
+
+  const eventOptions = useMemo(() => {
+    return hostEvents
+      .map((event) => {
+        const id = normalizeEventId(event);
+        if (id === null || id === undefined) return null;
+
+        return {
+          id,
+          label: decodeText(event?.title ?? event?.Title ?? '')?.trim() || `Sự kiện #${id}`
+        };
+      })
+      .filter(Boolean);
+  }, [hostEvents]);
+
+  useEffect(() => {
+    if (selectedEventId === 'all') return;
+    const exists = eventOptions.some((option) => option.id === selectedEventId);
+    if (!exists) {
+      setSelectedEventId('all');
+    }
+  }, [eventOptions, selectedEventId]);
+
+  const getSelectedEventLabel = () => {
+    if (selectedEventId === 'all') {
+      return 'Tất cả sự kiện';
+    }
+    const selectedEvent = eventOptions.find((option) => option.id === selectedEventId);
+    return selectedEvent?.label || 'Sự kiện';
+  };
 
   // Calculate date range based on timeRange
   const getDateRange = () => {
@@ -75,7 +112,12 @@ const SalesChart = ({ hostEvents = [] }) => {
       setError(null);
       
       const { start, end, isAllTime } = getDateRange();
-      const eventIds = hostEvents.map(e => e.eventId);
+      const eventIds =
+        selectedEventId === 'all'
+          ? hostEvents
+              .map((event) => normalizeEventId(event))
+              .filter((id) => id !== null && id !== undefined)
+          : [selectedEventId];
       
       if (eventIds.length === 0) {
         setChartData([]);
@@ -104,8 +146,9 @@ const SalesChart = ({ hostEvents = [] }) => {
           console.log(`[SalesChart] Event ${eventId}: Found ${tickets.length} tickets`);
           
           tickets.forEach(ticket => {
-            // Filter by status first
-            if (ticket.status !== 'Assigned' && ticket.status !== 'Used') {
+            // Filter by status first - handle both camelCase and PascalCase
+            const status = ticket.status || ticket.Status;
+            if (status !== 'Assigned' && status !== 'Used') {
               return; // Skip tickets not sold
             }
 
@@ -231,8 +274,9 @@ const SalesChart = ({ hostEvents = [] }) => {
         const tickets = Array.isArray(ticketsResponse.data) ? ticketsResponse.data : [];
         
         tickets.forEach(ticket => {
-          // Filter by status first
-          if (ticket.status !== 'Assigned' && ticket.status !== 'Used') {
+          // Filter by status first - handle both camelCase and PascalCase
+          const status = ticket.status || ticket.Status;
+          if (status !== 'Assigned' && status !== 'Used') {
             return;
           }
 
@@ -274,7 +318,7 @@ const SalesChart = ({ hostEvents = [] }) => {
       fetchSalesData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRange, startDate, endDate, viewType]);
+  }, [timeRange, startDate, endDate, viewType, selectedEventId, hostEvents]);
 
   // Render chart based on chartType
   const renderChart = () => {
@@ -417,6 +461,150 @@ const SalesChart = ({ hostEvents = [] }) => {
     }).format(amount);
   };
 
+  // Export CSV function
+  const handleExportCSV = () => {
+    if (chartData.length === 0) {
+      alert('Không có dữ liệu để export');
+      return;
+    }
+
+    const { start, end } = getDateRange();
+    const eventLabel = getSelectedEventLabel();
+    const dateRangeStr = `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`;
+
+    // Headers
+    const headers = ['Ngày', 'Số vé', 'Doanh thu (VND)'];
+    
+    // Data rows
+    const rows = chartData.map(item => [
+      item.date,
+      item.tickets,
+      item.revenue.toLocaleString('vi-VN')
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      `Báo cáo bán vé - ${eventLabel}`,
+      `Khoảng thời gian: ${dateRangeStr}`,
+      `Ngày xuất: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss')}`,
+      '',
+      'Tổng quan:',
+      `Tổng vé đã bán,${metrics.totalTicketsSold}`,
+      `Tổng doanh thu,${formatCurrency(metrics.totalRevenue).replace(/[₫\s]/g, '')}`,
+      `Trung bình vé/ngày,${metrics.avgTicketsPerDay}`,
+      `Giá trị đơn hàng TB,${formatCurrency(metrics.avgOrderValue).replace(/[₫\s]/g, '')}`,
+      '',
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const fileName = `thong_ke_ban_ve_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export PDF function
+  const handleExportPDF = async () => {
+    if (chartData.length === 0) {
+      alert('Không có dữ liệu để export');
+      return;
+    }
+
+    try {
+      const { start, end } = getDateRange();
+      const eventLabel = getSelectedEventLabel();
+      const dateRangeStr = `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`;
+      const exportDate = format(new Date(), 'dd/MM/yyyy HH:mm:ss');
+
+      // Create PDF
+      const doc = new jsPDF('landscape', 'mm', 'a4');
+      
+      // Title
+      doc.setFontSize(18);
+      doc.text('Báo cáo bán vé theo thời gian', 14, 15);
+      
+      // Subtitle
+      doc.setFontSize(12);
+      doc.text(`Sự kiện: ${eventLabel}`, 14, 22);
+      doc.text(`Khoảng thời gian: ${dateRangeStr}`, 14, 28);
+      doc.text(`Ngày xuất: ${exportDate}`, 14, 34);
+
+      // Summary section
+      let yPos = 45;
+      doc.setFontSize(14);
+      doc.text('Tổng quan', 14, yPos);
+      
+      yPos += 8;
+      doc.setFontSize(10);
+      const summaryData = [
+        ['Tổng vé đã bán', metrics.totalTicketsSold.toString()],
+        ['Tổng doanh thu', formatCurrency(metrics.totalRevenue)],
+        ['Trung bình vé/ngày', metrics.avgTicketsPerDay.toString()],
+        ['Giá trị đơn hàng TB', formatCurrency(metrics.avgOrderValue)]
+      ];
+      
+      doc.autoTable({
+        startY: yPos,
+        head: [['Chỉ số', 'Giá trị']],
+        body: summaryData,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 139, 202] },
+        styles: { fontSize: 10 },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 80 }
+        }
+      });
+
+      // Chart data table
+      yPos = doc.lastAutoTable.finalY + 15;
+      
+      // Check if we need a new page
+      if (yPos > 180) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.text('Chi tiết theo thời gian', 14, yPos);
+      
+      yPos += 8;
+      const tableData = chartData.map(item => [
+        item.date,
+        item.tickets.toString(),
+        formatCurrency(item.revenue)
+      ]);
+
+      doc.autoTable({
+        startY: yPos,
+        head: [['Ngày', 'Số vé', 'Doanh thu (VND)']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 139, 202] },
+        styles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 40, halign: 'center' },
+          2: { cellWidth: 60, halign: 'right' }
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      // Save PDF
+      const fileName = `thong_ke_ban_ve_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`;
+      doc.save(fileName);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Có lỗi xảy ra khi xuất PDF. Vui lòng thử lại.');
+    }
+  };
+
   return (
     <Box>
       {/* Filter Bar */}
@@ -441,6 +629,25 @@ const SalesChart = ({ hostEvents = [] }) => {
               <MenuItem value="thisMonth">Tháng này</MenuItem>
               <MenuItem value="lastMonth">Tháng trước</MenuItem>
               <MenuItem value="custom">Tùy chỉnh</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <InputLabel>Sự kiện</InputLabel>
+            <Select
+              value={selectedEventId === 'all' ? 'all' : String(selectedEventId)}
+              label="Sự kiện"
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedEventId(value === 'all' ? 'all' : Number(value));
+              }}
+            >
+              <MenuItem value="all">Tất cả sự kiện</MenuItem>
+              {eventOptions.map((option) => (
+                <MenuItem key={option.id} value={String(option.id)}>
+                  {option.label || `Sự kiện #${option.id}`}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -580,17 +787,22 @@ const SalesChart = ({ hostEvents = [] }) => {
       {/* Chart */}
       <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" fontWeight={700}>
-            Biểu đồ bán vé theo thời gian
-          </Typography>
+          <Box>
+            <Typography variant="h6" fontWeight={700}>
+              Biểu đồ bán vé theo thời gian
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {getSelectedEventLabel()}
+            </Typography>
+          </Box>
           <ButtonGroup size="small">
             <Tooltip title="Export CSV">
-              <IconButton size="small">
+              <IconButton size="small" onClick={handleExportCSV} disabled={chartData.length === 0}>
                 <FileDownload />
               </IconButton>
             </Tooltip>
             <Tooltip title="Export PDF">
-              <IconButton size="small">
+              <IconButton size="small" onClick={handleExportPDF} disabled={chartData.length === 0}>
                 <PictureAsPdf />
               </IconButton>
             </Tooltip>
