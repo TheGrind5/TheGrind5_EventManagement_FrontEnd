@@ -163,6 +163,49 @@
   background: #FF8A00;
 }
 
+.filter-select {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+}
+
+.dark-theme .filter-select {
+  background: #2a2a2a;
+  border-color: #555;
+  color: #fff;
+}
+
+/* Khi ở chế độ tối và chọn "Tất cả trạng thái", select box phải có nền trắng và chữ đen */
+.dark-theme .filter-select:has(option[value=""]:checked),
+.dark-theme .filter-select[value=""],
+.dark-theme .filter-select.all-status-selected {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ddd !important;
+}
+
+/* Đảm bảo class all-status-selected luôn có nền trắng và chữ đen */
+.filter-select.all-status-selected {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ddd !important;
+}
+
+/* Đảm bảo option "Tất cả trạng thái" luôn có màu đen và nền trắng */
+.filter-select option[value=""] {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+}
+
+.dark-theme .filter-select option[value=""] {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+}
+
 .filter-tabs {
   display: flex;
   gap: 12px;

@@ -210,13 +210,76 @@ const AdminEventsPage = () => {
       <div className="page-header">
         <h1>📅 Quản lý Sự kiện</h1>
         <div className="header-actions">
-          <Link to="/admin/users" className="btn-primary">
+          <Link 
+            to="/admin/users" 
+            className="btn-primary"
+            style={{
+              backgroundColor: '#e65100',
+              color: '#ffffff',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              fontWeight: 600,
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#d84315';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#e65100';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
             Quản lý Users
           </Link>
-          <Link to="/admin/orders" className="btn-primary">
+          <Link 
+            to="/admin/orders" 
+            className="btn-primary"
+            style={{
+              backgroundColor: '#e65100',
+              color: '#ffffff',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              fontWeight: 600,
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#d84315';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#e65100';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
             Quản lý Orders
           </Link>
-          <button onClick={handleLogout} className="btn-secondary">
+          <button 
+            onClick={handleLogout} 
+            className="btn-secondary"
+            style={{
+              backgroundColor: '#e65100',
+              color: '#ffffff',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#d84315';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#e65100';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
             Đăng xuất
           </button>
         </div>
@@ -247,7 +310,11 @@ const AdminEventsPage = () => {
           <select
             value={statusFilter}
             onChange={handleStatusFilterChange}
-            className="filter-select"
+            className={`filter-select ${statusFilter === '' ? 'all-status-selected' : ''}`}
+            style={{
+              color: statusFilter === '' ? '#000000' : 'inherit',
+              backgroundColor: statusFilter === '' ? '#ffffff' : 'inherit'
+            }}
           >
             <option value="">Tất cả trạng thái</option>
             <option value="Draft">Draft</option>

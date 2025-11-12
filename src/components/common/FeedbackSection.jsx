@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,6 @@ import {
   Avatar,
   Stack,
   IconButton,
-  Divider,
   CircularProgress,
   Alert,
   Collapse
@@ -39,13 +38,7 @@ const FeedbackSection = ({ eventId }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
-  useEffect(() => {
-    if (eventId) {
-      loadComments();
-    }
-  }, [eventId]);
-
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -59,6 +52,40 @@ const FeedbackSection = ({ eventId }) => {
       console.error('Error loading comments:', err);
     } finally {
       setLoading(false);
+    }
+  }, [eventId, page]);
+
+  useEffect(() => {
+    if (eventId) {
+      loadComments();
+    }
+  }, [eventId, loadComments]);
+
+  const handleCommentChange = (e) => {
+    const textarea = e.target;
+    if (textarea) {
+      textarea.setAttribute('dir', 'ltr');
+      textarea.style.direction = 'ltr';
+      textarea.style.textAlign = 'left';
+    }
+    setNewComment(e.target.value);
+  };
+
+  const handleCommentInput = (e) => {
+    const textarea = e.target;
+    if (textarea) {
+      textarea.setAttribute('dir', 'ltr');
+      textarea.style.direction = 'ltr';
+      textarea.style.textAlign = 'left';
+    }
+  };
+
+  const handleCommentFocus = (e) => {
+    const textarea = e.target;
+    if (textarea) {
+      textarea.setAttribute('dir', 'ltr');
+      textarea.style.direction = 'ltr';
+      textarea.style.textAlign = 'left';
     }
   };
 
@@ -179,6 +206,87 @@ const FeedbackSection = ({ eventId }) => {
     const avatarUrl = getAvatarUrl(comment.userAvatar);
     const isExpanded = expandedReplies[comment.commentId] || false;
     const replyText = replyContent[comment.commentId] || '';
+    const replyInputRef = useRef(null);
+    const wasReplyingRef = useRef(false);
+
+    // Focus vào input khi reply box mở và set direction
+    // Chỉ focus khi reply box vừa mới mở, không phải mỗi lần re-render
+    useEffect(() => {
+      const isCurrentlyReplying = replyingTo === comment.commentId;
+      
+      // Chỉ focus khi reply box vừa mới mở (chuyển từ false sang true)
+      if (isCurrentlyReplying && !wasReplyingRef.current && replyInputRef.current) {
+        wasReplyingRef.current = true;
+        
+        // Chỉ focus nếu không có input nào khác đang được focus
+        setTimeout(() => {
+          const activeElement = document.activeElement;
+          const isInputFocused = activeElement && (
+            activeElement.tagName === 'TEXTAREA' || 
+            activeElement.tagName === 'INPUT'
+          );
+          
+          const textarea = replyInputRef.current?.querySelector('textarea') || replyInputRef.current;
+          if (textarea) {
+            textarea.setAttribute('dir', 'ltr');
+            textarea.style.direction = 'ltr';
+            textarea.style.textAlign = 'left';
+            
+            // Chỉ focus nếu không có input nào khác đang được focus
+            if (!isInputFocused) {
+              replyInputRef.current?.focus();
+            }
+          }
+        }, 100);
+      } else if (!isCurrentlyReplying) {
+        // Reset flag khi reply box đóng
+        wasReplyingRef.current = false;
+      } else if (isCurrentlyReplying && replyInputRef.current) {
+        // Vẫn set direction khi reply box đang mở nhưng không focus
+        setTimeout(() => {
+          const textarea = replyInputRef.current?.querySelector('textarea') || replyInputRef.current;
+          if (textarea) {
+            textarea.setAttribute('dir', 'ltr');
+            textarea.style.direction = 'ltr';
+            textarea.style.textAlign = 'left';
+          }
+        }, 0);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [replyingTo, comment.commentId]);
+
+    // Handler cho onChange reply với useCallback để tránh re-render không cần thiết
+    const handleReplyChange = useCallback((e) => {
+      const textarea = e.target;
+      if (textarea) {
+        // Force LTR direction - giống như comment input
+        textarea.setAttribute('dir', 'ltr');
+        textarea.style.direction = 'ltr';
+        textarea.style.textAlign = 'left';
+      }
+      const value = e.target.value;
+      setReplyContent(prev => ({ ...prev, [comment.commentId]: value }));
+    }, [comment.commentId]);
+
+    // Handler onInput để đảm bảo direction được set mỗi khi gõ
+    const handleReplyInput = useCallback((e) => {
+      const textarea = e.target;
+      if (textarea) {
+        textarea.setAttribute('dir', 'ltr');
+        textarea.style.direction = 'ltr';
+        textarea.style.textAlign = 'left';
+      }
+    }, []);
+
+    // Handler để đảm bảo direction luôn là ltr khi focus
+    const handleReplyFocus = useCallback((e) => {
+      const textarea = e.target;
+      if (textarea) {
+        textarea.setAttribute('dir', 'ltr');
+        textarea.style.direction = 'ltr';
+        textarea.style.textAlign = 'left';
+      }
+    }, []);
 
     return (
       <Box sx={{ mb: 2, ml: isReply ? 4 : 0 }}>
@@ -228,7 +336,10 @@ const FeedbackSection = ({ eventId }) => {
                   {!isReply && (
                     <IconButton
                       size="small"
-                      onClick={() => setReplyingTo(replyingTo === comment.commentId ? null : comment.commentId)}
+                      onClick={() => {
+                        const newReplyingTo = replyingTo === comment.commentId ? null : comment.commentId;
+                        setReplyingTo(newReplyingTo);
+                      }}
                     >
                       <Reply fontSize="small" />
                     </IconButton>
@@ -246,16 +357,42 @@ const FeedbackSection = ({ eventId }) => {
                 
                 {/* Reply input */}
                 {!isReply && replyingTo === comment.commentId && (
-                  <Box sx={{ mt: 2 }}>
+                  <Box sx={{ mt: 2, direction: 'ltr' }}>
                     <TextField
+                      inputRef={replyInputRef}
                       fullWidth
                       multiline
                       rows={2}
                       placeholder="Viết phản hồi..."
                       value={replyText}
-                      onChange={(e) => setReplyContent({ ...replyContent, [comment.commentId]: e.target.value })}
+                      onChange={handleReplyChange}
+                      onInput={handleReplyInput}
+                      onFocus={handleReplyFocus}
                       size="small"
-                      sx={{ mb: 1 }}
+                      sx={{ 
+                        mb: 1, 
+                        direction: 'ltr', 
+                        '& textarea': { 
+                          direction: 'ltr !important',
+                          textAlign: 'left !important'
+                        },
+                        '& input': {
+                          direction: 'ltr !important',
+                          textAlign: 'left !important'
+                        }
+                      }}
+                      InputProps={{
+                        style: { direction: 'ltr', textAlign: 'left' }
+                      }}
+                      inputProps={{ 
+                        dir: 'ltr', 
+                        style: { 
+                          direction: 'ltr', 
+                          textAlign: 'left'
+                        },
+                        onFocus: handleReplyFocus,
+                        onInput: handleReplyInput
+                      }}
                     />
                     <Stack direction="row" spacing={1}>
                       <Button
@@ -270,7 +407,11 @@ const FeedbackSection = ({ eventId }) => {
                         size="small"
                         onClick={() => {
                           setReplyingTo(null);
-                          setReplyContent({ ...replyContent, [comment.commentId]: '' });
+                          setReplyContent(prev => {
+                            const newContent = { ...prev };
+                            delete newContent[comment.commentId];
+                            return newContent;
+                          });
                         }}
                       >
                         Hủy
@@ -322,15 +463,40 @@ const FeedbackSection = ({ eventId }) => {
       {user && (
         <Card variant="outlined" sx={{ mb: 3 }}>
           <CardContent>
-            <Stack spacing={2}>
+            <Stack spacing={2} sx={{ direction: 'ltr' }}>
               <TextField
                 fullWidth
                 multiline
                 rows={3}
                 placeholder="Viết bình luận của bạn..."
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={handleCommentChange}
+                onInput={handleCommentInput}
+                onFocus={handleCommentFocus}
                 disabled={submitting}
+                sx={{ 
+                  direction: 'ltr', 
+                  '& textarea': { 
+                    direction: 'ltr !important',
+                    textAlign: 'left !important'
+                  },
+                  '& input': {
+                    direction: 'ltr !important',
+                    textAlign: 'left !important'
+                  }
+                }}
+                InputProps={{
+                  style: { direction: 'ltr', textAlign: 'left' }
+                }}
+                inputProps={{ 
+                  dir: 'ltr', 
+                  style: { 
+                    direction: 'ltr', 
+                    textAlign: 'left'
+                  },
+                  onFocus: handleCommentFocus,
+                  onInput: handleCommentInput
+                }}
               />
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button

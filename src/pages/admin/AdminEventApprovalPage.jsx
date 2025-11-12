@@ -22,6 +22,7 @@ const AdminEventApprovalPage = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -179,6 +180,25 @@ const AdminEventApprovalPage = () => {
     }
   };
 
+  const handleReject = async (eventId, eventTitle) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn từ chối duyệt sự kiện "${eventTitle}"?`)) {
+      return;
+    }
+
+    setRejecting(true);
+    try {
+      const response = await adminService.rejectEvent(eventId);
+      alert(response.data?.message || 'Từ chối duyệt sự kiện thành công!');
+      fetchPendingEvents(); // Refresh danh sách
+    } catch (err) {
+      console.error('❌ Error rejecting event:', err);
+      const errorMsg = err.response?.data?.message || 'Không thể từ chối duyệt sự kiện. Vui lòng thử lại.';
+      alert(errorMsg);
+    } finally {
+      setRejecting(false);
+    }
+  };
+
   if (loading && events.length === 0) {
     return (
       <div className="admin-users-page">
@@ -231,7 +251,7 @@ const AdminEventApprovalPage = () => {
                   <th>Người Tạo Sự Kiện</th>
                   <th>Ngày Tạo</th>
                   <th>Xem Chi Tiết</th>
-                  <th>Duyệt</th>
+                  <th style={{ textAlign: 'center' }}>Duyệt</th>
                 </tr>
               </thead>
               <tbody>
@@ -259,23 +279,41 @@ const AdminEventApprovalPage = () => {
                         Xem
                       </button>
                     </td>
-                    <td>
-                      <button
-                        className="btn-action"
-                        style={{
-                          background: '#10b981',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: 600
-                        }}
-                        onClick={() => handleApprove(event.eventId, event.title)}
-                        disabled={approving}
-                      >
-                        {approving ? 'Đang duyệt...' : 'Duyệt'}
-                      </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                        <button
+                          className="btn-action"
+                          style={{
+                            background: '#10b981',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                          onClick={() => handleApprove(event.eventId, event.title)}
+                          disabled={approving || rejecting}
+                        >
+                          {approving ? 'Đang duyệt...' : 'Duyệt'}
+                        </button>
+                        <button
+                          className="btn-action"
+                          style={{
+                            background: '#dc2626',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                          onClick={() => handleReject(event.eventId, event.title)}
+                          disabled={approving || rejecting}
+                        >
+                          {rejecting ? 'Đang từ chối...' : 'Không Duyệt'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

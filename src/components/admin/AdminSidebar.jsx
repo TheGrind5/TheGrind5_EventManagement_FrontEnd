@@ -10,7 +10,8 @@ import {
   AdminPanelSettings,
   LocalOffer,
   Notifications,
-  CheckCircle
+  CheckCircle,
+  CalendarToday
 } from '@mui/icons-material';
 import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
@@ -26,6 +27,7 @@ const AdminSidebar = ({ onLogout }) => {
     { path: '/admin/dashboard', icon: <Dashboard />, label: 'Dashboard', },
     { path: '/admin/users', icon: <People />, label: 'Quản Lý Users' },
     { path: '/admin/events', icon: <Event />, label: 'Quản Lý Events' },
+    { path: '/admin/events/calendar', icon: <CalendarToday />, label: 'Lịch Sự Kiện' },
     { path: '/admin/orders', icon: <Receipt />, label: 'Quản Lý Orders' },
     { path: '/admin/vouchers', icon: <LocalOffer />, label: 'Quản Lý Vouchers' },
     { path: '/admin/announcements', icon: <Notifications />, label: 'Thêm Thông Báo' },
