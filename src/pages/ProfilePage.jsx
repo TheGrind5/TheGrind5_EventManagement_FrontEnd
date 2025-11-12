@@ -1063,7 +1063,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Change Password Section - moved below Profile card */}
-            <div className="profile-details-card change-password-card change-password-card--full">
+            <div className="profile-details-card change-password-card">
               <div className="profile-details-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                 <h3 className="profile-details-heading" style={{ margin: 0 }}>
                   Đổi mật khẩu
