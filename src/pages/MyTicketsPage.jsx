@@ -43,10 +43,13 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import { ticketsAPI, eventsAPI } from '../services/apiClient';
+import { subscriptionHelpers } from '../services/subscriptionService';
+import { useAuth } from '../contexts/AuthContext';
 import { decodeText } from '../utils/textDecoder';
 
 const MyTicketsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -855,7 +858,12 @@ const MyTicketsPage = () => {
                   <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                     Bạn chưa tạo sự kiện nào. Hãy tạo sự kiện đầu tiên của bạn!
                   </Typography>
-                  <Button component={Link} to="/create-event" variant="contained">
+                  <Button 
+                    variant="contained"
+                    onClick={async () => {
+                      await subscriptionHelpers.checkSubscriptionAndNavigate(navigate, user);
+                    }}
+                  >
                     Tạo sự kiện
                   </Button>
                 </Box>

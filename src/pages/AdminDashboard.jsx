@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import UserManagement from '../components/admin/UserManagement';
@@ -15,11 +15,9 @@ import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const { logout } = useAuth();
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
   };
 
   return (

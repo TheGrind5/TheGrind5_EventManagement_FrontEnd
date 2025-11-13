@@ -16,7 +16,8 @@ import {
   Paper,
   useTheme,
   useMediaQuery,
-  Collapse
+  Collapse,
+  Tooltip
 } from '@mui/material';
 import { 
   LocationOn, 
@@ -26,7 +27,9 @@ import {
   ShoppingCart,
   ArrowBack,
   Business,
-  Flag
+  Flag,
+  Favorite,
+  FavoriteBorder
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
@@ -35,12 +38,14 @@ import AIChatbot from '../components/ai/AIChatbot';
 import FeedbackSection from '../components/common/FeedbackSection';
 import { eventsAPI, ticketsAPI, productsAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useWishlist } from '../contexts/WishlistContext';
 import { decodeText } from '../utils/textDecoder';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addItem: addToWishlist, deleteItem, isInWishlist, getWishlistItem, fetchWishlist, error: wishlistError } = useWishlist();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,6 +58,7 @@ const EventDetailsPage = () => {
   const reportedKey = currentUserId && id ? `reported:${currentUserId}:${id}` : null;
   const [isReporting, setIsReporting] = useState(false);
   const [reportCount, setReportCount] = useState(0);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   
   const theme = useTheme();
 
@@ -262,6 +268,120 @@ const EventDetailsPage = () => {
     return `Chỉ từ ${formatPrice(minPrice)}`;
   };
 
+  // Kiểm tra xem event có trong wishlist không (kiểm tra xem có ticket type nào của event này trong wishlist)
+  const isEventInWishlist = () => {
+    if (!ticketTypes.length) return false;
+    return ticketTypes.some(ticket => isInWishlist(ticket.ticketTypeId));
+  };
+
+  // Lấy ticket type đầu tiên có sẵn để thêm vào wishlist
+  const getFirstAvailableTicketType = () => {
+    if (!ticketTypes.length) return null;
+    // Tìm ticket type đầu tiên có sẵn và đang bán
+    const availableTicket = ticketTypes.find(ticket => {
+      const isAvailable = ticket.availableQuantity > 0 && ticket.status === 'Active';
+      const isOnSale = new Date() >= new Date(ticket.saleStart) && new Date() <= new Date(ticket.saleEnd);
+      return isAvailable && isOnSale && ticket.ticketTypeId;
+    });
+    // Nếu không có ticket đang bán, lấy ticket type đầu tiên có ticketTypeId
+    if (!availableTicket) {
+      return ticketTypes.find(ticket => ticket.ticketTypeId) || ticketTypes[0];
+    }
+    return availableTicket;
+  };
+
+  // Xử lý thêm/xóa event vào wishlist
+  const handleToggleEventWishlist = async () => {
+    if (!user) {
+      alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích!');
+      navigate('/login');
+      return;
+    }
+
+    if (!ticketTypes.length) {
+      alert('Sự kiện này chưa có loại vé nào!');
+      return;
+    }
+
+    try {
+      setIsWishlistLoading(true);
+      
+      // Đảm bảo wishlist đã được fetch
+      await fetchWishlist();
+      
+      const eventInWishlist = isEventInWishlist();
+      
+      if (eventInWishlist) {
+        // Xóa tất cả ticket types của event này khỏi wishlist
+        const itemsToDelete = [];
+        
+        for (const ticket of ticketTypes) {
+          if (isInWishlist(ticket.ticketTypeId)) {
+            const item = getWishlistItem(ticket.ticketTypeId);
+            if (item && (item.id !== undefined || item.Id !== undefined)) {
+              itemsToDelete.push(item.id ?? item.Id);
+            }
+          }
+        }
+
+        // Nếu không tìm thấy items, refresh lại wishlist
+        if (itemsToDelete.length === 0) {
+          await fetchWishlist();
+          for (const ticket of ticketTypes) {
+            if (isInWishlist(ticket.ticketTypeId)) {
+              const item = getWishlistItem(ticket.ticketTypeId);
+              if (item && (item.id !== undefined || item.Id !== undefined)) {
+                itemsToDelete.push(item.id ?? item.Id);
+              }
+            }
+          }
+        }
+
+        // Xóa từng item
+        for (const itemId of itemsToDelete) {
+          const success = await deleteItem(itemId);
+          if (!success) {
+            console.warn(`Failed to delete wishlist item ${itemId}`);
+          }
+        }
+      } else {
+        // Thêm ticket type đầu tiên có sẵn vào wishlist
+        const ticketToAdd = getFirstAvailableTicketType();
+        if (!ticketToAdd) {
+          alert('Không có loại vé nào có sẵn để thêm vào danh sách yêu thích!');
+          return;
+        }
+
+        // Kiểm tra ticketTypeId - có thể là ticketTypeId hoặc id
+        const ticketTypeId = ticketToAdd.ticketTypeId || ticketToAdd.id;
+        if (!ticketTypeId) {
+          console.error('Ticket type missing ticketTypeId:', ticketToAdd);
+          alert('Loại vé không hợp lệ!');
+          return;
+        }
+
+        console.log('Adding ticket to wishlist:', {
+          ticketTypeId,
+          ticket: ticketToAdd,
+          allTicketTypes: ticketTypes
+        });
+        
+        const success = await addToWishlist(ticketTypeId, 1);
+        if (!success) {
+          // Lấy thông báo lỗi từ context nếu có
+          const errorMessage = wishlistError || 'Có lỗi xảy ra khi thêm vào danh sách yêu thích!';
+          alert(errorMessage);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling event wishlist:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra! Vui lòng thử lại sau.';
+      alert(errorMessage);
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -448,27 +568,59 @@ const EventDetailsPage = () => {
                       {getEventPriceSummary() || 'Miễn phí'}
                     </Typography>
                   </Stack>
-                  <Button
-                    component={Link}
-                    to={`/ticket-selection/${id}`}
-                    fullWidth
-                    size="large"
-                    sx={{
-                      py: 1.1,
-                      fontWeight: 700,
-                      letterSpacing: 0.3,
-                      color: '#1e1e1e',
-                      background: 'linear-gradient(90deg, #ffce54 0%, #ffa94d 40%, #ff7a18 100%)',
-                      borderRadius: 999,
-                      boxShadow: '0 10px 28px rgba(255, 153, 0, 0.35)',
-                      '&:hover': {
-                        filter: 'brightness(1.03)',
-                        boxShadow: '0 12px 32px rgba(255, 153, 0, 0.45)'
-                      }
-                    }}
-                  >
-                    {getEventPriceSummary() === 'Miễn phí' ? 'Tham gia sự kiện' : 'Mua vé ngay'}
-                  </Button>
+                  <Stack direction="row" spacing={1.5}>
+                    <Button
+                      component={Link}
+                      to={`/ticket-selection/${id}`}
+                      fullWidth
+                      size="large"
+                      sx={{
+                        py: 1.1,
+                        fontWeight: 700,
+                        letterSpacing: 0.3,
+                        color: '#1e1e1e',
+                        background: 'linear-gradient(90deg, #ffce54 0%, #ffa94d 40%, #ff7a18 100%)',
+                        borderRadius: 999,
+                        boxShadow: '0 10px 28px rgba(255, 153, 0, 0.35)',
+                        '&:hover': {
+                          filter: 'brightness(1.03)',
+                          boxShadow: '0 12px 32px rgba(255, 153, 0, 0.45)'
+                        }
+                      }}
+                    >
+                      {getEventPriceSummary() === 'Miễn phí' ? 'Tham gia sự kiện' : 'Mua vé ngay'}
+                    </Button>
+                    <Tooltip title={isEventInWishlist() ? 'Bỏ yêu thích' : 'Thêm vào danh sách yêu thích'}>
+                      <Button
+                        onClick={handleToggleEventWishlist}
+                        disabled={isWishlistLoading || !ticketTypes.length}
+                        size="large"
+                        variant={isEventInWishlist() ? 'contained' : 'outlined'}
+                        sx={{
+                          minWidth: '56px',
+                          px: 1.5,
+                          py: 1.1,
+                          borderRadius: 999,
+                          borderColor: isEventInWishlist() ? 'transparent' : 'rgba(255,255,255,0.3)',
+                          backgroundColor: isEventInWishlist() 
+                            ? 'rgba(255, 87, 87, 0.9)' 
+                            : 'transparent',
+                          color: isEventInWishlist() ? '#ffffff' : 'rgba(255,255,255,0.9)',
+                          '&:hover': {
+                            backgroundColor: isEventInWishlist() 
+                              ? 'rgba(255, 87, 87, 1)' 
+                              : 'rgba(255,255,255,0.1)',
+                            borderColor: isEventInWishlist() ? 'transparent' : 'rgba(255,255,255,0.5)'
+                          },
+                          '&:disabled': {
+                            opacity: 0.5
+                          }
+                        }}
+                        startIcon={isWishlistLoading ? <CircularProgress size={20} color="inherit" /> : (isEventInWishlist() ? <Favorite /> : <FavoriteBorder />)}
+                      >
+                      </Button>
+                    </Tooltip>
+                  </Stack>
                 </Stack>
               </Stack>
             </Grid>
