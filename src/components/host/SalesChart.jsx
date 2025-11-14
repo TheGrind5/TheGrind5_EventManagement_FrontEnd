@@ -22,7 +22,7 @@ import { ticketsAPI, eventsAPI } from '../../services/apiClient';
 import { decodeText } from '../../utils/textDecoder';
 import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // Recharts đã được cài đặt và kích hoạt
 const RECCHARTS_INSTALLED = true;
@@ -549,7 +549,7 @@ const SalesChart = ({ hostEvents = [] }) => {
         ['Giá trị đơn hàng TB', formatCurrency(metrics.avgOrderValue)]
       ];
       
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Chỉ số', 'Giá trị']],
         body: summaryData,
@@ -581,7 +581,7 @@ const SalesChart = ({ hostEvents = [] }) => {
         formatCurrency(item.revenue)
       ]);
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Ngày', 'Số vé', 'Doanh thu (VND)']],
         body: tableData,
