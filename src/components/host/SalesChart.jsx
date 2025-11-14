@@ -797,12 +797,20 @@ const SalesChart = ({ hostEvents = [] }) => {
           </Box>
           <ButtonGroup size="small">
             <Tooltip title="Export CSV">
+<<<<<<< Updated upstream
               <IconButton size="small" onClick={handleExportCSV} disabled={chartData.length === 0}>
+=======
+              <IconButton size="small">
+>>>>>>> Stashed changes
                 <FileDownload />
               </IconButton>
             </Tooltip>
             <Tooltip title="Export PDF">
+<<<<<<< Updated upstream
               <IconButton size="small" onClick={handleExportPDF} disabled={chartData.length === 0}>
+=======
+              <IconButton size="small">
+>>>>>>> Stashed changes
                 <PictureAsPdf />
               </IconButton>
             </Tooltip>
