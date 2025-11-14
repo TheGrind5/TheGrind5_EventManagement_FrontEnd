@@ -16,6 +16,7 @@ const EventTicket = ({
   onBuy,
   ctaText = 'Mua vé ngay',
   category,
+  status,
 }) => {
   return (
     <Box
@@ -138,28 +139,35 @@ const EventTicket = ({
               </Typography>
             </Stack>
             <Button
-              onClick={onBuy}
+              onClick={status === 'Closed' ? undefined : onBuy}
+              disabled={status === 'Closed'}
               size="large"
               sx={{
                 px: 3,
                 py: 1.25,
                 borderRadius: 2,
                 fontWeight: 800,
-                color: '#0e0e10',
-                background:
-                  'linear-gradient(90deg, #42f592 0%, #2fe580 50%, #21d773 100%)',
-                boxShadow:
-                  '0 12px 28px rgba(66,245,146,0.22), inset 0 1px 0 rgba(255,255,255,0.25)',
+                color: status === 'Closed' ? 'rgba(255,255,255,0.5)' : '#0e0e10',
+                background: status === 'Closed'
+                  ? 'linear-gradient(90deg, #666666 0%, #555555 50%, #444444 100%)'
+                  : 'linear-gradient(90deg, #42f592 0%, #2fe580 50%, #21d773 100%)',
+                boxShadow: status === 'Closed'
+                  ? '0 4px 12px rgba(0, 0, 0, 0.2)'
+                  : '0 12px 28px rgba(66,245,146,0.22), inset 0 1px 0 rgba(255,255,255,0.25)',
                 textTransform: 'none',
+                cursor: status === 'Closed' ? 'not-allowed' : 'pointer',
                 '&:hover': {
-                  filter: 'brightness(0.98)',
-                  boxShadow: '0 14px 32px rgba(66,245,146,0.28)',
-                  background:
-                    'linear-gradient(90deg, #46ff98 0%, #35ee87 50%, #28e07b 100%)',
+                  filter: status === 'Closed' ? 'none' : 'brightness(0.98)',
+                  boxShadow: status === 'Closed'
+                    ? '0 4px 12px rgba(0, 0, 0, 0.2)'
+                    : '0 14px 32px rgba(66,245,146,0.28)',
+                  background: status === 'Closed'
+                    ? 'linear-gradient(90deg, #666666 0%, #555555 50%, #444444 100%)'
+                    : 'linear-gradient(90deg, #46ff98 0%, #35ee87 50%, #28e07b 100%)',
                 },
               }}
             >
-              {ctaText}
+              {status === 'Closed' ? 'Sự kiện đã kết thúc' : ctaText}
             </Button>
           </Stack>
         </Box>

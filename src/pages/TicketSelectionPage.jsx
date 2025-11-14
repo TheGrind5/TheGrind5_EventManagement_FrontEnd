@@ -87,7 +87,15 @@ const TicketSelectionPage = () => {
 
         const eventData = await eventsAPI.getById(eventId);
         console.log('Event data: ', eventData);
-        setEvent(eventData?.data ?? eventData);
+        const event = eventData?.data ?? eventData;
+        setEvent(event);
+
+        // Check if event is closed
+        if (event?.status === 'Closed') {
+          setError('Sự kiện đã kết thúc. Bạn không thể đặt vé cho sự kiện đã kết thúc.');
+          setLoading(false);
+          return;
+        }
 
         let ticketTypesData;
         try {

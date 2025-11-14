@@ -102,7 +102,15 @@ const CreateOrderPage = () => {
                 // Fetch event data
                 const eventData = await eventsAPI.getById(id);
                 console.log('Event data: ', eventData);
-                setEvent(eventData?.data ?? eventData);
+                const event = eventData?.data ?? eventData;
+                setEvent(event);
+
+                // Check if event is closed
+                if (event?.status === 'Closed') {
+                    setError('Sự kiện đã kết thúc. Bạn không thể đặt vé cho sự kiện đã kết thúc.');
+                    setLoading(false);
+                    return;
+                }
                 
                 // Fetch ticket types separately
                 let ticketTypesData;
