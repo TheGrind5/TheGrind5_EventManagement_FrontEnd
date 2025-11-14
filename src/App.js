@@ -13,6 +13,7 @@ import { ModalProvider } from './contexts/ModalContext';
 
 // Components
 import ProtectedRoute from './components/common/ProtectedRoute';
+import SubscriptionProtectedRoute from './components/common/SubscriptionProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoginModal from './components/common/LoginModal';
 import RegisterModal from './components/common/RegisterModal';
@@ -208,9 +209,9 @@ function AppRoutes() {
       <Route 
         path="/create-event" 
         element={
-          <ProtectedRoute>
+          <SubscriptionProtectedRoute>
             <CreateEventPage />
-          </ProtectedRoute>
+          </SubscriptionProtectedRoute>
         }
       />
       <Route 

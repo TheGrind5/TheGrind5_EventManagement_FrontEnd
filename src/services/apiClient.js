@@ -57,6 +57,8 @@ apiClient.interceptors.response.use(
   (error) => {
     // Global error handling
     console.error('API Error:', error);
+    console.error('API Error Response:', error.response);
+    console.error('API Error Response Data:', error.response?.data);
     
     let errorMessage = 'An unexpected error occurred';
     let errorCode = 500;
@@ -65,6 +67,9 @@ apiClient.interceptors.response.use(
       // Server responded with error status
       errorCode = error.response.status;
       const responseData = error.response.data;
+      
+      // Đảm bảo giữ nguyên error.response.data để component có thể truy cập
+      // Không thay đổi error object, chỉ log thông tin
       
       if (responseData?.message) {
         errorMessage = responseData.message;
@@ -104,12 +109,21 @@ apiClient.interceptors.response.use(
       errorMessage = error.message || 'An unexpected error occurred';
     }
     
-    return Promise.reject({
-      success: false,
-      message: errorMessage,
-      code: errorCode,
-      originalError: error
-    });
+    // Giữ nguyên error object gốc để component có thể truy cập error.response.data
+    // Chỉ thêm thông tin bổ sung nếu cần
+    if (error.response) {
+      // Đảm bảo error.response.data được giữ nguyên
+      error.response.data = error.response.data || {};
+      if (!error.response.data.message && errorMessage) {
+        error.response.data.message = errorMessage;
+      }
+    }
+    
+    // Thêm thông tin bổ sung vào error object
+    error.apiErrorMessage = errorMessage;
+    error.apiErrorCode = errorCode;
+    
+    return Promise.reject(error);
   }
 );
 
@@ -634,6 +648,29 @@ export const commentsAPI = {
   
   toggleReaction: async (commentId, reactionType) => {
     return api.post(`/Comment/${commentId}/reaction`, { reactionType });
+  }
+};
+
+// Host Marketing API
+export const hostMarketingAPI = {
+  getEvents: async () => {
+    return api.get('/HostMarketing/events');
+  },
+  
+  getEventAnalytics: async (eventId) => {
+    return api.get(`/HostMarketing/events/${eventId}/analytics`);
+  },
+  
+  getAudiencePreview: async (eventId, includePending = false) => {
+    return api.get(`/HostMarketing/events/${eventId}/audience-preview?includePending=${includePending}`);
+  },
+  
+  sendBroadcast: async (payload) => {
+    return api.post(`/HostMarketing/events/${payload.eventId}/broadcast`, payload);
+  },
+  
+  sendReminder: async (payload) => {
+    return api.post(`/HostMarketing/events/${payload.eventId}/reminder`, payload);
   }
 };
 

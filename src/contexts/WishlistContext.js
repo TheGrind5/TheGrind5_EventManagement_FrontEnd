@@ -50,7 +50,18 @@ export const WishlistProvider = ({ children }) => {
       await fetchWishlist();
       return true;
     } catch (err) {
-      setError(err.message);
+      // Extract error message from various possible error structures
+      let errorMessage = 'Có lỗi xảy ra khi thêm vào danh sách yêu thích!';
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.response?.data?.Message) {
+        errorMessage = err.response.data.Message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      setError(errorMessage);
       console.error('Failed to add item to wishlist:', err);
       return false;
     } finally {
