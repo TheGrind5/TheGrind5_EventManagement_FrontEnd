@@ -94,13 +94,7 @@ const PaymentStep = ({ data, onChange }) => {
       description: 'Thanh toán qua ZaloPay',
       enabled: false
     },
-    {
-      id: 'vnpay',
-      name: 'VNPay',
-      icon: <AttachMoney />,
-      description: 'Thanh toán qua VNPay',
-      enabled: false
-    },
+    // VNPay removed
     {
       id: 'cash',
       name: 'Tiền mặt',

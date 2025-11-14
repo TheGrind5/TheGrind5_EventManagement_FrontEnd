@@ -250,18 +250,7 @@ const OrderInformationPage = () => {
                             </Box>
                           }
                         />
-                        <FormControlLabel
-                          value="vnpay"
-                          control={<Radio />}
-                          label={
-                            <Box>
-                              <Typography fontWeight={600}>VNPay / Ứng dụng ngân hàng</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Thanh toán qua VNPay QR
-                              </Typography>
-                            </Box>
-                          }
-                        />
+                        {/* VNPay option removed */}
                       </RadioGroup>
                     </FormControl>
                   </CardContent>

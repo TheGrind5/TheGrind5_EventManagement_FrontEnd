@@ -155,7 +155,7 @@ const LoginPage = () => {
                 >
                   {loading ? (
                     <Stack direction="row" spacing={1} alignItems="center">
-                      <CircularProgress size={20} />
+                    <CircularProgress size={20} sx={{ color: '#ffffff' }} />
                       <Typography>Đang đăng nhập...</Typography>
                     </Stack>
                   ) : (

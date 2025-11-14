@@ -165,16 +165,8 @@ const RecipientInformationPage = () => {
 
       await ordersAPI.update(orderId, updateData);
 
-      // Get payment method from location state
-      const paymentMethod = location.state?.paymentMethod || 'vnpay';
-
-      // Navigate to payment page based on payment method
-      if (paymentMethod === 'vnpay') {
-        navigate(`/payment/vnpay/${orderId}`);
-      } else {
-        // For wallet payment, go to existing payment page
-        navigate(`/payment/${orderId}`);
-      }
+      // Always navigate to wallet payment page (VNPay removed)
+      navigate(`/payment/${orderId}`);
 
     } catch (err) {
       console.error('Error updating order:', err);

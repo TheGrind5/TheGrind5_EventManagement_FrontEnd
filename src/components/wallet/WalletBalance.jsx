@@ -23,12 +23,16 @@ import {
 
 const WalletBalance = ({ balance, currency, onRefresh }) => {
   const formatCurrency = (amount) => {
+    // Đảm bảo amount là number
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    
+    // Format cho VND
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: currency === 'VND' ? 'VND' : 'USD',
+      currency: 'VND',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount);
+    }).format(numAmount || 0);
   };
 
   const getBalanceStatus = () => {
