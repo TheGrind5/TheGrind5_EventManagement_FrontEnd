@@ -62,30 +62,25 @@ const FeedbackSection = ({ eventId }) => {
   }, [eventId, loadComments]);
 
   const handleCommentChange = (e) => {
+    setNewComment(e.target.value);
+    
+    // Đảm bảo con trỏ luôn ở cuối sau khi gõ
     const textarea = e.target;
     if (textarea) {
-      textarea.setAttribute('dir', 'ltr');
-      textarea.style.direction = 'ltr';
-      textarea.style.textAlign = 'left';
+      setTimeout(() => {
+        const length = textarea.value.length;
+        textarea.setSelectionRange(length, length);
+      }, 0);
     }
-    setNewComment(e.target.value);
   };
 
   const handleCommentInput = (e) => {
     const textarea = e.target;
     if (textarea) {
-      textarea.setAttribute('dir', 'ltr');
-      textarea.style.direction = 'ltr';
-      textarea.style.textAlign = 'left';
-    }
-  };
-
-  const handleCommentFocus = (e) => {
-    const textarea = e.target;
-    if (textarea) {
-      textarea.setAttribute('dir', 'ltr');
-      textarea.style.direction = 'ltr';
-      textarea.style.textAlign = 'left';
+      setTimeout(() => {
+        const length = textarea.value.length;
+        textarea.setSelectionRange(length, length);
+      }, 0);
     }
   };
 
@@ -209,7 +204,7 @@ const FeedbackSection = ({ eventId }) => {
     const replyInputRef = useRef(null);
     const wasReplyingRef = useRef(false);
 
-    // Focus vào input khi reply box mở và set direction
+    // Focus vào input khi reply box mở
     // Chỉ focus khi reply box vừa mới mở, không phải mỗi lần re-render
     useEffect(() => {
       const isCurrentlyReplying = replyingTo === comment.commentId;
@@ -218,73 +213,47 @@ const FeedbackSection = ({ eventId }) => {
       if (isCurrentlyReplying && !wasReplyingRef.current && replyInputRef.current) {
         wasReplyingRef.current = true;
         
+        // Check if any input is currently focused
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement && (
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.tagName === 'INPUT'
+        );
+        
         // Chỉ focus nếu không có input nào khác đang được focus
-        setTimeout(() => {
-          const activeElement = document.activeElement;
-          const isInputFocused = activeElement && (
-            activeElement.tagName === 'TEXTAREA' || 
-            activeElement.tagName === 'INPUT'
-          );
-          
-          const textarea = replyInputRef.current?.querySelector('textarea') || replyInputRef.current;
-          if (textarea) {
-            textarea.setAttribute('dir', 'ltr');
-            textarea.style.direction = 'ltr';
-            textarea.style.textAlign = 'left';
-            
-            // Chỉ focus nếu không có input nào khác đang được focus
-            if (!isInputFocused) {
-              replyInputRef.current?.focus();
-            }
-          }
-        }, 100);
+        if (!isInputFocused) {
+          replyInputRef.current?.focus();
+        }
       } else if (!isCurrentlyReplying) {
         // Reset flag khi reply box đóng
         wasReplyingRef.current = false;
-      } else if (isCurrentlyReplying && replyInputRef.current) {
-        // Vẫn set direction khi reply box đang mở nhưng không focus
-        setTimeout(() => {
-          const textarea = replyInputRef.current?.querySelector('textarea') || replyInputRef.current;
-          if (textarea) {
-            textarea.setAttribute('dir', 'ltr');
-            textarea.style.direction = 'ltr';
-            textarea.style.textAlign = 'left';
-          }
-        }, 0);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [replyingTo, comment.commentId]);
 
     // Handler cho onChange reply với useCallback để tránh re-render không cần thiết
     const handleReplyChange = useCallback((e) => {
-      const textarea = e.target;
-      if (textarea) {
-        // Force LTR direction - giống như comment input
-        textarea.setAttribute('dir', 'ltr');
-        textarea.style.direction = 'ltr';
-        textarea.style.textAlign = 'left';
-      }
       const value = e.target.value;
       setReplyContent(prev => ({ ...prev, [comment.commentId]: value }));
+      
+      // Đảm bảo con trỏ luôn ở cuối sau khi gõ
+      const textarea = e.target;
+      if (textarea) {
+        setTimeout(() => {
+          const length = textarea.value.length;
+          textarea.setSelectionRange(length, length);
+        }, 0);
+      }
     }, [comment.commentId]);
 
-    // Handler onInput để đảm bảo direction được set mỗi khi gõ
+    // Handler onInput để đảm bảo cursor position đúng sau khi gõ
     const handleReplyInput = useCallback((e) => {
       const textarea = e.target;
       if (textarea) {
-        textarea.setAttribute('dir', 'ltr');
-        textarea.style.direction = 'ltr';
-        textarea.style.textAlign = 'left';
-      }
-    }, []);
-
-    // Handler để đảm bảo direction luôn là ltr khi focus
-    const handleReplyFocus = useCallback((e) => {
-      const textarea = e.target;
-      if (textarea) {
-        textarea.setAttribute('dir', 'ltr');
-        textarea.style.direction = 'ltr';
-        textarea.style.textAlign = 'left';
+        setTimeout(() => {
+          const length = textarea.value.length;
+          textarea.setSelectionRange(length, length);
+        }, 0);
       }
     }, []);
 
@@ -357,7 +326,7 @@ const FeedbackSection = ({ eventId }) => {
                 
                 {/* Reply input */}
                 {!isReply && replyingTo === comment.commentId && (
-                  <Box sx={{ mt: 2, direction: 'ltr' }}>
+                  <Box sx={{ mt: 2 }}>
                     <TextField
                       inputRef={replyInputRef}
                       fullWidth
@@ -367,31 +336,14 @@ const FeedbackSection = ({ eventId }) => {
                       value={replyText}
                       onChange={handleReplyChange}
                       onInput={handleReplyInput}
-                      onFocus={handleReplyFocus}
                       size="small"
-                      sx={{ 
-                        mb: 1, 
-                        direction: 'ltr', 
-                        '& textarea': { 
-                          direction: 'ltr !important',
-                          textAlign: 'left !important'
-                        },
-                        '& input': {
-                          direction: 'ltr !important',
-                          textAlign: 'left !important'
-                        }
-                      }}
-                      InputProps={{
-                        style: { direction: 'ltr', textAlign: 'left' }
-                      }}
                       inputProps={{ 
-                        dir: 'ltr', 
                         style: { 
-                          direction: 'ltr', 
+                          direction: 'ltr',
                           textAlign: 'left'
                         },
-                        onFocus: handleReplyFocus,
-                        onInput: handleReplyInput
+                        autoCapitalize: 'sentences',
+                        spellCheck: 'true'
                       }}
                     />
                     <Stack direction="row" spacing={1}>
@@ -463,7 +415,7 @@ const FeedbackSection = ({ eventId }) => {
       {user && (
         <Card variant="outlined" sx={{ mb: 3 }}>
           <CardContent>
-            <Stack spacing={2} sx={{ direction: 'ltr' }}>
+            <Stack spacing={2}>
               <TextField
                 fullWidth
                 multiline
@@ -472,30 +424,14 @@ const FeedbackSection = ({ eventId }) => {
                 value={newComment}
                 onChange={handleCommentChange}
                 onInput={handleCommentInput}
-                onFocus={handleCommentFocus}
                 disabled={submitting}
-                sx={{ 
-                  direction: 'ltr', 
-                  '& textarea': { 
-                    direction: 'ltr !important',
-                    textAlign: 'left !important'
-                  },
-                  '& input': {
-                    direction: 'ltr !important',
-                    textAlign: 'left !important'
-                  }
-                }}
-                InputProps={{
-                  style: { direction: 'ltr', textAlign: 'left' }
-                }}
                 inputProps={{ 
-                  dir: 'ltr', 
                   style: { 
-                    direction: 'ltr', 
+                    direction: 'ltr',
                     textAlign: 'left'
                   },
-                  onFocus: handleCommentFocus,
-                  onInput: handleCommentInput
+                  autoCapitalize: 'sentences',
+                  spellCheck: 'true'
                 }}
               />
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>

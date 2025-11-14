@@ -449,26 +449,64 @@ const EventDetailsPage = () => {
                     </Typography>
                   </Stack>
                   <Button
-                    component={Link}
-                    to={`/ticket-selection/${id}`}
+                    component={event.status === 'Closed' ? 'div' : Link}
+                    to={event.status === 'Closed' ? undefined : `/ticket-selection/${id}`}
                     fullWidth
                     size="large"
+                    disabled={event.status === 'Closed'}
                     sx={{
                       py: 1.1,
                       fontWeight: 700,
                       letterSpacing: 0.3,
-                      color: '#1e1e1e',
-                      background: 'linear-gradient(90deg, #ffce54 0%, #ffa94d 40%, #ff7a18 100%)',
+                      color: event.status === 'Closed' ? 'rgba(255,255,255,0.5)' : '#1e1e1e',
+                      background: event.status === 'Closed' 
+                        ? 'linear-gradient(90deg, #666666 0%, #555555 40%, #444444 100%)'
+                        : 'linear-gradient(90deg, #ffce54 0%, #ffa94d 40%, #ff7a18 100%)',
                       borderRadius: 999,
-                      boxShadow: '0 10px 28px rgba(255, 153, 0, 0.35)',
+                      boxShadow: event.status === 'Closed'
+                        ? '0 4px 12px rgba(0, 0, 0, 0.2)'
+                        : '0 10px 28px rgba(255, 153, 0, 0.35)',
+                      cursor: event.status === 'Closed' ? 'not-allowed' : 'pointer',
                       '&:hover': {
-                        filter: 'brightness(1.03)',
-                        boxShadow: '0 12px 32px rgba(255, 153, 0, 0.45)'
+                        filter: event.status === 'Closed' ? 'none' : 'brightness(1.03)',
+                        boxShadow: event.status === 'Closed'
+                          ? '0 4px 12px rgba(0, 0, 0, 0.2)'
+                          : '0 12px 32px rgba(255, 153, 0, 0.45)'
                       }
                     }}
                   >
-                    {getEventPriceSummary() === 'Miễn phí' ? 'Tham gia sự kiện' : 'Mua vé ngay'}
+                    {event.status === 'Closed' ? 'Sự kiện đã kết thúc' : 
+                     (getEventPriceSummary() === 'Miễn phí' ? 'Tham gia sự kiện' : 'Mua vé ngay')}
                   </Button>
+                  
+                  {event.status === 'Closed' && (
+                    <Button
+                      fullWidth
+                      size="large"
+                      onClick={() => {
+                        const feedbackSection = document.getElementById('feedback-section');
+                        if (feedbackSection) {
+                          feedbackSection.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
+                      sx={{
+                        mt: 1,
+                        py: 1.1,
+                        fontWeight: 700,
+                        letterSpacing: 0.3,
+                        color: '#fff',
+                        background: 'linear-gradient(90deg, #42f592 0%, #2fe580 50%, #21d773 100%)',
+                        borderRadius: 999,
+                        boxShadow: '0 10px 28px rgba(66, 245, 146, 0.35)',
+                        '&:hover': {
+                          filter: 'brightness(1.03)',
+                          boxShadow: '0 12px 32px rgba(66, 245, 146, 0.45)'
+                        }
+                      }}
+                    >
+                      Gửi phản hồi về sự kiện
+                    </Button>
+                  )}
                 </Stack>
               </Stack>
             </Grid>
@@ -615,7 +653,8 @@ const EventDetailsPage = () => {
                         <Chip 
                           label={event.status} 
                           color={event.status === 'Active' ? 'success' : 
-                                 event.status === 'Upcoming' ? 'warning' : 'default'}
+                                 event.status === 'Upcoming' ? 'warning' : 
+                                 event.status === 'Closed' ? 'default' : 'default'}
                         />
                       </Box>
                     </Box>
@@ -1070,9 +1109,9 @@ const EventDetailsPage = () => {
                                 <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
                                   {ticket.price === 0 ? 'Miễn phí' : formatPrice(ticket.price)}
                                 </Typography>
-                                {(!isAvailable || !isOnSale) && (
+                                {(!isAvailable || !isOnSale || event.status === 'Closed') && (
                                   <Chip 
-                                    label={!isOnSale ? 'Chưa mở bán' : 'Hết vé'} 
+                                    label={event.status === 'Closed' ? 'Đã kết thúc' : (!isOnSale ? 'Chưa mở bán' : 'Hết vé')} 
                                     color="error" 
                                     size="small" 
                                     sx={{ mt: 0.5 }}
@@ -1081,7 +1120,7 @@ const EventDetailsPage = () => {
                               </Box>
                             </Box>
                             
-                            {isAvailable && isOnSale && (
+                            {isAvailable && isOnSale && event.status !== 'Closed' && (
                               <Button 
                                 component={Link} 
                                 to={`/event/${id}/order/create?ticketType=${ticket.ticketTypeId}`}
@@ -1089,6 +1128,22 @@ const EventDetailsPage = () => {
                                 fullWidth
                                 size="small"
                                 startIcon={<ShoppingCart />}
+                              >
+                                Chọn vé
+                              </Button>
+                            )}
+                            {isAvailable && isOnSale && event.status === 'Closed' && (
+                              <Button 
+                                component="div"
+                                variant="contained"
+                                fullWidth
+                                size="small"
+                                disabled={true}
+                                startIcon={<ShoppingCart />}
+                                sx={{
+                                  cursor: 'not-allowed',
+                                  opacity: 0.6
+                                }}
                               >
                                 Chọn vé
                               </Button>
@@ -1102,21 +1157,42 @@ const EventDetailsPage = () => {
                       </Box>
 
                       {/* Quick Action Button */}
-                      <Button 
-                        component={Link} 
-                        to={`/ticket-selection/${id}`}
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        sx={{ 
-                          mt: 3,
-                          py: 1.5,
-                          fontSize: '1.1rem',
-                          fontWeight: 700
-                        }}
-                      >
-                        Đặt vé ngay
-                      </Button>
+                      {event.status !== 'Closed' && (
+                        <Button 
+                          component={Link} 
+                          to={`/ticket-selection/${id}`}
+                          variant="contained"
+                          fullWidth
+                          size="large"
+                          sx={{ 
+                            mt: 3,
+                            py: 1.5,
+                            fontSize: '1.1rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          Đặt vé ngay
+                        </Button>
+                      )}
+                      {event.status === 'Closed' && (
+                        <Button 
+                          component="div"
+                          variant="contained"
+                          fullWidth
+                          size="large"
+                          disabled={true}
+                          sx={{ 
+                            mt: 3,
+                            py: 1.5,
+                            fontSize: '1.1rem',
+                            fontWeight: 700,
+                            cursor: 'not-allowed',
+                            opacity: 0.6
+                          }}
+                        >
+                          Đặt vé ngay
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </Box>
@@ -1219,7 +1295,9 @@ const EventDetailsPage = () => {
         </Box>
 
         {/* Feedback Section */}
-        <FeedbackSection eventId={id} />
+        <Box id="feedback-section">
+          <FeedbackSection eventId={id} />
+        </Box>
 
       {/* AI Chatbot */}
       <AIChatbot eventId={id} />
