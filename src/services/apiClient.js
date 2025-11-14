@@ -540,6 +540,19 @@ export const paymentAPI = {
   
   cancelPayment: async (paymentId) => {
     return api.post(`/Payment/${paymentId}/cancel`);
+  },
+  
+  // PayOS APIs
+  createPayOSTopUp: async (topUpData) => {
+    return api.post('/Payment/payos/create-topup', topUpData);
+  },
+  
+  getPayOSStatus: async (paymentId) => {
+    return api.get(`/Payment/payos/${paymentId}/status`);
+  },
+  
+  cancelPayOSPayment: async (paymentId) => {
+    return api.post(`/Payment/payos/${paymentId}/cancel`);
   }
 };
 

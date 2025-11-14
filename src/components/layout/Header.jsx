@@ -74,7 +74,7 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
     try {
       setBalanceLoading(true);
       const response = await walletAPI.getBalance();
-      setWalletBalance(response.data.balance);
+      setWalletBalance(response.data.balance || 0);
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
       // Don't show error to user in header, just log it
