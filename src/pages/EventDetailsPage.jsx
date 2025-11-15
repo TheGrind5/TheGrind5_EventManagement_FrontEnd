@@ -41,6 +41,8 @@ import { eventsAPI, ticketsAPI, productsAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { decodeText } from '../utils/textDecoder';
+import { getImageUrl } from '../utils/helpers';
+import config from '../config/environment';
 
 const EventDetailsPage = () => {
   const { id } = useParams();
@@ -109,7 +111,106 @@ const EventDetailsPage = () => {
         console.log('Event response:', response);
         console.log('Event venueLayout:', response.data?.venueLayout);
         console.log('Has virtual stage:', response.data?.venueLayout?.hasVirtualStage);
-        setEvent(response.data);
+        
+        const eventData = response.data;
+        
+        // QUAN TRỌNG: Parse eventDetails và organizerInfo nếu là JSON string
+        let parsedEventDetails = eventData.eventDetails;
+        let parsedOrganizerInfo = eventData.organizerInfo;
+        
+        if (typeof eventData.eventDetails === 'string') {
+          try {
+            parsedEventDetails = JSON.parse(eventData.eventDetails);
+          } catch (e) {
+            console.warn('Error parsing eventDetails:', e);
+            parsedEventDetails = {};
+          }
+        }
+        
+        if (typeof eventData.organizerInfo === 'string') {
+          try {
+            parsedOrganizerInfo = JSON.parse(eventData.organizerInfo);
+          } catch (e) {
+            console.warn('Error parsing organizerInfo:', e);
+            parsedOrganizerInfo = {};
+          }
+        }
+        
+        // QUAN TRỌNG: Parse VenueLayout nếu là JSON string
+        let parsedVenueLayout = eventData.venueLayout;
+        if (typeof eventData.venueLayout === 'string') {
+          try {
+            parsedVenueLayout = JSON.parse(eventData.venueLayout);
+          } catch (e) {
+            console.warn('Error parsing venueLayout:', e);
+            parsedVenueLayout = null;
+          }
+        }
+        
+        // Merge parsed data vào eventData
+        const processedEventData = {
+          ...eventData,
+          eventDetails: parsedEventDetails,
+          organizerInfo: parsedOrganizerInfo,
+          venueLayout: parsedVenueLayout, // QUAN TRỌNG: Parse venueLayout
+          // Đảm bảo có eventImage, backgroundImage, organizerLogo trực tiếp
+          eventImage: eventData.eventImage || parsedEventDetails?.eventImage || (parsedEventDetails?.images && parsedEventDetails.images.length > 0 ? parsedEventDetails.images[0] : null),
+          backgroundImage: eventData.backgroundImage || parsedEventDetails?.backgroundImage || (parsedEventDetails?.images && parsedEventDetails.images.length > 1 ? parsedEventDetails.images[1] : null),
+          organizerLogo: eventData.organizerLogo || parsedOrganizerInfo?.organizerLogo,
+          // QUAN TRỌNG: Đảm bảo có campus trực tiếp (handle cả PascalCase và nested trong eventDetails)
+          campus: eventData.campus || eventData.Campus || parsedEventDetails?.campus || null
+        };
+        
+        console.log('=== Processed event data (before venue layout fallback) ===');
+        console.log('EventImage:', processedEventData.eventImage);
+        console.log('BackgroundImage:', processedEventData.backgroundImage);
+        console.log('OrganizerLogo:', processedEventData.organizerLogo);
+        console.log('Campus:', processedEventData.campus);
+        console.log('VenueLayout:', processedEventData.venueLayout);
+        console.log('VenueLayout type:', typeof processedEventData.venueLayout);
+        console.log('HasVirtualStage:', processedEventData.venueLayout?.hasVirtualStage);
+        console.log('Areas count:', processedEventData.venueLayout?.areas?.length);
+
+        // Fallback: Nếu venueLayout không có hoặc thiếu hasVirtualStage, gọi API riêng để lấy layout mới nhất
+        let finalEventData = processedEventData;
+        try {
+          const needsSeparateLayoutFetch = !processedEventData.venueLayout ||
+            typeof processedEventData.venueLayout !== 'object' ||
+            processedEventData.venueLayout.hasVirtualStage === undefined;
+
+          if (needsSeparateLayoutFetch) {
+            console.log('Fetching venue layout from separate API...');
+            const layoutResponse = await eventsAPI.getVenueLayout(id);
+            let layoutData = layoutResponse.data?.venueLayout || layoutResponse.data?.VenueLayout || layoutResponse.data;
+
+            if (typeof layoutData === 'string') {
+              try {
+                layoutData = JSON.parse(layoutData);
+              } catch (e) {
+                console.warn('Error parsing venue layout from API:', e);
+                layoutData = null;
+              }
+            }
+
+            if (layoutData) {
+              finalEventData = {
+                ...processedEventData,
+                venueLayout: layoutData
+              };
+              console.log('Updated venueLayout from separate API:', layoutData);
+            }
+          }
+        } catch (layoutErr) {
+          console.warn('Could not fetch separate venue layout, using embedded layout if any:', layoutErr);
+        }
+
+        console.log('=== Final event data ===');
+        console.log('Campus (final):', finalEventData.campus);
+        console.log('VenueLayout (final):', finalEventData.venueLayout);
+        console.log('HasVirtualStage (final):', finalEventData.venueLayout?.hasVirtualStage);
+        console.log('Areas count (final):', finalEventData.venueLayout?.areas?.length);
+        
+        setEvent(finalEventData);
         
         // Fetch real ticket types from API
         try {
@@ -206,7 +307,7 @@ const EventDetailsPage = () => {
       // Revert nếu lỗi mạng
       setHasReported(false);
       if (reportedKey) localStorage.removeItem(reportedKey);
-      alert(error?.response?.data?.message || 'Có lỗi xảy ra khi báo cáo sự kiện. Vui lòng thử lại sau.');
+      alert(error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi báo cáo sự kiện. Vui lòng thử lại sau.');
     } finally {
       setIsReporting(false);
     }
@@ -269,29 +370,22 @@ const EventDetailsPage = () => {
     return `Chỉ từ ${formatPrice(minPrice)}`;
   };
 
-  // Kiểm tra xem event có trong wishlist không (kiểm tra xem có ticket type nào của event này trong wishlist)
+  // Helper function để kiểm tra xem event có trong wishlist không
   const isEventInWishlist = () => {
-    if (!ticketTypes.length) return false;
     return ticketTypes.some(ticket => isInWishlist(ticket.ticketTypeId));
   };
 
-  // Lấy ticket type đầu tiên có sẵn để thêm vào wishlist
+  // Helper function để lấy ticket type đầu tiên có sẵn
   const getFirstAvailableTicketType = () => {
-    if (!ticketTypes.length) return null;
-    // Tìm ticket type đầu tiên có sẵn và đang bán
-    const availableTicket = ticketTypes.find(ticket => {
-      const isAvailable = ticket.availableQuantity > 0 && ticket.status === 'Active';
-      const isOnSale = new Date() >= new Date(ticket.saleStart) && new Date() <= new Date(ticket.saleEnd);
-      return isAvailable && isOnSale && ticket.ticketTypeId;
-    });
-    // Nếu không có ticket đang bán, lấy ticket type đầu tiên có ticketTypeId
-    if (!availableTicket) {
-      return ticketTypes.find(ticket => ticket.ticketTypeId) || ticketTypes[0];
-    }
-    return availableTicket;
+    return ticketTypes.find(ticket => 
+      ticket.availableQuantity > 0 && 
+      ticket.status === 'Active' &&
+      new Date() >= new Date(ticket.saleStart) && 
+      new Date() <= new Date(ticket.saleEnd)
+    ) || ticketTypes[0];
   };
 
-  // Xử lý thêm/xóa event vào wishlist
+  // Function để toggle event wishlist
   const handleToggleEventWishlist = async () => {
     if (!user) {
       alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích!');
@@ -422,12 +516,30 @@ const EventDetailsPage = () => {
   }
 
   // Lấy ảnh nền (1280x720) - dùng cho EventDetailsPage
-  // eventImage (720x958) được lưu nhưng không hiển thị
-  const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage || null;
-  const imageToUse = backgroundImage;
-  const imageUrl = imageToUse ? 
-    (imageToUse.startsWith('http') ? imageToUse : `http://localhost:5000${imageToUse.startsWith('/') ? '' : '/'}${imageToUse}`) : 
-    null;
+  // Ưu tiên: event.backgroundImage (từ MapToEventDetailDto) > eventDetails.backgroundImage > eventDetails.images[1]
+  let backgroundImage = event.backgroundImage || event.BackgroundImage || null;
+  
+  // Fallback: Parse from eventDetails nếu backgroundImage không có
+  if (!backgroundImage && event.eventDetails) {
+    // eventDetails đã được parse trong fetchEvent
+    backgroundImage = event.eventDetails?.backgroundImage || event.eventDetails?.BackgroundImage || null;
+    
+    // Nếu vẫn không có, thử lấy từ images array
+    if (!backgroundImage && event.eventDetails?.images && Array.isArray(event.eventDetails.images) && event.eventDetails.images.length > 1) {
+      backgroundImage = event.eventDetails.images[1];
+    }
+  }
+  
+  // Sử dụng helper getImageUrl để normalize và build full URL
+  const imageUrl = getImageUrl(backgroundImage, config.BASE_URL);
+  const imageToUse = imageUrl;
+  
+  console.log('EventDetailsPage - Image URLs:', {
+    backgroundImage,
+    imageUrl,
+    eventBackgroundImage: event.backgroundImage,
+    eventDetailsBackgroundImage: event.eventDetails?.backgroundImage
+  });
 
   return (
     <Box sx={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden', position: 'relative' }}>

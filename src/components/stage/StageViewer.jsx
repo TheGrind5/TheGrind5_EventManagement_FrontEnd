@@ -196,15 +196,15 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick, eventId }) => {
                       width={Math.max(...area.coordinates.map(getCoordX)) - Math.min(...area.coordinates.map(getCoordX))}
                       height={Math.max(...area.coordinates.map(getCoordY)) - Math.min(...area.coordinates.map(getCoordY))}
                       fill={area.color}
-                      opacity={0.6}
+                      opacity={0.8}
                       stroke="#fff"
                       strokeWidth={2}
                       onClick={() => handleAreaClick(area)}
                       onMouseEnter={(e) => {
-                        e.target.opacity(0.8);
+                        e.target.opacity(0.95);
                       }}
                       onMouseLeave={(e) => {
-                        e.target.opacity(0.6);
+                        e.target.opacity(0.8);
                       }}
                     />
                     <Text

@@ -704,6 +704,10 @@ export const commentsAPI = {
 
 // Host Marketing API
 export const hostMarketingAPI = {
+  getOverview: async () => {
+    return api.get('/HostMarketing/overview');
+  },
+
   getEvents: async () => {
     return api.get('/HostMarketing/events');
   },
