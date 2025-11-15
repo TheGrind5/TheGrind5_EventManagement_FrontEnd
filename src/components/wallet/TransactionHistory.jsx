@@ -47,6 +47,24 @@ const TransactionHistory = () => {
     return () => window.removeEventListener('refreshTransactions', handleRefresh);
   }, []);
 
+  // Helper function to remove duplicate transactions based on transactionId
+  const removeDuplicates = (transactions) => {
+    const seen = new Set();
+    return transactions.filter(transaction => {
+      // Use transactionId as unique identifier, fallback to referenceId + createdAt if transactionId is missing
+      const uniqueKey = transaction.transactionId 
+        ? `id_${transaction.transactionId}`
+        : `ref_${transaction.referenceId || 'unknown'}_${transaction.createdAt}`;
+      
+      if (seen.has(uniqueKey)) {
+        console.warn('Duplicate transaction detected:', transaction);
+        return false;
+      }
+      seen.add(uniqueKey);
+      return true;
+    });
+  };
+
   const fetchTransactions = async (reset = false) => {
     try {
       setLoading(true);
@@ -55,13 +73,20 @@ const TransactionHistory = () => {
       const currentPage = reset ? 1 : page;
       const response = await walletAPI.getTransactions(currentPage, 10);
       
+      // Remove duplicates from response
+      const uniqueTransactions = removeDuplicates(response.data.transactions || []);
+      
       if (reset) {
-        setTransactions(response.data.transactions);
+        setTransactions(uniqueTransactions);
       } else {
-        setTransactions(prev => [...prev, ...response.data.transactions]);
+        setTransactions(prev => {
+          // Combine previous and new transactions, then remove all duplicates
+          const combined = [...prev, ...uniqueTransactions];
+          return removeDuplicates(combined);
+        });
       }
       
-      setHasMore(response.data.transactions.length === 10);
+      setHasMore(uniqueTransactions.length === 10);
       setPage(currentPage + 1);
       
     } catch (err) {
@@ -179,8 +204,13 @@ const TransactionHistory = () => {
                   const TransactionIcon = getTransactionIcon(transaction.transactionType);
                   const isPositive = transaction.transactionType === 'Deposit' || transaction.transactionType === 'Refund';
                   
+                  // Create unique key: use transactionId if available, otherwise use index + referenceId + createdAt
+                  const uniqueKey = transaction.transactionId 
+                    ? `transaction_${transaction.transactionId}`
+                    : `transaction_${index}_${transaction.referenceId || 'unknown'}_${transaction.createdAt}`;
+                  
                   return (
-                    <React.Fragment key={transaction.transactionId}>
+                    <React.Fragment key={uniqueKey}>
                       <ListItem sx={{ px: 0 }}>
                         <ListItemIcon>
                           <TransactionIcon color={getTransactionColor(transaction.transactionType)} />
