@@ -29,6 +29,7 @@ import { Search, Person, AttachMoney, CalendarToday, Block, CheckCircle, Event a
 import adminAPI from '../../services/adminAPI';
 import adminService from '../../services/adminService';
 import NotificationIcon from '../common/NotificationIcon';
+import { formatVietnamDateTimeShort } from '../../utils/dateTimeUtils';
 import './UserManagement.css';
 
 const UserManagement = () => {
@@ -149,16 +150,8 @@ const UserManagement = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Sử dụng formatVietnamDateTimeShort từ dateTimeUtils để đồng bộ UTC+7
+  const formatDate = formatVietnamDateTimeShort;
 
   // Ban/Unban handlers
   const handleBanClick = (user) => {

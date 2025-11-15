@@ -2003,8 +2003,6 @@ const HomePage = () => {
 
       />
 
-      
-
       {/* Hero Featured Events Section - FPT Play Style */}
       {featuredEventsForHero.length > 0 && (
         <Box sx={{ 

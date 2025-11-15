@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { ArrowBackIos, ArrowForwardIos, CalendarToday } from '@mui/icons-material';
 import adminAPI from '../../services/adminAPI';
+import { formatVietnamDateTimeShort } from '../../utils/dateTimeUtils';
 import './EventCalendar.css';
 
 const EventCalendar = () => {
@@ -57,6 +58,16 @@ const EventCalendar = () => {
     return grouped;
   }, [events]);
 
+  // Helper function để kiểm tra xem một ngày có phải là hôm nay không
+  const isToday = (date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
   const calendarCells = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -76,6 +87,7 @@ const EventCalendar = () => {
         label: cellDate.getDate(),
         date: cellDate,
         isCurrentMonth: inCurrentMonth,
+        isToday: isToday(cellDate),
         events: eventsByDate[key] || []
       };
     });
@@ -108,16 +120,8 @@ const EventCalendar = () => {
     });
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Sử dụng formatVietnamDateTimeShort từ dateTimeUtils để đồng bộ UTC+7
+  const formatDate = formatVietnamDateTimeShort;
 
   if (loading) {
     return (
@@ -170,7 +174,7 @@ const EventCalendar = () => {
                 <button
                   key={cell.key}
                   type="button"
-                  className={`calendar-cell ${cell.isCurrentMonth ? '' : 'calendar-cell--faded'} ${cell.events.length ? 'calendar-cell--has-events' : ''}`}
+                  className={`calendar-cell ${cell.isCurrentMonth ? '' : 'calendar-cell--faded'} ${cell.events.length ? 'calendar-cell--has-events' : ''} ${cell.isToday ? 'calendar-cell--today' : ''}`}
                   onClick={() => handleDayClick(cell)}
                 >
                   <span className="calendar-day-number">{cell.label}</span>

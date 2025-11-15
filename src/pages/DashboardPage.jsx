@@ -310,7 +310,7 @@ const DashboardPage = () => {
               sx={{
                 display: 'inline-flex',
                 whiteSpace: 'nowrap',
-                animation: 'scroll-left 40s linear infinite',
+                animation: 'scroll-left 100s linear infinite',
                 '@keyframes scroll-left': {
                   '0%': {
                     transform: 'translateX(100%)'
@@ -321,24 +321,47 @@ const DashboardPage = () => {
                 }
               }}
             >
-              {/* Duplicate announcements for seamless loop */}
-              {[...announcements, ...announcements].map((announcement, index) => (
-                <Typography
-                  key={`${announcement.announcementId || announcement.AnnouncementId || index}-${Math.floor(index / announcements.length)}`}
-                  variant="body1"
-                  component="span"
-                  sx={{
-                    color: theme.palette.primary.main,
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
-                    px: 4,
-                    display: 'inline-block',
-                    flexShrink: 0
-                  }}
-                >
-                  {announcement.content || announcement.Content} • 
-                </Typography>
-              ))}
+              {/* Pattern: A B [gap] A B [gap] A B... */}
+              {(() => {
+                // Calculate total width of all announcements for gap
+                const announcementsWithGap = [];
+                
+                // Add all announcements
+                announcements.forEach((announcement, index) => {
+                  announcementsWithGap.push(
+                    <Typography
+                      key={`announcement-${announcement.announcementId || announcement.AnnouncementId || index}`}
+                      variant="body1"
+                      component="span"
+                      sx={{
+                        color: theme.palette.primary.main,
+                        fontWeight: 600,
+                        fontSize: '1.1rem',
+                        px: 4,
+                        display: 'inline-block',
+                        flexShrink: 0
+                      }}
+                    >
+                      {announcement.content || announcement.Content} • 
+                    </Typography>
+                  );
+                });
+                
+                // Add gap (empty space with minimum width = viewport width)
+                announcementsWithGap.push(
+                  <Box
+                    key="gap"
+                    sx={{
+                      display: 'inline-block',
+                      minWidth: '100vw',
+                      flexShrink: 0
+                    }}
+                  />
+                );
+                
+                // Repeat the pattern multiple times for seamless loop
+                return [...announcementsWithGap, ...announcementsWithGap, ...announcementsWithGap];
+              })()}
             </Box>
           </Box>
         )}
