@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Dashboard,
   People,
   Event,
   Receipt,
@@ -36,7 +35,6 @@ const AdminSidebar = ({ onLogout }) => {
   }, [location.pathname]);
 
   const menuItems = [
-    { path: '/admin/dashboard', icon: <Dashboard />, label: 'Dashboard', },
     { path: '/admin/users', icon: <People />, label: 'Quản Lý Users' },
     { path: '/admin/events', icon: <Event />, label: 'Quản Lý Events' },
     { path: '/admin/events/calendar', icon: <CalendarToday />, label: 'Lịch Sự Kiện' },

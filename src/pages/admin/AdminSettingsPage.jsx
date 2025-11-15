@@ -67,7 +67,6 @@ const AdminSettingsPage = () => {
   // System Settings
   const [systemSettings, setSystemSettings] = useState({
     maintenanceMode: false,
-    allowRegistration: true,
     requireEmailVerification: true,
     sessionTimeout: 30
   });
@@ -119,7 +118,6 @@ const AdminSettingsPage = () => {
       if (response.success && response.data) {
         setSystemSettings({
           maintenanceMode: response.data.maintenanceMode || false,
-          allowRegistration: response.data.allowRegistration !== false,
           requireEmailVerification: response.data.requireEmailVerification !== false,
           sessionTimeout: response.data.sessionTimeout || 30
         });
@@ -256,7 +254,6 @@ const AdminSettingsPage = () => {
       setSaving(true);
       const response = await adminAPI.updateSystemSettings({
         maintenanceMode: systemSettings.maintenanceMode,
-        allowRegistration: systemSettings.allowRegistration,
         requireEmailVerification: systemSettings.requireEmailVerification,
         sessionTimeout: systemSettings.sessionTimeout
       });
@@ -266,7 +263,6 @@ const AdminSettingsPage = () => {
         if (response.data) {
           setSystemSettings({
             maintenanceMode: response.data.maintenanceMode,
-            allowRegistration: response.data.allowRegistration,
             requireEmailVerification: response.data.requireEmailVerification,
             sessionTimeout: response.data.sessionTimeout
           });
@@ -598,28 +594,6 @@ const AdminSettingsPage = () => {
 
                   <Divider />
 
-                  <Box className="setting-item">
-                    <Box className="setting-info">
-                      <Typography variant="subtitle1" className="setting-label">
-                        Cho Phép Đăng Ký
-                      </Typography>
-                      <Typography variant="body2" className="setting-description">
-                        Cho phép người dùng mới đăng ký tài khoản
-                      </Typography>
-                    </Box>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={systemSettings.allowRegistration}
-                          onChange={(e) => handleSystemSettingChange('allowRegistration', e.target.checked)}
-                          color="primary"
-                        />
-                      }
-                      label=""
-                    />
-                  </Box>
-
-                  <Divider />
 
                   <Box className="setting-item">
                     <Box className="setting-info">
