@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
   Box,
-  Grid,
   Card,
   CardMedia,
   CardContent,
@@ -13,9 +12,7 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  IconButton,
-  useTheme,
-  useMediaQuery
+  IconButton
 } from '@mui/material';
 import {
   Edit,
@@ -28,18 +25,18 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import { eventsAPI } from '../services/apiClient';
-import { decodeText } from '../utils/textDecoder';
+import { subscriptionHelpers } from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
+import { decodeText } from '../utils/textDecoder';
 
 const MyEventsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deletingEventId, setDeletingEventId] = useState(null);
 
   useEffect(() => {
     fetchMyEvents();
@@ -88,6 +85,7 @@ const MyEventsPage = () => {
     }
 
     try {
+      setDeletingEventId(eventId);
       await eventsAPI.delete(eventId);
       // Refresh danh sách
       fetchMyEvents();
@@ -104,6 +102,8 @@ const MyEventsPage = () => {
       }
       
       alert(errorMessage);
+    } finally {
+      setDeletingEventId(null);
     }
   };
 
@@ -163,7 +163,7 @@ const MyEventsPage = () => {
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
             Sự Kiện Của Tôi
@@ -172,7 +172,6 @@ const MyEventsPage = () => {
             Quản lý và chỉnh sửa các sự kiện của bạn
           </Typography>
         </Box>
-
 
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -185,10 +184,9 @@ const MyEventsPage = () => {
             sx={{
               textAlign: 'center',
               py: 8,
-              bgcolor: 'background.paper',
-              borderRadius: 2,
               border: '2px dashed',
-              borderColor: 'divider'
+              borderColor: 'divider',
+              borderRadius: 2
             }}
           >
             <EventIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
@@ -200,121 +198,143 @@ const MyEventsPage = () => {
             </Typography>
             <Button
               variant="contained"
-              onClick={() => navigate('/create-event')}
+              onClick={async () => {
+                await subscriptionHelpers.checkSubscriptionAndNavigate(navigate, user);
+              }}
               sx={{ mt: 2 }}
             >
               Tạo Sự Kiện
             </Button>
           </Box>
         ) : (
-          <Grid container spacing={3}>
-            {events.map((event) => (
-              <Grid item xs={12} sm={6} md={4} key={event.eventId}>
-                <Card
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+                lg: 'repeat(3, 1fr)'
+              },
+              gap: 2,
+              width: '100%'
+            }}
+          >
+            {events.map((event) => {
+              const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage;
+              const imageUrl = backgroundImage 
+                ? (backgroundImage.startsWith('http') 
+                    ? backgroundImage 
+                    : `http://localhost:5000${backgroundImage.startsWith('/') ? '' : '/'}${backgroundImage}`)
+                : '/default-event.svg';
+
+              return (
+                <Box
+                  key={event.eventId}
                   sx={{
-                    height: '100%',
                     display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: 6
-                    }
+                    width: '100%'
                   }}
                 >
-                  <CardMedia
-                    component="img"
-                    height={200}
-                    image={(() => {
-                      // Sử dụng backgroundImage (1280x720) cho MyEventsPage
-                      // eventImage (720x958) được lưu nhưng không hiển thị
-                      const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage;
-                      if (backgroundImage) {
-                        return backgroundImage.startsWith('http') 
-                          ? backgroundImage 
-                          : `http://localhost:5000${backgroundImage.startsWith('/') ? '' : '/'}${backgroundImage}`;
+                  <Card
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-8px)',
+                        boxShadow: 6
                       }
-                      return '/default-event.svg';
-                    })()}
-                    alt={decodeText(event.title)}
-                    onError={(e) => {
-                      e.target.src = '/default-event.svg';
                     }}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                  
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                      <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
-                        {decodeText(event.title)}
-                      </Typography>
-                      <Chip
-                        label={getStatusLabel(event.status)}
-                        color={getStatusColor(event.status)}
-                        size="small"
-                        sx={{ ml: 1 }}
-                      />
-                    </Box>
-
-                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <AccessTime fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDate(event.startTime)}
+                  >
+                    <CardMedia
+                      component="img"
+                      height={160}
+                      image={imageUrl}
+                      alt={decodeText(event.title)}
+                      onError={(e) => { e.target.src = '/default-event.svg'; }}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                    
+                    <CardContent sx={{ flexGrow: 1, p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1, gap: 0.5 }}>
+                        <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600, flex: 1, fontSize: '0.95rem', lineHeight: 1.3 }}>
+                          {decodeText(event.title)}
                         </Typography>
+                        <Chip
+                          label={getStatusLabel(event.status)}
+                          color={getStatusColor(event.status)}
+                          size="small"
+                          sx={{ ml: 0.5, fontSize: '0.7rem', height: 20 }}
+                        />
                       </Box>
 
-                      {event.location && (
+                      <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <LocationOn fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary" noWrap>
-                            {decodeText(event.location)}
+                          <AccessTime sx={{ fontSize: '0.875rem' }} color="action" />
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            {formatDate(event.startTime)}
                           </Typography>
                         </Box>
-                      )}
 
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <People fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">
-                          {decodeText(event.category) || 'Chưa phân loại'}
-                        </Typography>
+                        {event.location && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <LocationOn sx={{ fontSize: '0.875rem' }} color="action" />
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }} noWrap>
+                              {decodeText(event.location)}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <People sx={{ fontSize: '0.875rem' }} color="action" />
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            {decodeText(event.category) || 'Chưa phân loại'}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </CardContent>
+                    </CardContent>
 
-                  <CardActions sx={{ p: 2, pt: 0, justifyContent: 'space-between' }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<Visibility />}
-                      onClick={() => handleViewEvent(event.eventId)}
-                    >
-                      Xem
-                    </Button>
-                    
-                    <Box>
-                      <IconButton
+                    <CardActions sx={{ p: 1.5, pt: 0, justifyContent: 'space-between', gap: 0.5 }}>
+                      <Button
                         size="small"
-                        color="primary"
-                        onClick={() => handleEditEvent(event.eventId)}
-                        title="Chỉnh sửa"
+                        variant="outlined"
+                        startIcon={<Visibility sx={{ fontSize: '1rem' }} />}
+                        onClick={() => handleViewEvent(event.eventId)}
+                        sx={{ fontSize: '0.75rem', py: 0.5, px: 1 }}
                       >
-                        <Edit />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDeleteEvent(event.eventId)}
-                        title="Xóa"
-                      >
-                        <Delete />
-                      </IconButton>
-                    </Box>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+                        Xem
+                      </Button>
+                      
+                      <Box>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleEditEvent(event.eventId)}
+                          title="Chỉnh sửa"
+                          sx={{ padding: '4px' }}
+                        >
+                          <Edit sx={{ fontSize: '1rem' }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteEvent(event.eventId)}
+                          title="Xóa"
+                          disabled={deletingEventId === event.eventId}
+                          sx={{ padding: '4px' }}
+                        >
+                          <Delete sx={{ fontSize: '1rem' }} />
+                        </IconButton>
+                      </Box>
+                    </CardActions>
+                  </Card>
+                </Box>
+              );
+            })}
+          </Box>
         )}
 
       </Container>

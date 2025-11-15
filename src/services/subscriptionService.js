@@ -167,6 +167,146 @@ export const subscriptionHelpers = {
       'Professional': -1 // Unlimited
     };
     return limits[planType] || 0;
+  },
+
+  // Check subscription and navigate to create event or subscription plans
+  // Returns true if can create event, false if redirected to subscription plans
+  checkSubscriptionAndNavigate: async (navigate, user) => {
+    // If not logged in, redirect to login
+    if (!user) {
+      navigate('/login', { state: { from: '/create-event' } });
+      return false;
+    }
+
+    // If user is Customer, redirect to subscription plans to purchase
+    if (user.role === 'Customer') {
+      console.log('[SubscriptionHelper] Customer user - redirecting to subscription plans');
+      navigate('/subscriptions/plans', { 
+        replace: false,
+        state: { 
+          message: 'Bạn cần đăng ký gói subscription để tạo sự kiện. Vui lòng mua gói subscription trước khi tạo sự kiện.',
+          from: '/create-event'
+        }
+      });
+      return false;
+    }
+
+    // Only check subscription for Host users
+    if (user.role !== 'Host') {
+      // Other roles (Admin, etc.) - redirect to subscription plans
+      navigate('/subscriptions/plans', { 
+        replace: false,
+        state: { 
+          message: 'Bạn cần đăng ký gói subscription để tạo sự kiện. Vui lòng mua gói subscription trước khi tạo sự kiện.',
+          from: '/create-event'
+        }
+      });
+      return false;
+    }
+
+    try {
+      const response = await subscriptionAPI.checkStatus();
+      
+      // Check response data structure - handle nested response
+      const responseData = response.data || response;
+      let canCreate = responseData?.canCreateEvent ?? responseData?.CanCreateEvent ?? false;
+      const hasSubscription = responseData?.hasActiveSubscription ?? responseData?.HasActiveSubscription ?? false;
+      const remainingEvents = responseData?.remainingEvents ?? responseData?.RemainingEvents ?? 0;
+      const activeSubscription = responseData?.activeSubscription ?? responseData?.ActiveSubscription;
+      
+      // Get plan details
+      const planType = activeSubscription?.planType ?? activeSubscription?.PlanType ?? '';
+      const status = activeSubscription?.status ?? activeSubscription?.Status ?? '';
+      
+      console.log('[SubscriptionHelper] Full subscription check:', {
+        hasSubscription,
+        status,
+        canCreate,
+        planType,
+        remainingEvents,
+        activeSubscription: activeSubscription ? 'exists' : 'null',
+        fullResponse: responseData
+      });
+      
+      // QUAN TRỌNG: Kiểm tra xem có subscription active không
+      if (!hasSubscription || !activeSubscription) {
+        console.warn('[SubscriptionHelper] No active subscription found - redirecting to subscription plans', {
+          hasSubscription,
+          activeSubscription: activeSubscription ? 'exists' : 'null'
+        });
+        navigate('/subscriptions/plans', { 
+          replace: false,
+          state: { message: 'Bạn cần đăng ký gói subscription để tạo sự kiện. Vui lòng mua gói subscription trước khi tạo sự kiện.' }
+        });
+        return false;
+      }
+      
+      // Kiểm tra status của subscription
+      if (status !== 'Active') {
+        console.warn('[SubscriptionHelper] Subscription is not active - redirecting to subscription plans', { 
+          status,
+          planType,
+          hasSubscription
+        });
+        navigate('/subscriptions/plans', { 
+          replace: false,
+          state: { message: `Gói subscription của bạn đang ở trạng thái "${status}". Vui lòng kích hoạt gói subscription để tạo sự kiện.` }
+        });
+        return false;
+      }
+      
+      // QUAN TRỌNG: Professional plan luôn cho phép tạo event (unlimited)
+      // Phải check trước khi check canCreate
+      const isProfessional = planType === 'Professional';
+      if (isProfessional && hasSubscription && status === 'Active') {
+        console.log('[SubscriptionHelper] ✅ Professional plan detected - allowing unlimited event creation (overriding canCreate)');
+        canCreate = true;
+      }
+      
+      // Final check - nếu không thể tạo event (hết quota) - chỉ check nếu không phải Professional
+      if (!canCreate && !isProfessional) {
+        console.warn('[SubscriptionHelper] Cannot create event - redirecting to subscription plans', {
+          canCreate,
+          isProfessional,
+          hasSubscription,
+          status,
+          remainingEvents,
+          planType
+        });
+        navigate('/subscriptions/plans', { 
+          replace: false,
+          state: { 
+            message: remainingEvents === 0 
+              ? 'Bạn đã vượt quá giới hạn số sự kiện cho phép. Vui lòng nâng cấp gói subscription để tạo thêm sự kiện.'
+              : 'Bạn cần đăng ký gói subscription để tạo sự kiện'
+          }
+        });
+        return false;
+      }
+      
+      // All checks passed - navigate to create event
+      console.log('[SubscriptionHelper] ✅ Allowed to create event - navigating to create-event');
+      navigate('/create-event');
+      return true;
+    } catch (err) {
+      console.error('[SubscriptionHelper] Error checking subscription:', err);
+      console.error('[SubscriptionHelper] Error details:', err.response?.data || err.message);
+      
+      // QUAN TRỌNG: Khi có lỗi, vẫn redirect về trang subscription để đảm bảo an toàn
+      const errorMessage = err.response?.data?.message || 
+                         err.response?.data?.error || 
+                         err.message || 
+                         'Không thể kiểm tra trạng thái subscription. Vui lòng thử lại sau.';
+      
+      console.warn('[SubscriptionHelper] Error checking subscription - redirecting to subscription plans for safety');
+      navigate('/subscriptions/plans', { 
+        replace: false,
+        state: { 
+          message: `Lỗi kiểm tra subscription: ${errorMessage}. Vui lòng đảm bảo bạn đã có gói subscription hợp lệ.`
+        }
+      });
+      return false;
+    }
   }
 };
 

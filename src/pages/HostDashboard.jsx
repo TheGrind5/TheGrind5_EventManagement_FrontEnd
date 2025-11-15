@@ -10,8 +10,10 @@ import Header from '../components/layout/Header';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { eventsAPI, ordersAPI, ticketsAPI } from '../services/apiClient';
+import { subscriptionHelpers } from '../services/subscriptionService';
 import { decodeText } from '../utils/textDecoder';
 import SalesChart from '../components/host/SalesChart';
+import MarketingSection from '../components/host/MarketingSection';
 
 const HostDashboard = () => {
   const { user } = useAuth();
@@ -716,7 +718,9 @@ const HostDashboard = () => {
                   color="primary"
                   fullWidth
                   size="large"
-                  onClick={() => navigate('/create-event')}
+                  onClick={async () => {
+                    await subscriptionHelpers.checkSubscriptionAndNavigate(navigate, user);
+                  }}
                   sx={{
                     py: 1.5,
                     borderRadius: 2,
@@ -1218,89 +1222,7 @@ const HostDashboard = () => {
 
   // Marketing Tab Content
   const MarketingTab = () => (
-    <Box>
-      <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-        Marketing & Engagement
-      </Typography>
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-            <CardContent>
-              <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56, mb: 2 }}>
-                <Email />
-              </Avatar>
-              <Typography variant="h6" gutterBottom>
-                Gửi email thông báo
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Gửi thông báo đến tất cả người mua vé
-              </Typography>
-              <Button variant="outlined" fullWidth disabled>
-                Gửi ngay
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-            <CardContent>
-              <Avatar sx={{ bgcolor: 'warning.main', width: 56, height: 56, mb: 2 }}>
-                <Email />
-              </Avatar>
-              <Typography variant="h6" gutterBottom>
-                Gửi reminder
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Nhắc nhở trước sự kiện
-              </Typography>
-              <Button variant="outlined" fullWidth disabled>
-                Gửi reminder
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-            <CardContent>
-              <Avatar sx={{ bgcolor: 'info.main', width: 56, height: 56, mb: 2 }}>
-                <Share />
-              </Avatar>
-              <Typography variant="h6" gutterBottom>
-                Chia sẻ mạng xã hội
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Chia sẻ lên Facebook, Twitter, Instagram
-              </Typography>
-              <Button variant="outlined" fullWidth disabled>
-                Chia sẻ
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-            <CardContent>
-              <Avatar sx={{ bgcolor: 'success.main', width: 56, height: 56, mb: 2 }}>
-                <Visibility />
-              </Avatar>
-              <Typography variant="h6" gutterBottom>
-                Theo dõi lượt xem
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Xem thống kê lượt xem trang sự kiện
-              </Typography>
-              <Button variant="outlined" fullWidth disabled>
-                Xem chi tiết
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+    <MarketingSection />
   );
 
   // Finance Tab Content
