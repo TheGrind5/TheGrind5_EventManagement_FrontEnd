@@ -13,10 +13,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Material-UI Icons
 import { LocationOn, AccessTime, ChevronLeft, ChevronRight } from '@mui/icons-material';
 
-// Utils
-import { getImageUrl } from '../../utils/helpers';
-import config from '../../config/environment';
-
 const HeroEvents = memo(({ events = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -31,7 +27,7 @@ const HeroEvents = memo(({ events = [] }) => {
   const fallbackImage = 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1920&h=1080&fit=crop';
 
   // Get image URL with fallback - Use backgroundImage (1280x720) as main display image
-  const getEventImageUrl = useCallback((event) => {
+  const getImageUrl = useCallback((event) => {
     if (!event) return fallbackImage;
     
     // Get backgroundImage (1280x720) - main display image for all pages
@@ -40,12 +36,25 @@ const HeroEvents = memo(({ events = [] }) => {
                      event.backgroundImage ||
                      event.eventDetails?.backgroundImage ||
                      '';
-    
-    // Use helper function to normalize and build URL
-    const imageUrl = getImageUrl(raw, config.BASE_URL);
+    const imageUrl = typeof raw === 'string' ? raw.replace(/\\/g, '/').trim().replace(/^"+|"+$/g, '') : '';
     
     // If no image found, use fallback
-    return imageUrl || fallbackImage;
+    if (!imageUrl || imageUrl.trim() === '') {
+      return fallbackImage;
+    }
+    
+    // If it's already a full URL (http/https), use it directly
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    
+    // If it's a relative path starting with '/', prepend base URL
+    if (imageUrl.startsWith('/')) {
+      return `http://localhost:5000${imageUrl}`;
+    }
+    
+    // If it doesn't start with '/', might still be a relative path
+    return `http://localhost:5000/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
   }, []);
 
   // Handle image load
@@ -101,8 +110,8 @@ const HeroEvents = memo(({ events = [] }) => {
       // Prefetch adjacent slides for smoother transitions
       const nextIndex = (currentIndex + 1) % events.length;
       const prevIndex = (currentIndex - 1 + events.length) % events.length;
-      const nextUrl = getEventImageUrl(events[nextIndex]);
-      const prevUrl = getEventImageUrl(events[prevIndex]);
+      const nextUrl = getImageUrl(events[nextIndex]);
+      const prevUrl = getImageUrl(events[prevIndex]);
       prefetchImage(nextUrl);
       prefetchImage(prevUrl);
 
@@ -213,7 +222,7 @@ const HeroEvents = memo(({ events = [] }) => {
     return null;
   }
 
-  const imageUrl = getEventImageUrl(currentEvent);
+  const imageUrl = getImageUrl(currentEvent);
 
   return (
     <div className="relative w-full aspect-video max-h-[75vh] min-h-[420px] overflow-hidden" style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
@@ -455,7 +464,7 @@ const HeroEvents = memo(({ events = [] }) => {
                           aria-label={`Thumbnail ${index + 1}`}
                         >
                           <img
-                            src={getEventImageUrl(event)}
+                            src={getImageUrl(event)}
                             alt={event.title ? `Thumbnail sự kiện: ${event.title}` : 'Thumbnail sự kiện'}
                             className="w-full h-full object-cover"
                             loading="lazy"
