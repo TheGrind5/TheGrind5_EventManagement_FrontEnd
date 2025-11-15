@@ -166,7 +166,13 @@ const AdminUsersPage = () => {
 
   const handleWarnUser = async (userId) => {
     try {
-      await adminService.warnUser(userId);
+      const response = await adminService.warnUser(userId);
+      
+      // Kiểm tra response có success không
+      if (response?.data?.success === false) {
+        alert(response.data.message || 'Có lỗi xảy ra khi gửi thông báo cảnh cáo');
+        return;
+      }
       
       // Mark user as warned
       setWarnedUsers(prev => new Set(prev).add(userId));
@@ -174,7 +180,29 @@ const AdminUsersPage = () => {
       alert('Đã gửi thông báo cảnh cáo đến người dùng thành công');
     } catch (err) {
       console.error('Error warning user:', err);
-      alert('Có lỗi xảy ra khi gửi thông báo cảnh cáo: ' + (err.response?.data?.message || err.message));
+      console.error('Error response:', err.response);
+      console.error('Error response data:', err.response?.data);
+      
+      // Lấy thông báo lỗi từ response
+      let errorMessage = 'Có lỗi xảy ra khi gửi thông báo cảnh cáo';
+      
+      if (err.response?.data) {
+        const responseData = err.response.data;
+        if (responseData.message) {
+          errorMessage = responseData.message;
+        } else if (responseData.error) {
+          errorMessage = responseData.error;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Tránh trùng lặp thông báo lỗi
+      if (!errorMessage.includes('Có lỗi xảy ra khi gửi thông báo cảnh cáo')) {
+        errorMessage = 'Có lỗi xảy ra khi gửi thông báo cảnh cáo: ' + errorMessage;
+      }
+      
+      alert(errorMessage);
     }
   };
 

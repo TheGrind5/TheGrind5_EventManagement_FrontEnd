@@ -75,8 +75,8 @@ const EventCalendar = () => {
     const startOffset = (firstDay.getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // 35 ô (5 hàng) cho layout gọn hơn; với các tháng 31 ngày vẫn hiển thị đủ khi offset phù hợp
-    return Array.from({ length: 35 }, (_, index) => {
+    // 42 ô (6 hàng) để hiển thị đầy đủ các tuần trong tháng
+    return Array.from({ length: 42 }, (_, index) => {
       const dayNumber = index - startOffset + 1;
       const cellDate = new Date(year, month, dayNumber);
       const inCurrentMonth = dayNumber > 0 && dayNumber <= daysInMonth;

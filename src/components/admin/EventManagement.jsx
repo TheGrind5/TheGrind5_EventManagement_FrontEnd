@@ -181,7 +181,8 @@ const EventManagement = () => {
     const startOffset = (firstDay.getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    return Array.from({ length: 35 }, (_, index) => {
+    // 42 ô (6 hàng) để hiển thị đầy đủ các tuần trong tháng
+    return Array.from({ length: 42 }, (_, index) => {
       const dayNumber = index - startOffset + 1;
       const cellDate = new Date(year, month, dayNumber);
       const inCurrentMonth = dayNumber > 0 && dayNumber <= daysInMonth;
