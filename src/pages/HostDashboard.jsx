@@ -95,30 +95,52 @@ const HostDashboard = () => {
         } catch (err) {
           console.error(`Error fetching ticket types for event ${event.eventId}:`, err);
         }
+      }
 
-        // Lấy tickets của event này để tính revenue và tickets sold
-        try {
-          const ticketsResponse = await ticketsAPI.getTicketsByEvent(event.eventId);
-          const tickets = Array.isArray(ticketsResponse.data) ? ticketsResponse.data : [];
-          
-          // Đếm tickets đã bán (status = Assigned hoặc Used, không phải Refunded)
-          const soldTickets = tickets.filter(ticket => 
-            ticket.status === 'Assigned' || ticket.status === 'Used'
-          );
-          
-          totalTicketsSold += soldTickets.length;
+      // Tính revenue và tickets sold từ Orders có status = "Paid" - ĐÂY LÀ CÁCH TÍNH CHÍNH XÁC
+      // Revenue nên được tính từ Order.Amount (đã trừ discount/voucher), không phải từ ticket price
+      // Tickets sold nên được tính từ Order.Quantity của các orders đã thanh toán
+      try {
+        // Fetch tất cả orders của host với status = "Paid"
+        let page = 1;
+        let hasMore = true;
+        let allPaidOrders = [];
 
-          // Tính revenue từ giá của tickets đã bán
-          // Tickets có ticketType với price, nên tính từ đó
-          soldTickets.forEach(ticket => {
-            if (ticket.ticketType && ticket.ticketType.price) {
-              totalRevenue += ticket.ticketType.price;
-            }
+        while (hasMore) {
+          const ordersResponse = await ordersAPI.getHostOrders({
+            page,
+            pageSize: 100, // Lấy nhiều orders mỗi lần để giảm số lượng requests
+            status: 'Paid'
           });
-        } catch (err) {
-          console.error(`Error fetching tickets for event ${event.eventId}:`, err);
-          // Nếu không lấy được tickets, vẫn tiếp tục với các events khác
+
+          const payload = ordersResponse?.data || {};
+          const ordersData = payload.Data || payload.data || [];
+          const total = payload.TotalCount ?? payload.totalCount ?? 0;
+
+          allPaidOrders = allPaidOrders.concat(ordersData);
+
+          // Kiểm tra xem còn orders nào không
+          if (ordersData.length < 100 || allPaidOrders.length >= total) {
+            hasMore = false;
+          } else {
+            page++;
+          }
         }
+
+        // Tính tổng revenue và tickets sold từ các orders đã thanh toán
+        allPaidOrders.forEach(order => {
+          const amount = order.amount ?? order.Amount ?? 0;
+          const quantity = order.quantity ?? order.Quantity ?? 0;
+          
+          totalRevenue += amount;
+          totalTicketsSold += quantity; // Đếm tickets sold từ quantity của order
+        });
+
+        console.log(`[HostDashboard] Total revenue from ${allPaidOrders.length} paid orders: ${totalRevenue}`);
+        console.log(`[HostDashboard] Total tickets sold: ${totalTicketsSold}`);
+      } catch (err) {
+        console.error('Error fetching host orders for revenue and tickets calculation:', err);
+        // Nếu không lấy được orders, vẫn tiếp tục với dữ liệu hiện có
       }
 
       const totalTicketsRemaining = Math.max(0, totalCapacity - totalTicketsSold);
