@@ -287,8 +287,13 @@ const AdminVouchersPage = () => {
       // Đóng modal và reset form
       handleCloseAddModal();
       
-      // Refresh danh sách voucher
-      fetchVouchers();
+      // Reset filter về 'all' và searchTerm về '' để đảm bảo voucher mới hiển thị
+      setStatusFilter('all');
+      setSearchTerm('');
+      
+      // Refresh danh sách voucher (useEffect sẽ tự động gọi fetchVouchers khi filter thay đổi)
+      // Nhưng để đảm bảo, ta vẫn gọi trực tiếp
+      await fetchVouchers();
     } catch (err) {
       console.error('❌ Error creating voucher:', err);
       let errorMessage = 'Không thể tạo voucher. ';
