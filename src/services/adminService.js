@@ -260,6 +260,20 @@ const adminService = {
       console.error(`Error rejecting event ${eventId}:`, error);
       throw error;
     }
+  },
+
+  /**
+   * Lấy thống kê số sự kiện theo năm
+   * @param {number} year - Năm cần thống kê (0 = năm hiện tại)
+   */
+  async getEventStatistics(year = 0) {
+    try {
+      const response = await apiClient.get(`/admin/event-statistics?year=${year}`);
+      return response;
+    } catch (error) {
+      console.error(`Error getting event statistics for year ${year}:`, error);
+      throw error;
+    }
   }
 };
 

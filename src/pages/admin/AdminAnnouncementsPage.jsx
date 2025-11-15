@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Typography } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { announcementAPI } from '../../services/apiClient';
+import { formatVietnamDateTimeShort } from '../../utils/dateTimeUtils';
 import '../../styles/AdminUsers.css';
 
 const AdminAnnouncementsPage = () => {
@@ -164,17 +165,8 @@ const AdminAnnouncementsPage = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Sử dụng formatVietnamDateTimeShort từ dateTimeUtils để đồng bộ UTC+7
+  const formatDate = formatVietnamDateTimeShort;
 
   if (loading && announcements.length === 0) {
     return (
