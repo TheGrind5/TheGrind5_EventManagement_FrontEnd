@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import WishlistButton from '../components/common/WishlistButton';
+import WaitlistButton from '../components/common/WaitlistButton';
 import StageViewer from '../components/stage/StageViewer';
 import AIChatbot from '../components/ai/AIChatbot';
 import FeedbackSection from '../components/common/FeedbackSection';
@@ -1411,6 +1412,23 @@ const EventDetailsPage = () => {
                               >
                                 Chọn vé
                               </Button>
+                            )}
+                            {!isAvailable && isOnSale && event.status !== 'Closed' && user && (
+                              <Box sx={{ mt: 1 }}>
+                                <Alert severity="info" sx={{ mb: 1 }}>
+                                  Vé đã hết. Đăng ký danh sách chờ để nhận thông báo khi có vé.
+                                </Alert>
+                                <WaitlistButton
+                                  eventId={parseInt(id)}
+                                  ticketTypeId={ticket.ticketTypeId}
+                                  quantity={1}
+                                  size="small"
+                                  variant="outlined"
+                                  onSuccess={() => {
+                                    // Refresh or show success message
+                                  }}
+                                />
+                              </Box>
                             )}
                           </Stack>
                         </Paper>

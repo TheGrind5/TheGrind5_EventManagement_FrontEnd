@@ -24,7 +24,9 @@ import {
 import {
   CheckCircle as CheckCircleIcon,
   Delete as DeleteIcon,
-  NotificationsNone as NotificationsNoneIcon
+  NotificationsNone as NotificationsNoneIcon,
+  Queue as QueueIcon,
+  ShoppingCart as ShoppingCartIcon
 } from '@mui/icons-material';
 import { notificationAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -135,6 +137,7 @@ const NotificationsPage = () => {
       case 'OrderConfirmation': return '✓';
       case 'PaymentSuccess': return '💰';
       case 'Refund': return '💸';
+      case 'WaitlistAvailable': return '🎫';
       default: return '🔔';
     }
   };
@@ -147,6 +150,7 @@ const NotificationsPage = () => {
       case 'OrderConfirmation': return '#17a2b8';
       case 'PaymentSuccess': return '#28a745';
       case 'Refund': return '#6f42c1';
+      case 'WaitlistAvailable': return '#17a2b8';
       default: return '#007bff';
     }
   };
@@ -159,7 +163,20 @@ const NotificationsPage = () => {
       case 'OrderConfirmation': return 'Xác nhận đơn hàng';
       case 'PaymentSuccess': return 'Thanh toán thành công';
       case 'Refund': return 'Hoàn tiền';
+      case 'WaitlistAvailable': return 'Vé có sẵn';
       default: return 'Thông báo';
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    // Mark as read when clicked
+    if (!notification.isRead) {
+      handleMarkAsRead(notification.notificationId);
+    }
+    
+    // Navigate to event if it's a WaitlistAvailable notification
+    if (notification.type === 'WaitlistAvailable' && notification.relatedEventId) {
+      navigate(`/event/${notification.relatedEventId}`);
     }
   };
 
@@ -249,8 +266,10 @@ const NotificationsPage = () => {
                       bgcolor: notification.isRead ? 'transparent' : 'action.hover',
                       '&:hover': {
                         bgcolor: 'action.selected'
-                      }
+                      },
+                      cursor: notification.type === 'WaitlistAvailable' ? 'pointer' : 'default'
                     }}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <ListItemAvatar>
                       <Avatar 
@@ -309,10 +328,28 @@ const NotificationsPage = () => {
                       }
                     />
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {notification.type === 'WaitlistAvailable' && notification.relatedEventId && (
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="small"
+                          startIcon={<ShoppingCartIcon />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/event/${notification.relatedEventId}`);
+                          }}
+                          sx={{ mb: 1 }}
+                        >
+                          Mua ngay
+                        </Button>
+                      )}
                       {!notification.isRead && (
                         <IconButton
                           size="small"
-                          onClick={() => handleMarkAsRead(notification.notificationId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsRead(notification.notificationId);
+                          }}
                           title="Đánh dấu đã đọc"
                         >
                           <CheckCircleIcon />
@@ -320,7 +357,10 @@ const NotificationsPage = () => {
                       )}
                       <IconButton
                         size="small"
-                        onClick={() => handleDeleteClick(notification)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(notification);
+                        }}
                         title="Xóa thông báo"
                       >
                         <DeleteIcon />

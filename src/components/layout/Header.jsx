@@ -33,7 +33,8 @@ import {
   Clear,
   Favorite,
   Event as EventIcon,
-  Dashboard as DashboardIcon
+  Dashboard as DashboardIcon,
+  Queue
 } from '@mui/icons-material';
 
 // Contexts & Services
@@ -540,6 +541,10 @@ const Header = ({ searchTerm, onSearchChange, onDropdownOpenChange }) => {
                 <MenuItem onClick={handleUserMenuClose} component={Link} to="/wishlist">
                   <Favorite sx={{ mr: 1 }} />
                   Wishlist
+                </MenuItem>
+                <MenuItem onClick={handleUserMenuClose} component={Link} to="/waitlist">
+                  <Queue sx={{ mr: 1 }} />
+                  Danh sách chờ
                 </MenuItem>
                 <MenuItem onClick={() => { handleUserMenuClose(); logout(); }}>
                   <Logout sx={{ mr: 1 }} />
