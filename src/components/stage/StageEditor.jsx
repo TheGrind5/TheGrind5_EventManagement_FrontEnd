@@ -380,9 +380,9 @@ const StageEditor = ({ layout, onChange, ticketTypes }) => {
                           width={width}
                           height={height}
                           fill={area.color}
-                          opacity={selectedArea?.id === area.id ? 0.8 : 0.5}
+                          opacity={selectedArea?.id === area.id ? 0.9 : 0.75}
                           stroke={selectedArea?.id === area.id ? '#000' : '#fff'}
-                          strokeWidth={selectedArea?.id === area.id ? 3 : 1}
+                          strokeWidth={selectedArea?.id === area.id ? 3 : 2}
                           onClick={() => handleAreaClick(area)}
                           draggable={!previewMode}
                           onDragEnd={(e) => {
