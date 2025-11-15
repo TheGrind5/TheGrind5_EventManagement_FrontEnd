@@ -104,3 +104,37 @@ export const handleSuccess = (message = 'Operation successful') => {
   console.log('Success:', message);
   return message;
 };
+
+// Image URL Helper - Normalize và build full URL cho ảnh
+export const getImageUrl = (imagePath, baseUrl = null) => {
+  if (!imagePath || typeof imagePath !== 'string') {
+    return null;
+  }
+
+  // Normalize đường dẫn: chuyển /uploads/ thành /assets/images/
+  let normalizedPath = imagePath
+    .replace(/\\/g, '/') // Chuyển backslash thành forward slash
+    .trim()
+    .replace(/^"+|"+$/g, ''); // Remove quotes nếu có
+
+  // Nếu đã là full URL (http/https), return luôn
+  if (normalizedPath.startsWith('http://') || normalizedPath.startsWith('https://')) {
+    return normalizedPath;
+  }
+
+  // Normalize đường dẫn: /uploads/events/ -> /assets/images/events/
+  normalizedPath = normalizedPath
+    .replace(/^\/uploads\/events\//, '/assets/images/events/')
+    .replace(/^\/uploads\/avatars\//, '/assets/images/avatars/')
+    .replace(/^uploads\/events\//, '/assets/images/events/')
+    .replace(/^uploads\/avatars\//, '/assets/images/avatars/');
+
+  // Đảm bảo bắt đầu bằng /
+  if (!normalizedPath.startsWith('/')) {
+    normalizedPath = '/' + normalizedPath;
+  }
+
+  // Build full URL
+  const BASE_URL = baseUrl || (process.env.REACT_APP_BASE_URL || 'http://localhost:5000');
+  return `${BASE_URL}${normalizedPath}`;
+};

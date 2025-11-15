@@ -23,6 +23,8 @@ import {
 
 // Utils
 import { decodeText } from '../../utils/textDecoder';
+import { getImageUrl } from '../../utils/helpers';
+import config from '../../config/environment';
 
 /**
  * EventCard Component - TicketBox Style
@@ -81,10 +83,25 @@ const EventCard = memo(({ event }) => {
   const currentStatus = getEventStatus(event.startTime, event.endTime);
   
   // Get background image (1280x720) - main display image for all pages
-  const backgroundImage = event.eventDetails?.backgroundImage || event.backgroundImage || null;
-  const imageUrl = backgroundImage
-    ? (backgroundImage.startsWith('http') ? backgroundImage : `http://localhost:5000${backgroundImage}`)
-    : null;
+  // Backend now returns backgroundImage directly in MapToEventDto
+  // Also check eventDetailsParsed and eventDetails (string) as fallback
+  let backgroundImage = event.backgroundImage || event.BackgroundImage || null;
+  
+  // Fallback: Parse from eventDetails if backgroundImage not available
+  if (!backgroundImage && event.eventDetails) {
+    let parsedEventDetails = event.eventDetailsParsed;
+    if (!parsedEventDetails && typeof event.eventDetails === 'string') {
+      try {
+        parsedEventDetails = JSON.parse(event.eventDetails);
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+    backgroundImage = parsedEventDetails?.backgroundImage || parsedEventDetails?.BackgroundImage || null;
+  }
+  
+  // Normalize và build full URL
+  const imageUrl = getImageUrl(backgroundImage, config.BASE_URL);
 
   return (
     <Card
@@ -102,9 +119,6 @@ const EventCard = memo(({ event }) => {
         cursor: 'pointer',
         overflow: 'hidden',
         position: 'relative',
-        backgroundColor: theme.palette.mode === 'dark' 
-          ? theme.palette.background.paper 
-          : '#FAFAFA',
         border: `1px solid ${theme.palette.divider}`,
         boxShadow: 'none',
         backgroundColor: theme.palette.mode === 'dark' ? '#1A1A1A' : '#FFFFFF',
