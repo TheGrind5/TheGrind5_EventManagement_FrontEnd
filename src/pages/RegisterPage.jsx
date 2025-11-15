@@ -12,6 +12,7 @@ const RegisterPage = () => {
     phone: ''
   });
   const [error, setError] = useState('');
+  const [usernameSuggestions, setUsernameSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
@@ -20,6 +21,14 @@ const RegisterPage = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  // Password validation helpers
+  const passwordRequirements = {
+    minLength: formData.password.length >= 8,
+    hasUppercase: /[A-Z]/.test(formData.password),
+    hasNumber: /\d/.test(formData.password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password)
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -27,6 +36,20 @@ const RegisterPage = () => {
     });
     // Clear error when user starts typing
     if (error) setError('');
+  };
+
+  const handlePhoneBlur = async () => {
+    const rawPhone = formData.phone || '';
+    const cleaned = rawPhone.replace(/\s/g, '');
+    if (!/^[0-9]{10,11}$/.test(cleaned)) return;
+    try {
+      const res = await (await import('../services/apiClient')).authAPI.checkPhone(cleaned);
+      if (res?.data?.exists) {
+        setError('Số điện thoại này đã được sử dụng. Vui lòng sử dụng số điện thoại khác.');
+      }
+    } catch (e) {
+      // ignore silent check errors
+    }
   };
 
   const validateForm = () => {
@@ -55,6 +78,12 @@ const RegisterPage = () => {
       setError('Mật khẩu phải có ít nhất 8 ký tự');
       return false;
     }
+    // At least 1 uppercase, 1 digit, 1 special char, min 8 chars
+    const strongPwd = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    if (!strongPwd.test(formData.password)) {
+      setError('Mật khẩu phải có ít nhất 1 chữ hoa, 1 số, 1 ký tự đặc biệt và tối thiểu 8 ký tự');
+      return false;
+    }
     if (!formData.phone.trim()) {
       setError('Số điện thoại không được để trống');
       return false;
@@ -70,6 +99,7 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setUsernameSuggestions([]);
     setLoading(true);
 
     // Validate form
@@ -103,10 +133,14 @@ const RegisterPage = () => {
       } else {
         // Hiển thị lỗi từ backend (có thể là "Email này đã được sử dụng" hoặc lỗi khác)
         setError(result.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+        setUsernameSuggestions(result.suggestions || []);
       }
     } catch (err) {
       console.error('Register error:', err); // Debug log
-      setError(err.response?.data?.message || 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
+      const errorMessage = err.response?.data?.message || 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.';
+      const suggestions = err.response?.data?.suggestions || [];
+      setError(errorMessage);
+      setUsernameSuggestions(suggestions);
     } finally {
       setLoading(false);
     }
@@ -145,12 +179,62 @@ const RegisterPage = () => {
 
         {error && (
           <div className="alert alert-danger animate-fade-in">
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style={{ flexShrink: 0, marginTop: '2px' }}>
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, marginBottom: usernameSuggestions && usernameSuggestions.length > 0 ? '8px' : 0 }}>
               {error}
+                    {usernameSuggestions && usernameSuggestions.length > 0 && (
+                      <span style={{ display: 'block', marginTop: '8px', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                        Bạn có thể dùng <strong style={{ color: 'var(--color-primary)' }}>{usernameSuggestions.slice(0, 3).join(', ')}</strong>
+                        {usernameSuggestions.length > 3 && ` và ${usernameSuggestions.length - 3} gợi ý khác`} để thay thế.
             </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              {usernameSuggestions && usernameSuggestions.length > 0 && (
+                <div style={{ marginTop: '4px', paddingLeft: '28px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {usernameSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, username: suggestion }));
+                          setError('');
+                          setUsernameSuggestions([]);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'rgba(255, 122, 0, 0.1)',
+                          border: '1px solid rgba(255, 122, 0, 0.3)',
+                          borderRadius: '6px',
+                          color: 'var(--color-primary)',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontWeight: 500
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(255, 122, 0, 0.2)';
+                          e.target.style.borderColor = 'var(--color-primary)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'rgba(255, 122, 0, 0.1)';
+                          e.target.style.borderColor = 'rgba(255, 122, 0, 0.3)';
+                        }}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -217,6 +301,7 @@ const RegisterPage = () => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              onBlur={handlePhoneBlur}
               className="form-input"
               placeholder="0123456789"
               required
@@ -275,14 +360,92 @@ const RegisterPage = () => {
                 )}
               </button>
             </div>
-            <small style={{ 
-              color: 'var(--color-text-tertiary)', 
-              fontSize: '12px',
-              marginTop: '4px',
-              display: 'block'
+            <div style={{ 
+              marginTop: '8px',
+              padding: '12px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              Mật khẩu phải có ít nhất 8 ký tự
-            </small>
+              <p style={{ 
+                margin: '0 0 8px 0',
+                color: 'var(--color-text-secondary)', 
+              fontSize: '12px',
+                fontWeight: 600
+              }}>
+                Mật khẩu phải đáp ứng các yêu cầu sau:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {passwordRequirements.minLength ? (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style={{ color: '#10b981', flexShrink: 0 }}>
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }}>
+                      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
+                    </svg>
+                  )}
+                  <span style={{ 
+                    color: passwordRequirements.minLength ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)', 
+                    fontSize: '12px'
+                  }}>
+                    Tối thiểu 8 ký tự
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {passwordRequirements.hasUppercase ? (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style={{ color: '#10b981', flexShrink: 0 }}>
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }}>
+                      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
+                    </svg>
+                  )}
+                  <span style={{ 
+                    color: passwordRequirements.hasUppercase ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)', 
+                    fontSize: '12px'
+                  }}>
+                    Có ít nhất 1 chữ hoa (A-Z)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {passwordRequirements.hasNumber ? (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style={{ color: '#10b981', flexShrink: 0 }}>
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }}>
+                      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
+                    </svg>
+                  )}
+                  <span style={{ 
+                    color: passwordRequirements.hasNumber ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)', 
+                    fontSize: '12px'
+                  }}>
+                    Có ít nhất 1 chữ số (0-9)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {passwordRequirements.hasSpecialChar ? (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style={{ color: '#10b981', flexShrink: 0 }}>
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }}>
+                      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
+                    </svg>
+                  )}
+                  <span style={{ 
+                    color: passwordRequirements.hasSpecialChar ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)', 
+                    fontSize: '12px'
+                  }}>
+                    Có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <button 
@@ -292,9 +455,22 @@ const RegisterPage = () => {
           >
             {loading ? (
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <svg className="loading-spinner" width="20" height="20" viewBox="0 0 20 20" style={{ animation: 'spin 1s linear infinite' }}>
-                  <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeDashoffset="24" opacity="0.3" />
-                  <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeDashoffset="24" />
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  style={{ transformOrigin: 'center', animation: 'spin 1s linear infinite' }}
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray="6 10"
+                  />
                 </svg>
                 Đang tạo tài khoản...
               </span>

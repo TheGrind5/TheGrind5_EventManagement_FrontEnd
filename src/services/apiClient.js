@@ -35,7 +35,10 @@ apiClient.interceptors.response.use(
     const hasPagingKeys = body && typeof body === 'object' && (
       Object.prototype.hasOwnProperty.call(body, 'totalCount') ||
       Object.prototype.hasOwnProperty.call(body, 'page') ||
-      Object.prototype.hasOwnProperty.call(body, 'pageSize')
+      Object.prototype.hasOwnProperty.call(body, 'pageSize') ||
+      Object.prototype.hasOwnProperty.call(body, 'TotalCount') ||
+      Object.prototype.hasOwnProperty.call(body, 'Page') ||
+      Object.prototype.hasOwnProperty.call(body, 'PageSize')
     );
 
     // Handle both camelCase (data) and PascalCase (Data) from .NET serialization
@@ -54,6 +57,8 @@ apiClient.interceptors.response.use(
   (error) => {
     // Global error handling
     console.error('API Error:', error);
+    console.error('API Error Response:', error.response);
+    console.error('API Error Response Data:', error.response?.data);
     
     let errorMessage = 'An unexpected error occurred';
     let errorCode = 500;
@@ -62,6 +67,9 @@ apiClient.interceptors.response.use(
       // Server responded with error status
       errorCode = error.response.status;
       const responseData = error.response.data;
+      
+      // Đảm bảo giữ nguyên error.response.data để component có thể truy cập
+      // Không thay đổi error object, chỉ log thông tin
       
       if (responseData?.message) {
         errorMessage = responseData.message;
@@ -101,12 +109,21 @@ apiClient.interceptors.response.use(
       errorMessage = error.message || 'An unexpected error occurred';
     }
     
-    return Promise.reject({
-      success: false,
-      message: errorMessage,
-      code: errorCode,
-      originalError: error
-    });
+    // Giữ nguyên error object gốc để component có thể truy cập error.response.data
+    // Chỉ thêm thông tin bổ sung nếu cần
+    if (error.response) {
+      // Đảm bảo error.response.data được giữ nguyên
+      error.response.data = error.response.data || {};
+      if (!error.response.data.message && errorMessage) {
+        error.response.data.message = errorMessage;
+      }
+    }
+    
+    // Thêm thông tin bổ sung vào error object
+    error.apiErrorMessage = errorMessage;
+    error.apiErrorCode = errorCode;
+    
+    return Promise.reject(error);
   }
 );
 
@@ -139,6 +156,10 @@ export const authAPI = {
   
   register: async (userData) => {
     return api.post('/Auth/register', userData);
+  },
+
+  checkPhone: async (phone) => {
+    return api.get(`/Auth/check-phone?phone=${encodeURIComponent(phone)}`);
   },
   
   getCurrentUser: async () => {
@@ -314,6 +335,19 @@ export const ordersAPI = {
   
   processPayment: async (orderId, paymentData) => {
     return api.post(`/Order/${orderId}/payment`, paymentData);
+  },
+
+  getHostOrders: async ({ page = 1, pageSize = 10, status, eventId, search } = {}) => {
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    if (status) params.append('status', status);
+    if (eventId !== undefined && eventId !== null && !Number.isNaN(eventId)) {
+      params.append('eventId', eventId);
+    }
+    if (search) params.append('search', search);
+
+    return api.get(`/Order/host-orders/summary?${params.toString()}`);
   }
 };
 
@@ -514,16 +548,25 @@ export const eventQuestionsAPI = {
 
 // Payment API
 export const paymentAPI = {
-  createVNPayQR: async (orderId) => {
-    return api.post('/Payment/vnpay/create', { orderId });
-  },
-  
   getStatus: async (paymentId) => {
     return api.get(`/Payment/status/${paymentId}`);
   },
   
   cancelPayment: async (paymentId) => {
     return api.post(`/Payment/${paymentId}/cancel`);
+  },
+  
+  // PayOS APIs
+  createPayOSTopUp: async (topUpData) => {
+    return api.post('/Payment/payos/create-topup', topUpData);
+  },
+  
+  getPayOSStatus: async (paymentId) => {
+    return api.get(`/Payment/payos/${paymentId}/status`);
+  },
+  
+  cancelPayOSPayment: async (paymentId) => {
+    return api.post(`/Payment/payos/${paymentId}/cancel`);
   }
 };
 
@@ -605,6 +648,29 @@ export const commentsAPI = {
   
   toggleReaction: async (commentId, reactionType) => {
     return api.post(`/Comment/${commentId}/reaction`, { reactionType });
+  }
+};
+
+// Host Marketing API
+export const hostMarketingAPI = {
+  getEvents: async () => {
+    return api.get('/HostMarketing/events');
+  },
+  
+  getEventAnalytics: async (eventId) => {
+    return api.get(`/HostMarketing/events/${eventId}/analytics`);
+  },
+  
+  getAudiencePreview: async (eventId, includePending = false) => {
+    return api.get(`/HostMarketing/events/${eventId}/audience-preview?includePending=${includePending}`);
+  },
+  
+  sendBroadcast: async (payload) => {
+    return api.post(`/HostMarketing/events/${payload.eventId}/broadcast`, payload);
+  },
+  
+  sendReminder: async (payload) => {
+    return api.post(`/HostMarketing/events/${payload.eventId}/reminder`, payload);
   }
 };
 

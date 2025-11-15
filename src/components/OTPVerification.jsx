@@ -84,7 +84,15 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl }) => {
         onVerified && onVerified();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn');
+      const errorMessage = err.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn';
+      
+      // Nếu OTP hết hạn, hiển thị message rõ ràng hơn
+      if (errorMessage.includes('hết hạn') || errorMessage.includes('expired')) {
+        setError('Mã OTP đã hết hạn. Vui lòng gửi lại mã OTP mới.');
+      } else {
+        setError(errorMessage);
+      }
+      
       // Clear OTP inputs on error
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
@@ -126,11 +134,6 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl }) => {
   return (
     <div 
       className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
       style={{
         position: 'fixed',
         top: 0,
@@ -262,6 +265,7 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl }) => {
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 disabled={verifying || loading}
+                readOnly={false}
                 style={{
                   width: '50px',
                   height: '60px',
@@ -273,12 +277,15 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl }) => {
                   background: 'rgba(255, 255, 255, 0.05)',
                   color: '#FFFFFF',
                   transition: 'all 0.2s',
-                  outline: 'none'
+                  outline: 'none',
+                  cursor: (verifying || loading) ? 'not-allowed' : 'text'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--color-primary, #FF7A00)';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(255, 122, 0, 0.2)';
-                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                  if (!verifying && !loading) {
+                    e.target.style.borderColor = 'var(--color-primary, #FF7A00)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(255, 122, 0, 0.2)';
+                    e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                  }
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
@@ -329,14 +336,28 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl }) => {
               disabled={otp.join('').length !== 6 || verifying || loading}
               style={{
                 width: '100%',
-                marginTop: '8px'
+                marginTop: '8px',
+                cursor: (otp.join('').length !== 6 || verifying || loading) ? 'not-allowed' : 'pointer'
               }}
             >
               {verifying ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <svg className="loading-spinner" width="20" height="20" viewBox="0 0 20 20" style={{ animation: 'spin 1s linear infinite' }}>
-                    <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeDashoffset="24" opacity="0.3" />
-                    <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeDashoffset="24" />
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    style={{ transformOrigin: 'center', animation: 'spin 1s linear infinite' }}
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="6 10"
+                    />
                   </svg>
                   Đang xác minh...
                 </span>
@@ -378,7 +399,30 @@ const OTPVerification = ({ email, onVerified, onClose, apiUrl }) => {
                   }
                 }}
               >
-                {loading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
+                {loading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#ffffff' }}>
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      style={{ transformOrigin: 'center', animation: 'spin 1s linear infinite' }}
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        fill="none"
+                        stroke="#ffffff"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeDasharray="6 10"
+                      />
+                    </svg>
+                    Đang gửi...
+                  </span>
+                ) : (
+                  'Gửi lại mã OTP'
+                )}
               </button>
             )}
           </div>

@@ -13,10 +13,19 @@ import {
   Chip,
   Paper,
   IconButton,
-  CircularProgress
+  CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
+  Divider
 } from '@mui/material';
-import { Close, AccountBalanceWallet } from '@mui/icons-material';
-import { walletAPI } from '../../services/apiClient';
+import { 
+  Close, 
+  AccountBalanceWallet, 
+  CreditCard,
+  QrCodeScanner,
+  Payments
+} from '@mui/icons-material';
+import { walletAPI, paymentAPI } from '../../services/apiClient';
 
 const DepositModal = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -25,6 +34,7 @@ const DepositModal = ({ onClose, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [payOSPayment, setPayOSPayment] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -47,18 +57,42 @@ const DepositModal = ({ onClose, onSuccess }) => {
     setError(null);
 
     try {
-      const response = await walletAPI.deposit({
+      // Chỉ hỗ trợ nạp tiền qua PayOS
+      const response = await paymentAPI.createPayOSTopUp({
         amount: parseFloat(formData.amount),
-        description: formData.description || 'Nạp tiền vào ví'
+        description: formData.description || 'Nạp tiền qua PayOS'
       });
 
-      // Success
-      onSuccess(response.data.newBalance);
+      // Lưu thông tin PayOS payment
+      const paymentData = response.data?.payment;
+      setPayOSPayment(paymentData);
+      
+      // Auto redirect to PayOS checkout page ngay lập tức
+      const checkoutUrl = paymentData?.CheckoutUrl || paymentData?.checkoutUrl || paymentData?.PaymentUrl;
+      if (checkoutUrl) {
+        // Redirect ngay lập tức đến trang thanh toán PayOS
+        window.location.href = checkoutUrl;
+        return; // Dừng lại, không cần setLoading(false) vì đã redirect
+      } else {
+        setError('Không thể lấy được link thanh toán PayOS. Vui lòng thử lại.');
+      }
       
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra khi tạo yêu cầu nạp tiền');
+      console.error('Error creating PayOS topup:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePayOSComplete = () => {
+    // Sau khi thanh toán PayOS thành công, refresh balance
+    window.location.reload(); // Simple refresh để cập nhật balance
+  };
+
+  const handlePayOSRedirect = () => {
+    if (payOSPayment?.CheckoutUrl) {
+      window.open(payOSPayment.CheckoutUrl, '_blank');
     }
   };
 
@@ -90,6 +124,17 @@ const DepositModal = ({ onClose, onSuccess }) => {
 
       <DialogContent>
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+          {/* PayOS Header */}
+          <Box sx={{ mb: 3, textAlign: 'center' }}>
+            <CreditCard sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              Nạp tiền qua PayOS
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              An toàn - Nhanh chóng - Bảo mật
+            </Typography>
+          </Box>
+
           <TextField
             fullWidth
             label="Số tiền nạp (VND)"
@@ -128,7 +173,7 @@ const DepositModal = ({ onClose, onSuccess }) => {
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            placeholder="Ví dụ: Nạp tiền từ thẻ ngân hàng..."
+            placeholder="Ví dụ: Nạp tiền từ thẻ tín dụng..."
             multiline
             rows={3}
             sx={{ mb: 2 }}
@@ -140,17 +185,88 @@ const DepositModal = ({ onClose, onSuccess }) => {
             </Alert>
           )}
 
-          {/* Payment Info */}
+          {/* PayOS Info */}
           <Paper sx={{ p: 2, bgcolor: 'info.light', mb: 2 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-              💡 Thông tin thanh toán
+              💳 Thông tin PayOS
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              • Nạp tiền tức thì, không mất phí<br/>
-              • Số dư sẽ được cập nhật ngay sau khi nạp<br/>
-              • Tất cả giao dịch đều được ghi nhận
+              • Thanh toán qua PayOS, an toàn và bảo mật<br/>
+              • Hỗ trợ nhiều phương thức: Thẻ tín dụng, QR code, ví điện tử<br/>
+              • Số dư được cập nhật ngay sau khi thanh toán thành công<br/>
+              • Phí giao dịch: 0% (khuyến mãi)
             </Typography>
           </Paper>
+
+          {/* PayOS Payment Info */}
+          {payOSPayment && (
+            <Paper sx={{ p: 2, bgcolor: 'success.light', mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
+                🎉 Đã tạo yêu cầu thanh toán PayOS!
+              </Typography>
+              
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Mã đơn hàng:
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {payOSPayment.orderCode}
+                  </Typography>
+                </Box>
+                
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Số tiền:
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {parseFloat(formData.amount).toLocaleString('vi-VN')}₫
+                  </Typography>
+                </Box>
+                
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Hạn thanh toán:
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {new Date(payOSPayment.expiredAt).toLocaleString('vi-VN')}
+                  </Typography>
+                </Box>
+
+                {payOSPayment.qrCodeUrl && (
+                  <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                      Quét mã QR để thanh toán:
+                    </Typography>
+                    <img 
+                      src={payOSPayment.qrCodeUrl} 
+                      alt="PayOS QR Code" 
+                      style={{ maxWidth: '200px', height: 'auto' }}
+                    />
+                  </Box>
+                )}
+
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<QrCodeScanner />}
+                    onClick={handlePayOSRedirect}
+                    fullWidth
+                  >
+                    Mở trang thanh toán
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={handlePayOSComplete}
+                    fullWidth
+                  >
+                    Đã thanh toán
+                  </Button>
+                </Stack>
+              </Stack>
+            </Paper>
+          )}
         </Box>
       </DialogContent>
 
@@ -162,15 +278,17 @@ const DepositModal = ({ onClose, onSuccess }) => {
         >
           Hủy
         </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={loading}
-          variant="contained"
-          color="success"
-          startIcon={loading ? <CircularProgress size={16} /> : <AccountBalanceWallet />}
-        >
-          {loading ? 'Đang xử lý...' : 'Nạp tiền'}
-        </Button>
+        {!payOSPayment && (
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            variant="contained"
+            color="success"
+            startIcon={loading ? <CircularProgress size={16} /> : <Payments />}
+          >
+            {loading ? 'Đang xử lý...' : 'Tạo thanh toán PayOS'}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

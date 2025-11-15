@@ -306,37 +306,50 @@ const CreateEventPage = () => {
           message: responseData?.message ?? responseData?.Message
         });
         
-        // Special handling for Professional plan with unlimited events
+        // QUAN TRỌNG: Kiểm tra xem có subscription active không
+        // Nếu không có subscription hoặc subscription không active, redirect về trang subscription
+        if (!hasSubscription || !activeSubscription) {
+          console.warn('[CreateEventPage] No active subscription found - redirecting to subscription plans');
+          navigate('/subscriptions/plans', { 
+            replace: true,
+            state: { message: 'Bạn cần đăng ký gói subscription để tạo sự kiện. Vui lòng mua gói subscription trước khi tạo sự kiện.' }
+          });
+          return;
+        }
+        
+        // Kiểm tra status của subscription
+        if (status !== 'Active') {
+          console.warn('[CreateEventPage] Subscription is not active - redirecting to subscription plans', { status });
+          navigate('/subscriptions/plans', { 
+            replace: true,
+            state: { message: `Gói subscription của bạn đang ở trạng thái "${status}". Vui lòng kích hoạt gói subscription để tạo sự kiện.` }
+          });
+          return;
+        }
+        
+        // QUAN TRỌNG: Professional plan luôn cho phép tạo event (unlimited)
+        // Phải check và override canCreate TRƯỚC khi check canCreate
         const isProfessional = planType === 'Professional';
-        // Check if unlimited: int.MaxValue = 2147483647, or -1, or remainingEvents is very large
-        const isUnlimited = maxEventsAllowed === 2147483647 || 
-                           remainingEvents === 2147483647 || 
-                           remainingEvents === -1 ||
-                           (typeof remainingEvents === 'string' && remainingEvents.toLowerCase() === 'unlimited');
+        if (isProfessional && hasSubscription && status === 'Active') {
+          console.log('[CreateEventPage] ✅ Professional plan detected - allowing unlimited event creation (overriding canCreate)');
+          canCreate = true;
+        }
         
         console.log('[CreateEventPage] Plan check:', {
           isProfessional,
-          isUnlimited,
           maxEventsAllowed,
           remainingEvents,
           hasSubscription,
           status,
-          originalCanCreate: canCreate
+          canCreate,
+          planType
         });
         
-        // Override canCreate for Professional plan - Professional always has unlimited events
-        // Don't rely on isUnlimited check as subscription might have been created before fix
-        if (isProfessional && hasSubscription && status === 'Active') {
-          console.log('[CreateEventPage] ✅ Professional plan detected - allowing unlimited event creation');
-          canCreate = true;
-        }
-        
-        // Final check
-        if (!canCreate) {
+        // Final check - nếu không thể tạo event (hết quota) - chỉ check nếu không phải Professional
+        if (!canCreate && !isProfessional) {
           console.warn('[CreateEventPage] Cannot create event - redirecting to subscription plans', {
             canCreate,
             isProfessional,
-            isUnlimited,
             hasSubscription,
             status,
             remainingEvents,
@@ -346,7 +359,11 @@ const CreateEventPage = () => {
           // Redirect to subscription plans page
           navigate('/subscriptions/plans', { 
             replace: true,
-            state: { message: 'Bạn cần đăng ký gói subscription để tạo sự kiện' }
+            state: { 
+              message: remainingEvents === 0 
+                ? 'Bạn đã vượt quá giới hạn số sự kiện cho phép. Vui lòng nâng cấp gói subscription để tạo thêm sự kiện.'
+                : 'Bạn cần đăng ký gói subscription để tạo sự kiện'
+            }
           });
           return;
         }
@@ -355,7 +372,21 @@ const CreateEventPage = () => {
       } catch (err) {
         console.error('[CreateEventPage] Error checking subscription:', err);
         console.error('[CreateEventPage] Error details:', err.response?.data || err.message);
-        // If error, still allow access (don't block user)
+        
+        // QUAN TRỌNG: Khi có lỗi, vẫn redirect về trang subscription để đảm bảo an toàn
+        // Không cho phép tạo event nếu không thể xác minh subscription
+        const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           err.message || 
+                           'Không thể kiểm tra trạng thái subscription. Vui lòng thử lại sau.';
+        
+        console.warn('[CreateEventPage] Error checking subscription - redirecting to subscription plans for safety');
+        navigate('/subscriptions/plans', { 
+          replace: true,
+          state: { 
+            message: `Lỗi kiểm tra subscription: ${errorMessage}. Vui lòng đảm bảo bạn đã có gói subscription hợp lệ.`
+          }
+        });
       } finally {
         setSubscriptionCheckLoading(false);
       }
@@ -1064,6 +1095,40 @@ const CreateEventPage = () => {
         console.log('Step 5 Data (Settings):', step5Data);
         console.log('Step 6 Data (Payment):', step6Data);
         
+        // Đảm bảo step6Data có giá trị
+        if (!step6Data) {
+          setError('Dữ liệu thanh toán không hợp lệ. Vui lòng kiểm tra lại bước 6.');
+          setIsEventBeingCreated(false);
+          setShouldBlockNavigation(false);
+          return;
+        }
+        
+        // Đảm bảo có ít nhất một phương thức thanh toán được chọn
+        const selectedMethods = step6Data.selectedPaymentMethods || [];
+        if (selectedMethods.length === 0) {
+          setError('Vui lòng chọn ít nhất một phương thức thanh toán.');
+          setIsEventBeingCreated(false);
+          setShouldBlockNavigation(false);
+          return;
+        }
+        
+        // Validation: Kiểm tra bank accounts nếu chọn bank_transfer
+        const hasBankTransfer = selectedMethods.includes('bank_transfer');
+        if (hasBankTransfer) {
+          const validBankAccounts = (step6Data.bankAccounts || []).filter(account => 
+            account && account.bankName && account.bankName.trim() !== '' &&
+            account.accountNumber && account.accountNumber.trim() !== '' &&
+            account.accountHolder && account.accountHolder.trim() !== ''
+          );
+          
+          if (validBankAccounts.length === 0) {
+            setError('Vui lòng thêm ít nhất một tài khoản ngân hàng hợp lệ khi chọn phương thức chuyển khoản ngân hàng.');
+            setIsEventBeingCreated(false);
+            setShouldBlockNavigation(false);
+            return;
+          }
+        }
+        
         // Chuẩn bị location string từ step1Data
         let locationString = '';
         if (step1Data.eventMode === 'Online') {
@@ -1168,13 +1233,31 @@ const CreateEventPage = () => {
           // Step 5 - Settings (optional)
           eventSettings: step5Data ? JSON.stringify(step5Data) : null,
           // Step 6
-          paymentMethod: step6Data.selectedPaymentMethods?.join(', ') || 'Bank Transfer',
-          bankAccount: step6Data.bankAccounts ? JSON.stringify(step6Data.bankAccounts) : '',
+          paymentMethod: (step6Data.selectedPaymentMethods || []).join(', ') || 'cash',
+          // Chỉ gửi bank accounts hợp lệ (có đầy đủ thông tin) nếu có bank_transfer
+          bankAccount: (() => {
+            const hasBankTransfer = (step6Data.selectedPaymentMethods || []).includes('bank_transfer');
+            if (!hasBankTransfer) {
+              return ''; // Không cần bank account nếu không chọn bank_transfer
+            }
+            const validAccounts = (step6Data.bankAccounts || []).filter(account => 
+              account && account.bankName && account.bankName.trim() !== '' &&
+              account.accountNumber && account.accountNumber.trim() !== '' &&
+              account.accountHolder && account.accountHolder.trim() !== ''
+            );
+            return validAccounts.length > 0 ? JSON.stringify(validAccounts) : '';
+          })(),
           taxInfo: step6Data.taxInfo || ''
         };
         
+        console.log('=== Complete Event Request ===');
         console.log('Complete Event Request:', completeEventRequest);
         console.log('Complete Event Request JSON:', JSON.stringify(completeEventRequest, null, 2));
+        console.log('PaymentMethod:', completeEventRequest.paymentMethod);
+        console.log('BankAccount:', completeEventRequest.bankAccount);
+        console.log('TicketTypes count:', completeEventRequest.ticketTypes?.length || 0);
+        console.log('StartTime:', completeEventRequest.startTime);
+        console.log('EndTime:', completeEventRequest.endTime);
         
         if (isEditMode && eventId) {
           // CẬP NHẬT EVENT: Gọi tuần tự các API update cho từng bước
@@ -1416,9 +1499,15 @@ const CreateEventPage = () => {
         setShouldBlockNavigation(false);
       } else if (activeStep === 5) {
         // Xử lý lỗi đặc biệt cho bước 6 (validation errors từ backend)
-        if (err.response && err.response.data) {
-          const errorData = err.response.data;
-          
+        console.error('Error in step 6 (Payment):', err);
+        console.error('Error response:', err.response);
+        console.error('Error response data:', err.response?.data);
+        console.error('Error originalError:', err.originalError);
+        
+        // Kiểm tra cả err.response.data và err.originalError?.response?.data
+        const errorData = err.response?.data || err.originalError?.response?.data;
+        
+        if (errorData) {
           // Nếu có danh sách lỗi validation
           if (errorData.errors && Array.isArray(errorData.errors)) {
             const errorMessage = 'Không thể tạo sự kiện:\n' + errorData.errors.join('\n');
@@ -1438,13 +1527,33 @@ const CreateEventPage = () => {
               setActiveStep(4);
             }
           } else if (errorData.message) {
-            setError(errorData.message);
+            let fullErrorMessage = errorData.message;
+            
+            // Thêm error details nếu có
+            if (errorData.error) {
+              fullErrorMessage += `\n\nChi tiết: ${errorData.error}`;
+            }
+            
+            // Thêm details array nếu có (từ backend)
+            if (errorData.details && Array.isArray(errorData.details)) {
+              fullErrorMessage += '\n\n' + errorData.details.join('\n');
+            }
+            
+            // Thêm innerException nếu có
+            if (errorData.innerException) {
+              fullErrorMessage += `\n\nLỗi chi tiết: ${errorData.innerException}`;
+            }
+            
+            setError(fullErrorMessage);
           } else {
-        setError(err.message || 'Có lỗi xảy ra khi hoàn thành sự kiện');
+            setError(err.apiErrorMessage || err.message || 'Có lỗi xảy ra khi hoàn thành sự kiện. Vui lòng kiểm tra console để xem chi tiết.');
           }
         } else {
-          setError(err.message || 'Có lỗi xảy ra khi hoàn thành sự kiện');
+          // Nếu không có errorData, thử lấy từ err.message hoặc apiErrorMessage
+          setError(err.apiErrorMessage || err.message || 'Có lỗi xảy ra khi hoàn thành sự kiện. Vui lòng kiểm tra console để xem chi tiết.');
         }
+        setIsEventBeingCreated(false);
+        setShouldBlockNavigation(false);
       } else {
         setError(err.message || `Có lỗi xảy ra khi xử lý bước ${activeStep + 1}`);
       }
@@ -1670,14 +1779,14 @@ const CreateEventPage = () => {
         
         const isValidStep5 = hasPaymentMethods && hasValidBankAccounts;
         
-        // Debug: Log Step 5 validation
-        console.log('Step 5 Validation Debug:', {
-          selectedPaymentMethods: step5Data.selectedPaymentMethods,
+        // Debug: Log Step 6 validation (activeStep === 5 means step 6)
+        console.log('Step 6 Validation Debug:', {
+          step6Data: step6Data,
+          selectedPaymentMethods: step6Data?.selectedPaymentMethods,
           hasPaymentMethods: hasPaymentMethods,
-          bankAccounts: step5Data.bankAccounts,
+          bankAccounts: step6Data?.bankAccounts,
           hasValidBankAccounts: hasValidBankAccounts,
-          isValid: isValidStep5,
-          allFields: step5Data
+          isValid: isValidStep5
         });
         
         return isValidStep5;

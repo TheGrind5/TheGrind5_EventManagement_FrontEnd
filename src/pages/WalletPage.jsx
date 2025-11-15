@@ -37,8 +37,8 @@ const WalletPage = () => {
     try {
       setLoading(true);
       const response = await walletAPI.getBalance();
-      setBalance(response.balance);
-      setCurrency(response.currency || 'VND');
+      setBalance(response.data.balance || 0);
+      setCurrency(response.data.currency || 'VND');
       setError(null);
     } catch (err) {
       setError(err.message);

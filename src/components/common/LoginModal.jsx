@@ -118,11 +118,6 @@ const LoginModal = () => {
   return (
     <div 
       className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
       style={{
         position: 'fixed',
         top: 0,
@@ -331,7 +326,7 @@ const LoginModal = () => {
                       cy="12"
                       r="9"
                       fill="none"
-                      stroke="#FF7A00"
+                      stroke="#ffffff"
                       strokeWidth="3"
                       strokeLinecap="round"
                       strokeDasharray="6 10"

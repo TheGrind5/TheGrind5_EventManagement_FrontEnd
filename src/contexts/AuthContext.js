@@ -156,12 +156,23 @@ export const AuthProvider = ({ children }) => {
                             (error.code === 0) ||
                             (!error.response && error.request); // Có request nhưng không có response
       
-      // Handle email already exists error
+      // Handle email already exists error or username exists error
       if (error.response?.status === 400 && error.response?.data?.message) {
         return { 
           success: false,
           accountCreated: false,
-          message: error.response.data.message 
+          message: error.response.data.message,
+          suggestions: error.response.data.suggestions || []
+        };
+      }
+      
+      // Handle error from apiClient interceptor (wrapped format)
+      if (error.originalError?.response?.status === 400 && error.originalError?.response?.data) {
+        return {
+          success: false,
+          accountCreated: false,
+          message: error.originalError.response.data.message || error.message,
+          suggestions: error.originalError.response.data.suggestions || []
         };
       }
       
@@ -181,7 +192,8 @@ export const AuthProvider = ({ children }) => {
         success: false,
         accountCreated: false,
         message: errorMessage,
-        isNetworkError: false
+        isNetworkError: false,
+        suggestions: error.originalError?.response?.data?.suggestions || error.response?.data?.suggestions || []
       };
     }
   };
