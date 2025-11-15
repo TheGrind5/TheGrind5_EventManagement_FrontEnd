@@ -27,6 +27,7 @@ import {
 import { Search, Event, CalendarToday, LocationOn, Person, ArrowBackIos, ArrowForwardIos } from '@mui/icons-material';
 import adminAPI from '../../services/adminAPI';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatVietnamDateTimeShort } from '../../utils/dateTimeUtils';
 import './EventManagement.css';
 
 const EventManagement = () => {
@@ -120,16 +121,8 @@ const EventManagement = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Sử dụng formatVietnamDateTimeShort từ dateTimeUtils để đồng bộ UTC+7
+  const formatDate = formatVietnamDateTimeShort;
 
   // Delete handlers
   const handleDeleteClick = (event) => {

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import adminService from '../../services/adminService';
 import { runDiagnostics } from '../../utils/debugHelper';
+import { formatVietnamDateTimeShort } from '../../utils/dateTimeUtils';
 import '../../styles/AdminUsers.css';
 
 const AdminUsersPage = () => {
@@ -124,17 +125,8 @@ const AdminUsersPage = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Sử dụng formatVietnamDateTimeShort từ dateTimeUtils để đồng bộ UTC+7
+  const formatDate = formatVietnamDateTimeShort;
 
   const handleSearch = (e) => {
     e.preventDefault();
