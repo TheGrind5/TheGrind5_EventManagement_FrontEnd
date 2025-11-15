@@ -82,10 +82,15 @@ apiClient.interceptors.response.use(
             break;
           case 401:
             errorMessage = 'Unauthorized - please login again';
-            // Clear token and redirect to login
+            // Clear token
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            window.location.href = '/login';
+            // Only redirect to login if not already on login or home page
+            // This prevents auto-redirect when app first loads with invalid token
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/login' && currentPath !== '/' && currentPath !== '/register') {
+              window.location.href = '/login';
+            }
             break;
           case 403:
             errorMessage = 'Access forbidden';
