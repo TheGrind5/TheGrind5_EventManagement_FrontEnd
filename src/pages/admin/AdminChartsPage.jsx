@@ -596,7 +596,7 @@ const AdminChartsPage = ({ type = 'bar' }) => {
                   <ResponsiveContainer width="100%" height={400}>
                     <BarChart
                       data={getRevenueChartData()}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                      margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#f0f0f0'} />
                       <XAxis 
@@ -607,11 +607,17 @@ const AdminChartsPage = ({ type = 'bar' }) => {
                       <YAxis 
                         tick={{ fill: isDark ? '#9ca3af' : '#666', fontSize: 13, fontWeight: 500 }}
                         axisLine={{ stroke: isDark ? '#374151' : '#ddd' }}
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                          return value.toString();
+                        }}
                         label={{ 
                           value: 'Doanh thu (VNĐ)', 
                           angle: -90, 
-                          position: 'insideLeft',
-                          style: { fill: isDark ? '#9ca3af' : '#666', fontSize: 13, fontWeight: 600 }
+                          position: 'right',
+                          offset: -40,
+                          style: { fill: isDark ? '#9ca3af' : '#666', fontSize: 13, fontWeight: 600, textAnchor: 'middle' }
                         }}
                       />
                       <Tooltip content={<CustomRevenueTooltip />} cursor={{ fill: 'rgba(249, 115, 22, 0.1)' }} />
@@ -908,7 +914,7 @@ const AdminChartsPage = ({ type = 'bar' }) => {
                   <ResponsiveContainer width="100%" height={400}>
                     <LineChart
                       data={getRevenueChartData()}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                      margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#f0f0f0'} />
                       <XAxis 
@@ -919,11 +925,17 @@ const AdminChartsPage = ({ type = 'bar' }) => {
                       <YAxis 
                         tick={{ fill: isDark ? '#9ca3af' : '#666', fontSize: 13, fontWeight: 500 }}
                         axisLine={{ stroke: isDark ? '#374151' : '#ddd' }}
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                          return value.toString();
+                        }}
                         label={{ 
                           value: 'Doanh thu (VNĐ)', 
                           angle: -90, 
-                          position: 'insideLeft',
-                          style: { fill: isDark ? '#9ca3af' : '#666', fontSize: 13, fontWeight: 600 }
+                          position: 'left',
+                          offset: -35,
+                          style: { fill: isDark ? '#9ca3af' : '#666', fontSize: 13, fontWeight: 600, textAnchor: 'middle' }
                         }}
                       />
                       <Tooltip content={<CustomRevenueTooltip />} cursor={{ stroke: '#f97316', strokeWidth: 2 }} />
