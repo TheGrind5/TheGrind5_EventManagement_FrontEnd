@@ -274,6 +274,20 @@ const adminService = {
       console.error(`Error getting event statistics for year ${year}:`, error);
       throw error;
     }
+  },
+
+  /**
+   * Lấy thống kê doanh thu sàn theo năm
+   * @param {number} year - Năm cần thống kê (0 = năm hiện tại)
+   */
+  async getPlatformRevenueStatistics(year = 0) {
+    try {
+      const response = await apiClient.get(`/admin/platform-revenue-statistics?year=${year}`);
+      return response;
+    } catch (error) {
+      console.error(`Error getting platform revenue statistics for year ${year}:`, error);
+      throw error;
+    }
   }
 };
 

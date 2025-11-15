@@ -115,11 +115,23 @@ const AdminSettingsPage = () => {
     try {
       setLoading(true);
       const response = await adminAPI.getSystemSettings();
+      console.log('Get system settings response:', response);
+      
       if (response.success && response.data) {
+        // Handle nested data structure
+        let settingsData = response.data;
+        
+        // If data is nested (response.data.data or response.data.Data)
+        if (settingsData?.data) {
+          settingsData = settingsData.data;
+        } else if (settingsData?.Data) {
+          settingsData = settingsData.Data;
+        }
+        
         setSystemSettings({
-          maintenanceMode: response.data.maintenanceMode || false,
-          requireEmailVerification: response.data.requireEmailVerification !== false,
-          sessionTimeout: response.data.sessionTimeout || 30
+          maintenanceMode: settingsData?.maintenanceMode ?? settingsData?.MaintenanceMode ?? false,
+          requireEmailVerification: settingsData?.requireEmailVerification ?? settingsData?.RequireEmailVerification !== false,
+          sessionTimeout: settingsData?.sessionTimeout ?? settingsData?.SessionTimeout ?? 30
         });
       }
     } catch (error) {
@@ -252,30 +264,88 @@ const AdminSettingsPage = () => {
   const handleSaveSystemSettings = async () => {
     try {
       setSaving(true);
-      const response = await adminAPI.updateSystemSettings({
+      const requestData = {
         maintenanceMode: systemSettings.maintenanceMode,
         requireEmailVerification: systemSettings.requireEmailVerification,
         sessionTimeout: systemSettings.sessionTimeout
-      });
+      };
+      
+      console.log('Saving system settings:', requestData);
+      
+      const response = await adminAPI.updateSystemSettings(requestData);
 
+      console.log('Update system settings response:', response);
+      console.log('Response.success:', response.success);
+      console.log('Response.data:', response.data);
+      console.log('Response.message:', response.message);
+
+      // Handle response format: 
+      // Backend returns: ApiResponse<SystemSettingsDto> = { success, message, data: SystemSettingsDto }
+      // apiClient interceptor extracts: { success: true, data: SystemSettingsDto, message: "..." }
+      // So response.data should be SystemSettingsDto directly
+      
       if (response.success) {
-        showSnackbar(response.message || 'Cập nhật cài đặt hệ thống thành công', 'success');
-        if (response.data) {
-          setSystemSettings({
-            maintenanceMode: response.data.maintenanceMode,
-            requireEmailVerification: response.data.requireEmailVerification,
-            sessionTimeout: response.data.sessionTimeout
-          });
+        // Extract the actual SystemSettingsDto
+        // apiClient interceptor already extracted body.data, so response.data should be SystemSettingsDto
+        let settingsData = response.data;
+        
+        // But if backend returns ApiResponse wrapper, it might be nested
+        // Check if response.data is still ApiResponse format { success, message, data }
+        if (settingsData && typeof settingsData === 'object' && 'success' in settingsData && 'data' in settingsData) {
+          // It's still ApiResponse format, extract the data property
+          settingsData = settingsData.data || settingsData.Data;
+        }
+        
+        console.log('Extracted settings data:', settingsData);
+        
+        // Extract settings values (handle both camelCase and PascalCase)
+        const updatedSettings = {
+          maintenanceMode: settingsData?.maintenanceMode ?? settingsData?.MaintenanceMode ?? systemSettings.maintenanceMode,
+          requireEmailVerification: settingsData?.requireEmailVerification ?? settingsData?.RequireEmailVerification ?? systemSettings.requireEmailVerification,
+          sessionTimeout: settingsData?.sessionTimeout ?? settingsData?.SessionTimeout ?? systemSettings.sessionTimeout
+        };
+        
+        console.log('Updated settings:', updatedSettings);
+        
+        // Show success message
+        const successMessage = response.message || response.data?.message || 'Cập nhật cài đặt hệ thống thành công';
+        showSnackbar(successMessage, 'success');
+        
+        // Update state
+        setSystemSettings(updatedSettings);
+        
+        // Nếu bật chế độ bảo trì, hiển thị thông báo đặc biệt sau 1.5 giây
+        if (updatedSettings.maintenanceMode) {
+          setTimeout(() => {
+            showSnackbar('Chế độ bảo trì đã được kích hoạt. Người dùng thường sẽ không thể đăng nhập.', 'info');
+          }, 1500);
         }
       } else {
-        showSnackbar(response.message || 'Có lỗi xảy ra khi cập nhật cài đặt', 'error');
+        // Handle error response
+        const errorMessage = response.message || response.data?.message || 'Có lỗi xảy ra khi cập nhật cài đặt';
+        showSnackbar(errorMessage, 'error');
       }
     } catch (error) {
       console.error('Error saving system settings:', error);
-      showSnackbar(
-        error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật cài đặt',
-        'error'
-      );
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      
+      // Try to extract error message from various possible locations
+      let errorMessage = 'Có lỗi xảy ra khi cập nhật system settings';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        errorMessage = errorData.message || 
+                      errorData.Message || 
+                      errorData.error || 
+                      errorData.Error ||
+                      (typeof errorData === 'string' ? errorData : errorMessage);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showSnackbar(errorMessage, 'error');
     } finally {
       setSaving(false);
     }

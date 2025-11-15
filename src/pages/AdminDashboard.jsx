@@ -41,6 +41,7 @@ const AdminDashboard = () => {
           <Route path="/announcements" element={<AdminAnnouncementsPage />} />
           <Route path="/event-approval" element={<AdminEventApprovalPage />} />
           <Route path="/charts/bar" element={<AdminChartsPage type="bar" />} />
+          <Route path="/charts/revenue" element={<AdminChartsPage type="revenue" />} />
           <Route path="/charts/line" element={<AdminChartsPage type="line" />} />
           <Route path="/charts" element={<Navigate to="/admin/charts/bar" replace />} />
           <Route path="/settings" element={<AdminSettingsPage />} />

@@ -7,13 +7,17 @@ import {
   Stack, 
   CircularProgress,
   Alert,
-  Paper
+  Paper,
+  Grid,
+  Card,
+  CardContent
 } from '@mui/material';
 import { 
   AccountBalanceWallet, 
   Add, 
   Remove 
 } from '@mui/icons-material';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { walletAPI } from '../services/apiClient';
 import Header from '../components/layout/Header';
 import WalletBalance from '../components/wallet/WalletBalance';
@@ -123,60 +127,71 @@ const WalletPage = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Stack spacing={4}>
-          {/* Header */}
-          <Box textAlign="center">
-            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+      <Container maxWidth="lg" sx={{ py: 3 }}>
+        <Stack spacing={2.5}>
+          {/* Header - Compact */}
+          <Box textAlign="center" sx={{ mb: 1 }}>
+            <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
               💳 Quản lý ví của tôi
             </Typography>
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant="body1" color="text.secondary">
               Quản lý số dư và giao dịch ví điện tử
             </Typography>
           </Box>
 
-          {/* Wallet Balance Section */}
-          <Box>
-            <WalletBalance 
-              balance={balance}
-              currency={currency}
-              onRefresh={fetchWalletBalance}
-            />
-            
-            <Stack 
-              direction="row" 
-              spacing={2} 
-              justifyContent="center" 
-              sx={{ mt: 3 }}
-            >
-              <Button
-                variant="contained"
-                color="success"
-                size="large"
-                startIcon={<Add />}
-                onClick={() => setShowDepositModal(true)}
-                sx={{ minWidth: 150 }}
-              >
-                Nạp tiền
-              </Button>
-              <Button
-                variant="contained"
-                color="warning"
-                size="large"
-                startIcon={<Remove />}
-                onClick={() => setShowWithdrawModal(true)}
-                disabled={balance <= 0}
-                sx={{ minWidth: 150 }}
-              >
-                Rút tiền
-              </Button>
-            </Stack>
-          </Box>
+          {/* Main Content Grid: Wallet + Bank + Transaction History */}
+          <Grid container spacing={2}>
+            {/* Wallet Balance + Bank Info */}
+            <Grid item xs={12} md={6}>
+              <WalletBalance 
+                balance={balance}
+                currency={currency}
+                onRefresh={fetchWalletBalance}
+                onDeposit={() => setShowDepositModal(true)}
+                onWithdraw={() => setShowWithdrawModal(true)}
+              />
+            </Grid>
 
-          {/* Transaction History Section */}
-          <Paper sx={{ p: 3 }}>
-            <TransactionHistory />
-          </Paper>
+            {/* Transaction History - Chiếm phần còn lại */}
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <TransactionHistory />
+              </Paper>
+            </Grid>
+          </Grid>
+
+          {/* Statistics Chart - Full Width */}
+          <Card>
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                Thống kê nạp/chi
+              </Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={[
+                  { name: 'T1', nạp: 0, chi: 0 },
+                  { name: 'T2', nạp: 0, chi: 0 },
+                  { name: 'T3', nạp: 0, chi: 0 },
+                  { name: 'T4', nạp: 0, chi: 0 },
+                  { name: 'T5', nạp: 0, chi: 0 },
+                  { name: 'T6', nạp: 0, chi: 0 },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                  <YAxis stroke="#888" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(0,0,0,0.8)', 
+                      border: 'none',
+                      borderRadius: '4px'
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="nạp" fill="#4caf50" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="chi" fill="#ff9800" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </Stack>
       </Container>
 
