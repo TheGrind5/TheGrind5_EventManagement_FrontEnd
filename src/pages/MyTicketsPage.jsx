@@ -41,10 +41,12 @@ import {
   Delete,
   Warning,
   RateReview,
-  QrCodeScanner
+  QrCodeScanner,
+  SwapHoriz
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import TicketQRCode from '../components/tickets/TicketQRCode';
+import TransferTicketModal from '../components/tickets/TransferTicketModal';
 import { ticketsAPI, eventsAPI } from '../services/apiClient';
 import { subscriptionHelpers } from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
@@ -70,6 +72,10 @@ const MyTicketsPage = () => {
   // QR Code dialog states
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [selectedTicketForQR, setSelectedTicketForQR] = useState(null);
+  
+  // Transfer ticket dialog states
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [selectedTicketForTransfer, setSelectedTicketForTransfer] = useState(null);
   
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -256,6 +262,14 @@ const MyTicketsPage = () => {
     ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || ''
   ).filter(Boolean))];
 
+  // Debug logging
+  console.log('🎫 Total tickets:', tickets.length);
+  console.log('🎫 Tickets data:', tickets);
+  console.log('🔍 Current filter:', filter);
+  console.log('🔍 Search term:', searchTerm);
+  console.log('🔍 Event filter:', eventFilter);
+  console.log('🔍 Date filter:', dateFilter);
+
   const filteredTickets = tickets.filter(ticket => {
     const ticketStatus = ticket.Status || ticket.status;
     const eventTitle = ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || '';
@@ -315,6 +329,9 @@ const MyTicketsPage = () => {
 
     return matchesStatus && matchesSearch && matchesEvent && matchesDate;
   });
+
+  console.log('✅ Filtered tickets:', filteredTickets.length);
+  console.log('✅ Filtered data:', filteredTickets);
 
   if (loading) {
     return (
@@ -386,826 +403,797 @@ const MyTicketsPage = () => {
           )}
 
           {/* Header */}
-          <Box>
-            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-              {activeTab === 'tickets' ? 'Vé của tôi' : 'Sự kiện của tôi'}
-            </Typography>
-            <Typography variant="h6" color="text.secondary">
-              {activeTab === 'tickets' 
-                ? 'Quản lý và theo dõi vé sự kiện của bạn'
-                : 'Quản lý và chỉnh sửa sự kiện của bạn'}
-            </Typography>
-          </Box>
-
-
-          {/* Search and Filter Section - Only for Tickets */}
-          {activeTab === 'tickets' && (
-          <Paper sx={{ p: 3 }}>
-            <Stack spacing={3}>
-              {/* Search Bar */}
-              <TextField
-                fullWidth
-                placeholder="Tìm kiếm vé..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchTerm && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setSearchTerm('')}
-                        edge="end"
-                        size="small"
-                      >
-                        <Clear />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
-
-              {/* Filter Controls */}
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>Sự kiện</InputLabel>
-                    <Select
-                      value={eventFilter}
-                      label="Sự kiện"
-                      onChange={(e) => setEventFilter(e.target.value)}
-                    >
-                      <MenuItem value="all">Tất cả sự kiện</MenuItem>
-                      {events.map(event => (
-                        <MenuItem key={event} value={event}>{event}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>Thời gian</InputLabel>
-                    <Select
-                      value={dateFilter}
-                      label="Thời gian"
-                      onChange={(e) => setDateFilter(e.target.value)}
-                    >
-                      <MenuItem value="all">Tất cả</MenuItem>
-                      <MenuItem value="recent">Gần đây (7 ngày)</MenuItem>
-                      <MenuItem value="old">Cũ hơn</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    onClick={() => {
-                      setSearchTerm('');
-                      setEventFilter('all');
-                      setDateFilter('all');
-                    }}
-                    sx={{ height: '56px' }}
-                  >
-                    Đặt lại
-                  </Button>
-                </Grid>
-              </Grid>
-
-              {/* Results Summary */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Hiển thị {filteredTickets.length} / {tickets.length} vé
+          <Paper sx={{ p: 3, borderRadius: 2, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" spacing={2}>
+              <Box>
+                <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5, color: 'white' }}>
+                  {activeTab === 'tickets' ? '🎫 Vé của tôi' : '🎉 Sự kiện của tôi'}
                 </Typography>
-                {(searchTerm || eventFilter !== 'all' || dateFilter !== 'all') && (
-                  <Chip label="Đang lọc" color="primary" size="small" />
-                )}
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                  {activeTab === 'tickets' 
+                    ? 'Quản lý vé đã mua và xem thông tin sự kiện' 
+                    : 'Quản lý sự kiện đã tạo'}
+                </Typography>
               </Box>
+              
+              {activeTab === 'tickets' && (
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    component={Link}
+                    to="/my-transfers"
+                    variant="contained"
+                    size="medium"
+                    startIcon={<SwapHoriz />}
+                    sx={{ 
+                      bgcolor: 'white',
+                      color: 'primary.main',
+                      fontWeight: 600,
+                      '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.9)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: 4
+                      }
+                    }}
+                  >
+                    Chuyển nhượng vé
+                  </Button>
+                  <Button
+                    component={Link}
+                    to="/"
+                    variant="outlined"
+                    size="medium"
+                    startIcon={<Event />}
+                    sx={{ 
+                      borderColor: 'white',
+                      color: 'white',
+                      fontWeight: 600,
+                      '&:hover': {
+                        borderColor: 'white',
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        transform: 'translateY(-2px)'
+                      }
+                    }}
+                  >
+                    Khám phá sự kiện
+                  </Button>
+                </Stack>
+              )}
             </Stack>
           </Paper>
-          )}
 
-          {/* Filter Tabs - Only for Tickets */}
-          {activeTab === 'tickets' && (
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Button 
-              variant={filter === 'all' ? 'contained' : 'outlined'}
-              onClick={() => setFilter('all')}
-            >
-              Tất cả ({tickets.length})
-            </Button>
-            <Button 
-              variant={filter === 'Assigned' ? 'contained' : 'outlined'}
-              onClick={() => setFilter('Assigned')}
-            >
-              Có thể dùng ({tickets.filter(t => (t.Status || t.status) === 'Assigned').length})
-            </Button>
-            <Button 
-              variant={filter === 'Used' ? 'contained' : 'outlined'}
-              onClick={() => setFilter('Used')}
-            >
-              Đã dùng ({tickets.filter(t => (t.Status || t.status) === 'Used').length})
-            </Button>
-            <Button 
-              variant={filter === 'Refunded' ? 'contained' : 'outlined'}
-              onClick={() => setFilter('Refunded')}
-            >
-              Đã hoàn ({tickets.filter(t => (t.Status || t.status) === 'Refunded').length})
-            </Button>
-            <Button 
-              variant={filter === 'Cancelled' ? 'contained' : 'outlined'}
-              onClick={() => setFilter('Cancelled')}
-            >
-              Đã hủy ({tickets.filter(t => (t.Status || t.status) === 'Cancelled').length})
-            </Button>
-          </Box>
-          )}
-
-          {/* Tickets List */}
-          {activeTab === 'tickets' && filteredTickets.length === 0 ? (
-            tickets.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <ConfirmationNumber sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h5" gutterBottom>
-                  Chưa có vé nào
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                  Bạn chưa mua vé sự kiện nào. Hãy khám phá các sự kiện thú vị!
-                </Typography>
-                <Button component={Link} to="/" variant="contained">
-                  Xem sự kiện
-                </Button>
-              </Box>
-            ) : (
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <Event sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h5" gutterBottom>
-                  Không tìm thấy vé
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                  Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc
-                </Typography>
+          {/* Tabs */}
+          <Paper sx={{ borderRadius: 2 }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+              <Stack direction="row" spacing={0}>
                 <Button
-                  variant="outlined"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setEventFilter('all');
-                    setDateFilter('all');
-                  }}
-                >
-                  Đặt lại bộ lọc
-                </Button>
-              </Box>
-            )
-          ) : (
-            activeTab === 'tickets' && (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: {
-                  xs: '1fr',
-                  md: 'repeat(2, 1fr)'
-                },
-                gap: 3,
-                alignItems: 'stretch'
-              }}
-            >
-              {filteredTickets.map((ticket) => (
-                <Card 
-                  key={ticket.TicketId || ticket.ticketId || Math.random()}
-                  elevation={0}
-                  sx={{ 
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 3,
-                    transition: 'all 0.3s ease',
+                  onClick={() => setActiveTab('tickets')}
+                  sx={{
+                    flex: 1,
+                    py: 2,
+                    borderRadius: 0,
+                    borderTopLeftRadius: 8,
+                    borderBottom: activeTab === 'tickets' ? 2 : 0,
+                    borderColor: 'primary.main',
+                    bgcolor: activeTab === 'tickets' ? 'action.selected' : 'transparent',
                     '&:hover': {
-                      boxShadow: `0 8px 24px ${theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.12)'}`,
-                      transform: 'translateY(-2px)'
+                      bgcolor: 'action.hover'
                     }
                   }}
                 >
-                    <CardContent 
-                      sx={{ 
-                        flexGrow: 1, 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        p: 3,
-                        minHeight: 0,
-                        '&:last-child': { pb: 3 }
-                      }}
+                  <ConfirmationNumber sx={{ mr: 1 }} />
+                  Vé của tôi ({tickets.length})
+                </Button>
+                <Button
+                  onClick={() => setActiveTab('events')}
+                  sx={{
+                    flex: 1,
+                    py: 2,
+                    borderRadius: 0,
+                    borderTopRightRadius: 8,
+                    borderBottom: activeTab === 'events' ? 2 : 0,
+                    borderColor: 'primary.main',
+                    bgcolor: activeTab === 'events' ? 'action.selected' : 'transparent',
+                    '&:hover': {
+                      bgcolor: 'action.hover'
+                    }
+                  }}
+                >
+                  <Event sx={{ mr: 1 }} />
+                  Sự kiện của tôi ({myEvents.length})
+                </Button>
+              </Stack>
+            </Box>
+          </Paper>
+
+          {/* Tickets Tab Content */}
+          {activeTab === 'tickets' && (
+            <>
+              {/* Statistics Dashboard */}
+              {tickets.length > 0 && (
+                <Grid container spacing={2}>
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ 
+                      p: 2, 
+                      borderRadius: 2, 
+                      textAlign: 'center',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                      '&:hover': { transform: 'scale(1.05)' }
+                    }}
+                    onClick={() => setFilter('all')}
                     >
-                      <Stack spacing={2.5} sx={{ flexGrow: 1, minHeight: 0 }}>
-                        {/* Header */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
-                          <Box sx={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
-                            <Typography 
-                              variant="h6" 
-                              onClick={() => {
-                                // 🔒 CRITICAL: Click vào event title để filter tickets của event đó
-                                const eventTitle = ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || '';
-                                if (eventTitle) {
-                                  setEventFilter(eventTitle);
-                                  // Scroll to top để user thấy filter đã áp dụng
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }
-                              }}
-                              sx={{ 
-                                fontWeight: 600,
-                                mb: 1,
-                                lineHeight: 1.4,
-                                wordWrap: 'break-word',
-                                overflowWrap: 'break-word',
-                                hyphens: 'auto',
-                                cursor: 'pointer',
-                                '&:hover': {
-                                  color: 'primary.main',
-                                  textDecoration: 'underline'
-                                },
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              {decodeText(ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || 'Chưa có tiêu đề')}
-                            </Typography>
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary" 
-                              sx={{ 
-                                mb: 0.5,
-                                lineHeight: 1.5,
-                                wordWrap: 'break-word'
-                              }}
-                            >
-                              {decodeText(ticket.TicketType?.TypeName || ticket.ticketType?.typeName || ticket.TicketType?.typeName || 'Chưa có loại vé')}
-                            </Typography>
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary" 
-                              sx={{ 
-                                fontSize: '0.85rem',
-                                lineHeight: 1.5,
-                                fontFamily: 'monospace'
-                              }}
-                            >
-                              Số vé: {ticket.SerialNumber || ticket.serialNumber || 'N/A'}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ textAlign: 'right', flexShrink: 0, alignSelf: 'flex-start' }}>
-                            {(() => {
-                              const ticketStatus = ticket.Status || ticket.status;
-                              const orderStatus = ticket.Order?.Status || ticket.order?.status || ticket.Order?.status;
-                              const statusText = getStatusText(ticketStatus, orderStatus);
-                              const statusColor = getStatusColor(ticketStatus, orderStatus);
-                              
-                              return (
-                                <Chip 
-                                  label={statusText}
-                                  color={orderStatus === 'Failed' ? 'error' :
-                                         ticketStatus === 'Assigned' ? 'success' : 
-                                         ticketStatus === 'Used' ? 'info' : 'default'}
-                                  size="small"
-                                  sx={{ mb: 1, display: 'block' }}
-                                />
-                              );
-                            })()}
-                            <Typography 
-                              variant="h6" 
-                              sx={{ 
-                                fontWeight: 600, 
-                                color: 'primary.main',
-                                lineHeight: 1.2
-                              }}
-                            >
-                              {formatPrice((ticket.Order?.Amount || ticket.order?.amount || ticket.Order?.amount || 0))}
-                            </Typography>
-                          </Box>
-                        </Box>
-
-                        <Divider sx={{ my: 0.5 }} />
-
-                        {/* Details - Allow natural wrapping */}
-                        <Stack spacing={1.5} sx={{ flexGrow: 1, minHeight: 0 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                            <AccessTime 
-                              fontSize="small" 
-                              color="action" 
-                              sx={{ 
-                                mt: 0.25, 
-                                flexShrink: 0,
-                                width: '20px'
-                              }} 
-                            />
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary"
-                              sx={{ 
-                                flex: 1,
-                                lineHeight: 1.6,
-                                wordWrap: 'break-word',
-                                overflowWrap: 'break-word'
-                              }}
-                            >
-                              {formatDate((ticket.Event?.StartTime || ticket.event?.startTime || ticket.Event?.startTime))}
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                            <LocationOn 
-                              fontSize="small" 
-                              color="action" 
-                              sx={{ 
-                                mt: 0.25, 
-                                flexShrink: 0,
-                                width: '20px'
-                              }} 
-                            />
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary"
-                              sx={{ 
-                                flex: 1,
-                                lineHeight: 1.6,
-                                wordWrap: 'break-word',
-                                overflowWrap: 'break-word',
-                                hyphens: 'auto'
-                              }}
-                            >
-                              {decodeText(ticket.Event?.Location || ticket.event?.location || ticket.Event?.location || 'Chưa có địa điểm')}
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                            <Person 
-                              fontSize="small" 
-                              color="action" 
-                              sx={{ 
-                                mt: 0.25, 
-                                flexShrink: 0,
-                                width: '20px'
-                              }} 
-                            />
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary"
-                              sx={{ 
-                                flex: 1,
-                                lineHeight: 1.6,
-                                wordWrap: 'break-word'
-                              }}
-                            >
-                              Phát hành: {formatDate(ticket.IssuedAt || ticket.issuedAt)}
-                            </Typography>
-                          </Box>
-                          
-                          {(ticket.UsedAt || ticket.usedAt) && (
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                              <ConfirmationNumber 
-                                fontSize="small" 
-                                color="action" 
-                                sx={{ 
-                                  mt: 0.25, 
-                                  flexShrink: 0,
-                                  width: '20px'
-                                }} 
-                              />
-                              <Typography 
-                                variant="body2" 
-                                color="text.secondary"
-                                sx={{ 
-                                  flex: 1,
-                                  lineHeight: 1.6,
-                                  wordWrap: 'break-word'
-                                }}
-                              >
-                                Sử dụng: {formatDate(ticket.UsedAt || ticket.usedAt)}
-                              </Typography>
-                            </Box>
-                          )}
-                        </Stack>
-                        
-                        {/* 🎫 QR Code Display - Hiển thị trực tiếp trong ticket card */}
-                        {(() => {
-                          const ticketStatus = ticket.Status || ticket.status;
-                          const orderStatus = ticket.Order?.Status || ticket.order?.status || ticket.Order?.status;
-                          const isAssigned = ticketStatus === 'Assigned';
-                          const isUsed = ticketStatus === 'Used';
-                          const isPaymentFailed = orderStatus === 'Failed';
-                          const serialNumber = ticket.SerialNumber || ticket.serialNumber;
-                          const hasValidSerialNumber = serialNumber && serialNumber !== 'N/A' && serialNumber.trim() !== '';
-                          
-                          // Hiển thị QR code cho tickets có status Assigned hoặc Used và có SerialNumber
-                          const canShowQR = (isAssigned || isUsed) && !isPaymentFailed && hasValidSerialNumber;
-                          
-                          if (canShowQR) {
-                            return (
-                              <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 1 }}>
-                                  QR Code Vé
-                                </Typography>
-                                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                                  <TicketQRCode ticket={ticket} size={150} showSerialNumber={true} />
-                                </Box>
-                              </Box>
-                            );
-                          }
-                          
-                          return null;
-                        })()}
-                      </Stack>
-                    </CardContent>
-
-                    {/* Actions - Fixed at bottom */}
-                    <Box 
-                      sx={{ 
-                        p: 2, 
-                        pt: 2, 
-                        mt: 'auto',
-                        borderTop: `1px solid ${theme.palette.divider}`,
-                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.01)',
-                        flexShrink: 0
-                      }}
+                      <Typography variant="h3" fontWeight={700}>
+                        {tickets.length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Tổng vé
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ 
+                      p: 2, 
+                      borderRadius: 2, 
+                      textAlign: 'center',
+                      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                      '&:hover': { transform: 'scale(1.05)' }
+                    }}
+                    onClick={() => setFilter('available')}
                     >
-                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        {(() => {
-                          const ticketStatus = ticket.Status || ticket.status;
-                          const orderStatus = ticket.Order?.Status || ticket.order?.status || ticket.Order?.status;
-                          const isAssigned = ticketStatus === 'Assigned';
-                          const isUsed = ticketStatus === 'Used';
-                          const isPaymentFailed = orderStatus === 'Failed';
-                          
-                          // Hiển thị QR code cho tickets có status Assigned hoặc Used
-                          const canShowQR = (isAssigned || isUsed) && !isPaymentFailed;
-                          
-                          // Hiển thị nút Check-in và Hủy vé khi ticket là Assigned VÀ order không phải Failed
-                          if (isAssigned && !isPaymentFailed) {
-                            return (
-                              <>
-                                <Button 
-                                  variant="contained"
-                                  color="success"
-                                  size="small"
-                                  onClick={() => handleCheckIn(ticket.TicketId || ticket.ticketId)}
-                                  sx={{ 
-                                    flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
-                                    minWidth: '100px',
-                                    textTransform: 'none',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  Check-in
-                                </Button>
-                                <Button 
-                                  variant="outlined"
-                                  color="primary"
-                                  size="small"
-                                  startIcon={<QrCodeScanner />}
-                                  onClick={() => {
-                                    setSelectedTicketForQR(ticket);
-                                    setQrDialogOpen(true);
-                                  }}
-                                  sx={{ 
-                                    flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
-                                    minWidth: '100px',
-                                    textTransform: 'none',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  QR Code
-                                </Button>
-                                <Button 
-                                  variant="outlined"
-                                  color="warning"
-                                  size="small"
-                                  onClick={() => handleCancel(ticket.TicketId || ticket.ticketId)}
-                                  sx={{ 
-                                    flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
-                                    minWidth: '100px',
-                                    textTransform: 'none',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  Hủy vé
-                                </Button>
-                              </>
-                            );
-                          }
-                          
-                          // Hiển thị nút đánh giá cho vé đã sử dụng hoặc còn hợp lệ
-                          if ((isAssigned || isUsed) && !isPaymentFailed) {
-                            return (
-                              <Button 
-                                variant="outlined"
-                                color="primary"
-                                size="small"
-                                onClick={() => handleFeedback(ticket.Event?.EventId || ticket.event?.eventId || ticket.Event?.eventId)}
-                                sx={{ 
-                                  flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
-                                  minWidth: '100px',
-                                  textTransform: 'none',
-                                  fontWeight: 600
-                                }}
-                              >
-                                Đánh giá
-                              </Button>
-                            );
-                          }
-                          
-                          // Hiển thị QR code button cho tickets đã sử dụng
-                          if (isUsed && !isPaymentFailed) {
-                            return (
-                              <Button 
-                                variant="outlined"
-                                color="primary"
-                                size="small"
-                                startIcon={<QrCodeScanner />}
-                                onClick={() => {
-                                  setSelectedTicketForQR(ticket);
-                                  setQrDialogOpen(true);
-                                }}
-                                sx={{ 
-                                  flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
-                                  minWidth: '100px',
-                                  textTransform: 'none',
-                                  fontWeight: 600
-                                }}
-                              >
-                                QR Code
-                              </Button>
-                            );
-                          }
-                          
-                          return null;
-                        })()}
+                      <Typography variant="h3" fontWeight={700}>
+                        {tickets.filter(t => (t.Status || t.status) === 'Assigned').length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Có thể dùng
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ 
+                      p: 2, 
+                      borderRadius: 2, 
+                      textAlign: 'center',
+                      background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                      '&:hover': { transform: 'scale(1.05)' }
+                    }}
+                    onClick={() => setFilter('used')}
+                    >
+                      <Typography variant="h3" fontWeight={700}>
+                        {tickets.filter(t => (t.Status || t.status) === 'Used').length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Đã dùng
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ 
+                      p: 2, 
+                      borderRadius: 2, 
+                      textAlign: 'center',
+                      background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                      '&:hover': { transform: 'scale(1.05)' }
+                    }}
+                    onClick={() => setFilter('refunded')}
+                    >
+                      <Typography variant="h3" fontWeight={700}>
+                        {tickets.filter(t => (t.Status || t.status) === 'Refunded').length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Đã hoàn
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              )}
+
+              {/* Search and Filter Section */}
+              <Paper sx={{ p: 3, borderRadius: 2, border: '2px solid', borderColor: 'divider' }}>
+                <Stack spacing={2}>
+                  {/* Active Filter Indicator */}
+                  {(filter !== 'all' || searchTerm || eventFilter !== 'all' || dateFilter !== 'all') && (
+                    <Alert 
+                      severity="info" 
+                      icon={<FilterList />}
+                      action={
                         <Button 
-                          component={Link} 
-                          to={`/event/${ticket.Event?.EventId || ticket.event?.eventId || ticket.Event?.eventId || '0'}`}
-                          variant="outlined"
-                          size="small"
-                          sx={{ 
-                            flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
-                            minWidth: '120px',
-                            textTransform: 'none',
-                            fontWeight: 600
+                          size="small" 
+                          color="inherit"
+                          onClick={() => {
+                            setSearchTerm('');
+                            setEventFilter('all');
+                            setDateFilter('all');
+                            setFilter('all');
                           }}
                         >
-                          Xem sự kiện
+                          Xóa tất cả
                         </Button>
-                      </Stack>
-                    </Box>
-                  </Card>
-              ))}
-            </Box>
-            )
-          )}
+                      }
+                    >
+                      <Typography variant="body2">
+                        <strong>Đang áp dụng bộ lọc:</strong> Hiển thị {filteredTickets.length} / {tickets.length} vé
+                      </Typography>
+                    </Alert>
+                  )}
 
-          {/* My Events Section */}
-          {activeTab === 'events' && (
-            <>
-              {eventsLoading ? (
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  alignItems: 'center', 
-                  minHeight: '50vh' 
-                }}>
-                  <Stack alignItems="center" spacing={2}>
-                    <CircularProgress />
-                    <Typography>Đang tải sự kiện của bạn...</Typography>
-                  </Stack>
-                </Box>
-              ) : myEvents.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <Event sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h5" gutterBottom>
-                    Chưa có sự kiện nào
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                    Bạn chưa tạo sự kiện nào. Hãy tạo sự kiện đầu tiên của bạn!
-                  </Typography>
-                  <Button 
-                    variant="contained"
-                    onClick={async () => {
-                      await subscriptionHelpers.checkSubscriptionAndNavigate(navigate, user);
+                  {/* Search Bar */}
+                  <TextField
+                    fullWidth
+                    placeholder="Tìm kiếm theo tên sự kiện, loại vé, hoặc mã vé..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search />
+                        </InputAdornment>
+                      ),
+                      endAdornment: searchTerm && (
+                        <InputAdornment position="end">
+                          <IconButton size="small" onClick={() => setSearchTerm('')}>
+                            <Clear />
+                          </IconButton>
+                        </InputAdornment>
+                      )
                     }}
-                  >
-                    Tạo sự kiện
-                  </Button>
-                </Box>
-              ) : (
-                <Grid container spacing={3}>
-                  {myEvents.map((event) => {
-                    const daysUntilStart = Math.floor((new Date(event.startTime) - new Date()) / (1000 * 60 * 60 * 24));
-                    const canEditLocationCategory = daysUntilStart > 7;
-                    const canEditAnyField = daysUntilStart > 1;
+                  />
 
+                  {/* Filters */}
+                  <Stack 
+                    direction={isMobile ? 'column' : 'row'} 
+                    spacing={2}
+                    alignItems={isMobile ? 'stretch' : 'center'}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
+                      <FilterList color="primary" />
+                      <Typography variant="body2" fontWeight={700} color="primary">
+                        Bộ lọc:
+                      </Typography>
+                    </Box>
+
+                    <FormControl size="small" sx={{ minWidth: 150, flex: 1 }}>
+                      <InputLabel>Trạng thái</InputLabel>
+                      <Select
+                        value={filter}
+                        label="Trạng thái"
+                        onChange={(e) => setFilter(e.target.value)}
+                      >
+                        <MenuItem value="all">Tất cả</MenuItem>
+                        <MenuItem value="available">Có thể sử dụng</MenuItem>
+                        <MenuItem value="used">Đã sử dụng</MenuItem>
+                        <MenuItem value="cancelled">Đã hủy</MenuItem>
+                        <MenuItem value="refunded">Đã hoàn tiền</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <FormControl size="small" sx={{ minWidth: 150, flex: 1 }}>
+                      <InputLabel>Sự kiện</InputLabel>
+                      <Select
+                        value={eventFilter}
+                        label="Sự kiện"
+                        onChange={(e) => setEventFilter(e.target.value)}
+                      >
+                        <MenuItem value="all">Tất cả sự kiện</MenuItem>
+                        {events.map((event, idx) => (
+                          <MenuItem key={idx} value={event}>
+                            {decodeText(event)}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <FormControl size="small" sx={{ minWidth: 150, flex: 1 }}>
+                      <InputLabel>Thời gian</InputLabel>
+                      <Select
+                        value={dateFilter}
+                        label="Thời gian"
+                        onChange={(e) => setDateFilter(e.target.value)}
+                      >
+                        <MenuItem value="all">Tất cả</MenuItem>
+                        <MenuItem value="recent">7 ngày gần đây</MenuItem>
+                        <MenuItem value="old">Trước 7 ngày</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Stack>
+                </Stack>
+              </Paper>
+
+              {/* Tickets List */}
+              {filteredTickets.length === 0 ? (
+                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
+                  <ConfirmationNumber sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    {tickets.length === 0 
+                      ? 'Bạn chưa có vé nào'
+                      : 'Không tìm thấy vé phù hợp'
+                    }
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    {tickets.length === 0
+                      ? 'Hãy khám phá các sự kiện thú vị và đặt vé ngay!'
+                      : 'Thử thay đổi bộ lọc hoặc tìm kiếm khác'
+                    }
+                  </Typography>
+                  {tickets.length === 0 ? (
+                    <Button
+                      variant="contained"
+                      component={Link}
+                      to="/"
+                      startIcon={<Event />}
+                    >
+                      Khám phá sự kiện
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setEventFilter('all');
+                        setDateFilter('all');
+                        setFilter('all');
+                      }}
+                      startIcon={<Clear />}
+                    >
+                      Xóa bộ lọc
+                    </Button>
+                  )}
+                </Paper>
+              ) : (
+                <Grid container spacing={3} sx={{ 
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    md: 'repeat(2, 1fr)'
+                  },
+                  gap: 3
+                }}>
+                  {filteredTickets.map((ticket) => {
+                    const eventData = ticket.Event || ticket.event || {};
+                    const ticketTypeData = ticket.TicketType || ticket.ticketType || {};
+                    const orderData = ticket.Order || ticket.order || {};
+                    const ticketStatus = ticket.Status || ticket.status;
+                    const isAssigned = ticketStatus === 'Assigned';
+                    const isUsed = ticketStatus === 'Used';
+                    
                     return (
-                      <Grid item xs={12} md={6} key={event.eventId}>
-                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                          <CardContent sx={{ flexGrow: 1 }}>
-                            <Stack spacing={2}>
-                              {/* Header */}
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <Box>
-                                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    {decodeText(event.title)}
+                      <Box key={ticket.TicketId || ticket.ticketId}>
+                        <Card sx={{ 
+                          display: 'flex',
+                          flexDirection: 'column',
+                          height: '100%',
+                          minHeight: 420,
+                          borderRadius: 2, 
+                          transition: 'all 0.2s ease-in-out',
+                          overflow: 'visible',
+                          position: 'relative',
+                          border: '2px solid',
+                          borderColor: isAssigned ? '#ff6b35' : 'rgba(255,255,255,0.1)',
+                          bgcolor: '#1a1a1a',
+                          '&:hover': {
+                            boxShadow: '0 8px 24px rgba(255,107,53,0.3)',
+                            transform: 'translateY(-4px)',
+                            borderColor: '#ff6b35'
+                          }
+                        }}>
+                          {/* Status Banner */}
+                          <Box sx={{ 
+                            position: 'absolute',
+                            top: 12,
+                            right: -2,
+                            bgcolor: getStatusColor(ticketStatus, orderData.Status || orderData.status),
+                            color: 'white',
+                            px: 3,
+                            py: 0.5,
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            borderRadius: '4px 0 0 4px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                            zIndex: 1,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {getStatusText(ticketStatus, orderData.Status || orderData.status)}
+                          </Box>
+
+                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2.5 }}>
+                            {/* Header Section */}
+                            <Box sx={{ mb: 2 }}>
+                              <Typography variant="h6" sx={{ 
+                                fontWeight: 700, 
+                                mb: 1, 
+                                pr: 8,
+                                color: 'white',
+                                lineHeight: 1.3
+                              }}>
+                                {decodeText(eventData.Title || eventData.title || 'Không có tên sự kiện')}
+                              </Typography>
+                              <Chip
+                                icon={<ConfirmationNumber sx={{ fontSize: 14 }} />}
+                                label={decodeText(ticketTypeData.TypeName || ticketTypeData.typeName || 'N/A')}
+                                size="small"
+                                sx={{
+                                  bgcolor: '#ff6b35',
+                                  color: 'white',
+                                  fontWeight: 600,
+                                  fontSize: '0.75rem',
+                                  height: 24
+                                }}
+                              />
+                            </Box>
+
+                            <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mb: 2 }} />
+
+                            {/* Details Section */}
+                            <Stack spacing={1.5} sx={{ flexGrow: 1 }}>
+                              <Box sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 1,
+                                bgcolor: 'rgba(255,107,53,0.1)',
+                                p: 1.5,
+                                borderRadius: 1,
+                                border: '1px solid rgba(255,107,53,0.3)'
+                              }}>
+                                <ConfirmationNumber sx={{ fontSize: 18, color: '#ff6b35' }} />
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.7rem' }}>
+                                    Mã vé
                                   </Typography>
-                                  <Chip 
-                                    label={decodeText(event.category) || 'Không có danh mục'} 
-                                    size="small" 
-                                    sx={{ mt: 1 }}
-                                  />
-                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                    Trạng thái: <strong>{event.status}</strong>
+                                  <Typography variant="body2" sx={{ 
+                                    fontFamily: 'monospace', 
+                                    fontWeight: 700,
+                                    color: 'white',
+                                    fontSize: '0.85rem',
+                                    letterSpacing: '0.5px'
+                                  }}>
+                                    {ticket.SerialNumber || ticket.serialNumber || 'N/A'}
                                   </Typography>
                                 </Box>
-                                <Chip 
-                                  label={event.status === 'Open' ? 'Đang mở' : 
-                                         event.status === 'Closed' ? 'Đã đóng' : 
-                                         event.status === 'Draft' ? 'Bản nháp' : 'Đã hủy'} 
-                                  color={event.status === 'Open' ? 'success' : 
-                                         event.status === 'Closed' ? 'default' : 
-                                         event.status === 'Draft' ? 'warning' : 'error'}
-                                  size="small"
-                                />
                               </Box>
 
-                              {/* Details */}
-                              <Stack spacing={1}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <AccessTime fontSize="small" color="action" />
-                                  <Typography variant="body2" color="text.secondary">
-                                    {formatDate(event.startTime)}
-                                  </Typography>
+                              {(eventData.StartTime || eventData.startTime) && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5 }}>
+                                  <AccessTime sx={{ fontSize: 18, color: '#4fc3f7' }} />
+                                  <Box>
+                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.7rem' }}>
+                                      Thời gian
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: 'white', fontWeight: 500, fontSize: '0.85rem' }}>
+                                      {formatDate(eventData.StartTime || eventData.startTime)}
+                                    </Typography>
+                                  </Box>
                                 </Box>
-                                
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <LocationOn fontSize="small" color="action" />
-                                  <Typography variant="body2" color="text.secondary">
-                                    {decodeText(event.location) || 'Chưa có địa điểm'}
-                                  </Typography>
-                                </Box>
-                              </Stack>
-
-                              {/* Edit Restrictions Warning */}
-                              {!canEditAnyField && (
-                                <Alert severity="warning" icon={<Warning />}>
-                                  Không thể chỉnh sửa trong vòng 24 giờ trước khi sự kiện bắt đầu
-                                </Alert>
                               )}
-                              {canEditAnyField && !canEditLocationCategory && (
-                                <Alert severity="info">
-                                  Không thể thay đổi địa điểm và danh mục trong vòng 7 ngày trước khi sự kiện bắt đầu
-                                </Alert>
+
+                              {(eventData.Location || eventData.location) && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5 }}>
+                                  <LocationOn sx={{ fontSize: 18, color: '#ef5350' }} />
+                                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.7rem' }}>
+                                      Địa điểm
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ 
+                                      color: 'white', 
+                                      fontWeight: 500,
+                                      fontSize: '0.85rem',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {decodeText(eventData.Location || eventData.location)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              )}
+
+                              {(ticket.IssuedAt || ticket.issuedAt) && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5 }}>
+                                  <Person sx={{ fontSize: 18, color: 'rgba(255,255,255,0.5)' }} />
+                                  <Box>
+                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.7rem' }}>
+                                      Phát hành
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: 'white', fontWeight: 500, fontSize: '0.85rem' }}>
+                                      {formatDate(ticket.IssuedAt || ticket.issuedAt)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
                               )}
                             </Stack>
                           </CardContent>
 
-                          {/* Actions */}
-                          <Box sx={{ p: 2, pt: 0 }}>
-                            <Stack direction="row" spacing={1} flexWrap="wrap">
-                              <Button 
-                                component={Link} 
-                                to={`/event/${event.eventId}`}
+                          {/* Action Buttons */}
+                          <Box sx={{ p: 2.5, pt: 0 }}>
+                            <Stack spacing={1.5}>
+                              {isAssigned && (
+                                <Stack direction="row" spacing={1.5}>
+                                  <Button
+                                    variant="contained"
+                                    startIcon={<QrCodeScanner sx={{ fontSize: 20 }} />}
+                                    onClick={() => {
+                                      setSelectedTicketForQR(ticket);
+                                      setQrDialogOpen(true);
+                                    }}
+                                    fullWidth
+                                    sx={{ 
+                                      bgcolor: '#ff6b35',
+                                      color: 'white',
+                                      fontWeight: 700,
+                                      fontSize: '0.9rem',
+                                      py: 1.2,
+                                      textTransform: 'none',
+                                      borderRadius: 1.5,
+                                      boxShadow: '0 4px 12px rgba(255,107,53,0.3)',
+                                      '&:hover': {
+                                        bgcolor: '#ff5722',
+                                        boxShadow: '0 6px 16px rgba(255,107,53,0.4)',
+                                        transform: 'translateY(-2px)'
+                                      }
+                                    }}
+                                  >
+                                    QR Code
+                                  </Button>
+                                  <Button
+                                    variant="contained"
+                                    startIcon={<SwapHoriz sx={{ fontSize: 20 }} />}
+                                    onClick={() => {
+                                      setSelectedTicketForTransfer(ticket);
+                                      setTransferModalOpen(true);
+                                    }}
+                                    fullWidth
+                                    sx={{ 
+                                      bgcolor: '#ff6b35',
+                                      color: 'white',
+                                      fontWeight: 700,
+                                      fontSize: '0.9rem',
+                                      py: 1.2,
+                                      textTransform: 'none',
+                                      borderRadius: 1.5,
+                                      boxShadow: '0 4px 12px rgba(255,107,53,0.3)',
+                                      '&:hover': {
+                                        bgcolor: '#ff5722',
+                                        boxShadow: '0 6px 16px rgba(255,107,53,0.4)',
+                                        transform: 'translateY(-2px)'
+                                      }
+                                    }}
+                                  >
+                                    Chuyển nhượng
+                                  </Button>
+                                </Stack>
+                              )}
+
+                              <Button
                                 variant="outlined"
-                                size="small"
+                                onClick={() => navigate(`/event/${eventData.EventId || eventData.eventId}`)}
+                                fullWidth
+                                startIcon={<Event sx={{ fontSize: 18 }} />}
+                                sx={{
+                                  borderColor: 'rgba(255,255,255,0.2)',
+                                  color: 'white',
+                                  fontWeight: 600,
+                                  fontSize: '0.85rem',
+                                  py: 1,
+                                  textTransform: 'none',
+                                  borderRadius: 1.5,
+                                  '&:hover': {
+                                    borderColor: '#ff6b35',
+                                    bgcolor: 'rgba(255,107,53,0.1)',
+                                    color: '#ff6b35'
+                                  }
+                                }}
                               >
-                                Xem sự kiện
+                                Chi tiết sự kiện
                               </Button>
-                              {canEditAnyField && (
-                                <Button 
+
+                              {isUsed && (
+                                <Button
                                   variant="outlined"
-                                  color="primary"
-                                  size="small"
-                                  startIcon={<Edit />}
-                                  onClick={() => handleEditEvent(event)}
+                                  startIcon={<RateReview sx={{ fontSize: 18 }} />}
+                                  onClick={() => handleFeedback(eventData.EventId || eventData.eventId)}
+                                  fullWidth
+                                  sx={{
+                                    borderColor: 'rgba(255,255,255,0.2)',
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem',
+                                    py: 1,
+                                    textTransform: 'none',
+                                    borderRadius: 1.5,
+                                    '&:hover': {
+                                      borderColor: '#4fc3f7',
+                                      bgcolor: 'rgba(79,195,247,0.1)',
+                                      color: '#4fc3f7'
+                                    }
+                                  }}
                                 >
-                                  Chỉnh sửa
+                                  Đánh giá
                                 </Button>
                               )}
                             </Stack>
                           </Box>
                         </Card>
-                      </Grid>
+                      </Box>
                     );
                   })}
                 </Grid>
               )}
             </>
           )}
-        </Stack>
-      </Container>
 
-      {/* Edit Event Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Chỉnh sửa sự kiện
-          {editingEvent && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              {(() => {
-                const daysUntilStart = Math.floor((new Date(editingEvent.startTime) - new Date()) / (1000 * 60 * 60 * 24));
-                if (daysUntilStart <= 7 && daysUntilStart > 1) {
-                  return 'Chỉ có thể chỉnh sửa tiêu đề và mô tả. Không thể thay đổi địa điểm và danh mục trong vòng 7 ngày trước khi sự kiện bắt đầu.';
-                }
-                return 'Có thể chỉnh sửa tất cả các trường.';
-              })()}
-            </Alert>
-          )}
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Tiêu đề"
-              value={editFormData.title}
-              onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-              required
-            />
-            <TextField
-              fullWidth
-              label="Mô tả"
-              value={editFormData.description}
-              onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-              multiline
-              rows={4}
-            />
-            {editingEvent && (
-              <>
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Danh mục:</strong> {editingEvent.category || 'Chưa có'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Địa điểm:</strong> {editingEvent.location || 'Chưa có'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Thời gian:</strong> {formatDate(editingEvent.startTime)}
-                </Typography>
-              </>
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>
-            Hủy
-          </Button>
-          <Button onClick={handleSaveEvent} variant="contained">
-            Lưu thay đổi
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* QR Code Dialog */}
-      <Dialog
-        open={qrDialogOpen}
-        onClose={() => {
-          setQrDialogOpen(false);
-          setSelectedTicketForQR(null);
-        }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <QrCodeScanner />
-            <Typography variant="h6">QR Code Vé</Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {selectedTicketForQR && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
-              <TicketQRCode ticket={selectedTicketForQR} size={250} showSerialNumber={true} />
-              {selectedTicketForQR.Event && (
-                <Box sx={{ mt: 3, textAlign: 'center', width: '100%' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Sự kiện: {decodeText(selectedTicketForQR.Event.Title || selectedTicketForQR.Event.title || 'N/A')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Quét QR code này tại sự kiện để check-in
-                  </Typography>
+          {/* Events Tab Content */}
+          {activeTab === 'events' && (
+            <>
+              {eventsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                  <CircularProgress />
                 </Box>
+              ) : myEvents.length === 0 ? (
+                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
+                  <Event sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    Bạn chưa tạo sự kiện nào
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Hãy tạo sự kiện đầu tiên của bạn!
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    component={Link}
+                    to="/create-event"
+                    startIcon={<Event />}
+                  >
+                    Tạo sự kiện
+                  </Button>
+                </Paper>
+              ) : (
+                <Grid container spacing={3}>
+                  {myEvents.map((event) => (
+                    <Grid item xs={12} sm={6} md={4} key={event.eventId}>
+                      <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <CardContent sx={{ flexGrow: 1 }}>
+                          <Typography variant="h6" gutterBottom>
+                            {decodeText(event.title)}
+                          </Typography>
+                          <Stack spacing={1} sx={{ mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <AccessTime fontSize="small" color="action" />
+                              <Typography variant="body2" color="text.secondary">
+                                {formatDate(event.startTime)}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <LocationOn fontSize="small" color="action" />
+                              <Typography variant="body2" color="text.secondary">
+                                {decodeText(event.location)}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                          <Stack direction="row" spacing={1}>
+                            <Button
+                              size="small"
+                              startIcon={<Edit />}
+                              onClick={() => handleEditEvent(event)}
+                            >
+                              Sửa
+                            </Button>
+                            <Button
+                              size="small"
+                              onClick={() => navigate(`/event/${event.eventId}`)}
+                            >
+                              Chi tiết
+                            </Button>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
               )}
-            </Box>
+            </>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={() => {
+
+          {/* Edit Event Dialog */}
+          <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+            <DialogTitle>Chỉnh sửa sự kiện</DialogTitle>
+            <DialogContent>
+              <Stack spacing={2} sx={{ mt: 1 }}>
+                <TextField
+                  label="Tên sự kiện"
+                  fullWidth
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                />
+                <TextField
+                  label="Mô tả"
+                  fullWidth
+                  multiline
+                  rows={4}
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                />
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setEditDialogOpen(false)}>Hủy</Button>
+              <Button onClick={handleSaveEvent} variant="contained">Lưu</Button>
+            </DialogActions>
+          </Dialog>
+          
+          {/* QR Code Dialog */}
+          <Dialog
+            open={qrDialogOpen}
+            onClose={() => {
               setQrDialogOpen(false);
               setSelectedTicketForQR(null);
             }}
-            variant="contained"
+            maxWidth="sm"
+            fullWidth
           >
-            Đóng
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <DialogTitle>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <QrCodeScanner />
+                <Typography variant="h6">QR Code Vé</Typography>
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              {selectedTicketForQR && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+                  <TicketQRCode ticket={selectedTicketForQR} size={250} showSerialNumber={true} />
+                  {selectedTicketForQR.Event && (
+                    <Box sx={{ mt: 3, textAlign: 'center', width: '100%' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Sự kiện: {decodeText(selectedTicketForQR.Event.Title || selectedTicketForQR.Event.title || 'N/A')}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Quét QR code này tại sự kiện để check-in
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button 
+                onClick={() => {
+                  setQrDialogOpen(false);
+                  setSelectedTicketForQR(null);
+                }}
+                variant="contained"
+              >
+                Đóng
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Transfer Ticket Modal */}
+          {transferModalOpen && selectedTicketForTransfer && (
+            <TransferTicketModal
+              ticket={selectedTicketForTransfer}
+              onClose={() => {
+                setTransferModalOpen(false);
+                setSelectedTicketForTransfer(null);
+              }}
+              onSuccess={() => {
+                fetchTickets(); // Refresh tickets after successful transfer
+              }}
+            />
+          )}
+        </Stack>
+      </Container>
     </Box>
   );
 };
