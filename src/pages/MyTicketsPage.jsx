@@ -40,6 +40,7 @@ import {
   Edit,
   Delete,
   Warning,
+  RateReview,
   QrCodeScanner
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
@@ -158,12 +159,26 @@ const MyTicketsPage = () => {
 
     try {
       await ticketsAPI.cancelTicket(ticketId);
-      // Refresh tickets after cancel
+      // Refresh tickets after cancellation
       await fetchTickets();
       alert('Hủy vé thành công!');
-    } catch (err) {
-      alert(`Lỗi hủy vé: ${err.message}`);
+    } catch (error) {
+      console.error('Error cancelling ticket:', error);
+      alert('Hủy vé thất bại. Vui lòng thử lại.');
     }
+  };
+
+  const handleFeedback = (eventId) => {
+    // Navigate to event page
+    navigate(`/event/${eventId}`);
+    
+    // Scroll to feedback section after navigation
+    setTimeout(() => {
+      const feedbackSection = document.getElementById('feedback-section');
+      if (feedbackSection) {
+        feedbackSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const handleEditEvent = (event) => {
@@ -829,7 +844,7 @@ const MyTicketsPage = () => {
                           // Hiển thị QR code cho tickets có status Assigned hoặc Used
                           const canShowQR = (isAssigned || isUsed) && !isPaymentFailed;
                           
-                          // Chỉ hiển thị nút khi ticket là Assigned VÀ order không phải Failed
+                          // Hiển thị nút Check-in và Hủy vé khi ticket là Assigned VÀ order không phải Failed
                           if (isAssigned && !isPaymentFailed) {
                             return (
                               <>
@@ -880,6 +895,26 @@ const MyTicketsPage = () => {
                                   Hủy vé
                                 </Button>
                               </>
+                            );
+                          }
+                          
+                          // Hiển thị nút đánh giá cho vé đã sử dụng hoặc còn hợp lệ
+                          if ((isAssigned || isUsed) && !isPaymentFailed) {
+                            return (
+                              <Button 
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                onClick={() => handleFeedback(ticket.Event?.EventId || ticket.event?.eventId || ticket.Event?.eventId)}
+                                sx={{ 
+                                  flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                                  minWidth: '100px',
+                                  textTransform: 'none',
+                                  fontWeight: 600
+                                }}
+                              >
+                                Đánh giá
+                              </Button>
                             );
                           }
                           
