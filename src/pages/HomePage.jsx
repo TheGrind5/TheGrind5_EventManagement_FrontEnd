@@ -494,156 +494,530 @@ const HomePage = () => {
   const baseEventsForCarousel = processedEvents;
 
   // Hero events - Use validEvents (from database) if available for proper images - Memoized
-  // FIXED: Hiển thị 5 sự kiện phù hợp nhất: ưu tiên sắp diễn ra > đang diễn ra > gần nhất
+  // FIXED: Hiển thị sự kiện CHƯA KẾT THÚC (check endTime > now), sắp xếp theo số lượng vé
   const featuredEventsForHero = useMemo(() => {
     // Lấy thời gian thực hiện tại
     const now = new Date();
     
-    // Lọc sự kiện có startTime hợp lệ
-    const validEvents = baseEventsForCarousel.filter(event => {
+    // Debug: Log tất cả events và thời gian của chúng
+    console.log('=== HERO SECTION FULL DEBUG ===');
+    console.log('Current time (now):', now.toISOString(), '|', now.toString());
+    console.log('Total events in baseEventsForCarousel:', baseEventsForCarousel.length);
+    
+    // Log tất cả events với thông tin chi tiết
+    baseEventsForCarousel.forEach((event, index) => {
+      const start = event.startTime ? new Date(event.startTime) : null;
+      const end = event.endTime ? new Date(event.endTime) : null;
+      
+      // FIXED: Sự kiện vẫn hợp lệ nếu chưa kết thúc (endTime > now)
+      const isNotEnded = end ? end.getTime() > now.getTime() : (start ? start.getTime() > now.getTime() : false);
+      
+      const hasTicketTypes = event.ticketTypes && Array.isArray(event.ticketTypes) && event.ticketTypes.length > 0;
+      const activeTicketTypes = hasTicketTypes 
+        ? event.ticketTypes.filter(tt => tt.status === 'Active')
+        : [];
+      const totalTickets = activeTicketTypes.reduce((sum, tt) => sum + (tt.quantity || 0), 0);
+      
+      console.log(`Event ${index + 1}:`, {
+        eventId: event.eventId,
+        title: event.title?.substring(0, 40),
+        startTime: event.startTime,
+        endTime: event.endTime,
+        startTimeParsed: start ? start.toISOString() : 'Invalid',
+        endTimeParsed: end ? end.toISOString() : 'Invalid',
+        isNotEnded,
+        timeDiff: start ? `${Math.round((start.getTime() - now.getTime()) / (1000 * 60 * 60))} hours until start` : 'N/A',
+        timeUntilEnd: end ? `${Math.round((end.getTime() - now.getTime()) / (1000 * 60 * 60))} hours until end` : 'N/A',
+        hasTicketTypes,
+        ticketTypesCount: event.ticketTypes?.length || 0,
+        activeTicketTypesCount: activeTicketTypes.length,
+        totalTickets,
+        status: event.status
+      });
+    });
+    
+    // FIXED: Lọc lấy sự kiện CHƯA KẾT THÚC (endTime > now HOẶC startTime > now nếu không có endTime)
+    const upcomingEvents = baseEventsForCarousel.filter(event => {
       if (!event.startTime) {
-        console.warn('Hero Section - Event missing startTime:', event.eventId, event.title);
+        console.warn('❌ Hero Section - Event missing startTime:', event.eventId, event.title);
         return false;
       }
       
       const start = new Date(event.startTime);
       if (isNaN(start.getTime())) {
-        console.warn('Hero Section - Event has invalid startTime:', event.eventId, event.title, event.startTime);
+        console.warn('❌ Hero Section - Event has invalid startTime:', event.eventId, event.title, event.startTime);
+        return false;
+      }
+      
+      // FIXED: Check endTime thay vì startTime
+      const end = event.endTime ? new Date(event.endTime) : null;
+      
+      let isNotEnded;
+      if (end && !isNaN(end.getTime())) {
+        // Nếu có endTime hợp lệ: kiểm tra endTime > now
+        isNotEnded = end.getTime() > now.getTime();
+        if (!isNotEnded) {
+          console.log(`❌ Filtered out (already ended): ${event.title?.substring(0, 40)} - endTime: ${end.toISOString()}`);
+        }
+      } else {
+        // Nếu không có endTime: fallback kiểm tra startTime > now
+        isNotEnded = start.getTime() > now.getTime();
+        if (!isNotEnded) {
+          console.log(`❌ Filtered out (no endTime, already started): ${event.title?.substring(0, 40)} - startTime: ${start.toISOString()}`);
+        }
+      }
+      
+      return isNotEnded;
+    });
+    
+    console.log('✅ Events NOT ENDED (endTime > now) after time filter:', upcomingEvents.length);
+    
+    // Tính tổng số lượng vé cho mỗi sự kiện
+    const eventsWithTicketCount = upcomingEvents.map(event => {
+      // Chỉ tính tổng số lượng vé từ ticketTypes có status "Active"
+      const hasTicketTypes = event.ticketTypes && Array.isArray(event.ticketTypes) && event.ticketTypes.length > 0;
+      const activeTicketTypes = hasTicketTypes 
+        ? event.ticketTypes.filter(tt => tt.status === 'Active')
+        : [];
+      const totalTickets = activeTicketTypes.reduce((sum, ticketType) => sum + (ticketType.quantity || 0), 0);
+      
+      const startTime = new Date(event.startTime);
+      
+      console.log(`Ticket count for ${event.title?.substring(0, 30)}:`, {
+        hasTicketTypes,
+        ticketTypesLength: event.ticketTypes?.length || 0,
+        activeTicketTypesCount: activeTicketTypes.length,
+        totalTickets,
+        startTime: startTime.toISOString()
+      });
+      
+      return {
+        ...event,
+        totalTickets,
+        startTimeMs: startTime.getTime() // Lưu timestamp để sort
+      };
+    });
+    
+    // FIXED: Sắp xếp theo tiêu chí kép:
+    // 1. Ưu tiên sự kiện có vé (totalTickets > 0)
+    // 2. Trong cùng nhóm (có vé hoặc không có vé), sắp xếp theo số lượng vé giảm dần
+    // 3. Nếu cùng số lượng vé, ưu tiên sự kiện gần hơn (startTime nhỏ hơn)
+    eventsWithTicketCount.sort((a, b) => {
+      // Ưu tiên events có vé trước
+      const aHasTickets = a.totalTickets > 0;
+      const bHasTickets = b.totalTickets > 0;
+      
+      if (aHasTickets !== bHasTickets) {
+        return bHasTickets ? 1 : -1; // Events có vé lên trước
+      }
+      
+      // Cùng có vé hoặc cùng không có vé: sắp xếp theo số lượng vé
+      if (a.totalTickets !== b.totalTickets) {
+        return b.totalTickets - a.totalTickets; // Nhiều vé hơn lên trước
+      }
+      
+      // Cùng số lượng vé: ưu tiên event gần hơn
+      return a.startTimeMs - b.startTimeMs; // Gần hơn lên trước
+    });
+    
+    console.log('Events sorted by: has tickets > ticket count > nearest time:', eventsWithTicketCount.map(e => ({
+      title: e.title?.substring(0, 30),
+      startTime: e.startTime,
+      totalTickets: e.totalTickets,
+      hasTickets: e.totalTickets > 0
+    })));
+    
+    // Lấy 5 sự kiện đầu tiên sau khi sắp xếp
+    const selectedEvents = eventsWithTicketCount.slice(0, 5);
+    
+    console.log('✅ FINAL Selected events (sorted by ticket quantity):', selectedEvents.map(e => ({
+      eventId: e.eventId,
+      title: e.title?.substring(0, 40),
+      startTime: e.startTime,
+      totalTickets: e.totalTickets,
+      ticketTypesCount: e.ticketTypes?.length || 0
+    })));
+    console.log('========================');
+    
+    return selectedEvents;
+  }, [baseEventsForCarousel]);
+
+  // ============================================================
+  // HELPER FUNCTIONS - Xác định badge và trạng thái sự kiện
+  // ============================================================
+  
+  const getEventBadgeType = useCallback((event) => {
+    const now = new Date();
+    const start = event.startTime ? new Date(event.startTime) : null;
+    const end = event.endTime ? new Date(event.endTime) : null;
+    const createdAt = event.createdAt ? new Date(event.createdAt) : null;
+    
+    if (!start) return null;
+    
+    const hoursUntilStart = start ? (start.getTime() - now.getTime()) / (1000 * 60 * 60) : Infinity;
+    const daysUntilStart = hoursUntilStart / 24;
+    const hoursSinceCreated = createdAt ? (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60) : Infinity;
+    const hoursSinceEnded = end ? (now.getTime() - end.getTime()) / (1000 * 60 * 60) : -Infinity;
+    
+    // ĐÃ KẾT THÚC: đã qua thời gian kết thúc
+    if (end && end < now) {
+      return 'ĐÃ KẾT THÚC';
+    }
+    
+    // ĐANG DIỄN RA: đã bắt đầu nhưng chưa kết thúc
+    if (start <= now && end && end > now) {
+      return 'ĐANG DIỄN RA';
+    }
+    
+    // Calculate tickets info for other badges
+    const hasTicketTypes = event.ticketTypes && Array.isArray(event.ticketTypes) && event.ticketTypes.length > 0;
+    const activeTickets = hasTicketTypes ? event.ticketTypes.filter(tt => tt.status === 'Active') : [];
+    const totalAvailable = activeTickets.reduce((sum, tt) => sum + (tt.quantity || 0), 0);
+    
+    // TODO: Need originalQuantity from backend to calculate sold percentage
+    // For now, assume if quantity < 30% of a high number (100), it's low stock
+    // Real implementation needs: soldPercentage = (originalQuantity - currentQuantity) / originalQuantity
+    const estimatedOriginal = totalAvailable > 0 ? Math.max(totalAvailable * 2, 100) : 100;
+    const remainingPercentage = totalAvailable > 0 ? (totalAvailable / estimatedOriginal) * 100 : 0;
+    const soldPercentage = 100 - remainingPercentage;
+    
+    // SẮP HẾT VÉ: < 20% vé còn lại (highest priority for upcoming events)
+    if (hoursUntilStart > 0 && totalAvailable > 0 && remainingPercentage < 20) {
+      return 'SẮP HẾT VÉ';
+    }
+    
+    // HOT: > 70% vé đã bán (for upcoming events)
+    if (hoursUntilStart > 0 && totalAvailable > 0 && soldPercentage > 70) {
+      return 'HOT';
+    }
+    
+    // MỚI: tạo trong 48h
+    if (hoursSinceCreated <= 48) {
+      return 'MỚI';
+    }
+    
+    // SẮP DIỄN RA: trong vòng 7 ngày tới
+    if (hoursUntilStart > 0 && daysUntilStart <= 7) {
+      return 'SẮP DIỄN RA';
+    }
+    
+    // Default: Không badge
+    return null;
+  }, []);
+  
+  const getDaysUntilEvent = useCallback((event) => {
+    if (!event.startTime) return null;
+    const now = new Date();
+    const start = new Date(event.startTime);
+    const days = Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return days > 0 ? days : null;
+  }, []);
+  
+  const getRemainingTickets = useCallback((event) => {
+    const hasTicketTypes = event.ticketTypes && Array.isArray(event.ticketTypes);
+    
+    // Debug: Log if ticketTypes is missing
+    if (!hasTicketTypes && event.eventId) {
+      console.log(`⚠️ Event ${event.eventId} (${event.title?.substring(0, 20)}) missing ticketTypes:`, {
+        hasTicketTypes: !!event.ticketTypes,
+        isArray: event.ticketTypes ? Array.isArray(event.ticketTypes) : false,
+        ticketTypes: event.ticketTypes
+      });
+    }
+    
+    if (!hasTicketTypes) return null;
+    
+    const activeTickets = event.ticketTypes.filter(tt => tt.status === 'Active');
+    const total = activeTickets.reduce((sum, tt) => sum + (tt.quantity || 0), 0);
+    
+    // Debug: Log ticket calculation
+    if (event.eventId && total > 0) {
+      console.log(`✅ Event ${event.eventId}: ${activeTickets.length} active ticket types, ${total} total tickets`);
+    }
+    
+    return total;
+  }, []);
+  
+  const isLowStock = useCallback((event) => {
+    const remaining = getRemainingTickets(event);
+    return remaining !== null && remaining > 0 && remaining <= 20;
+  }, [getRemainingTickets]);
+
+  // ============================================================
+  // HELPER: Lọc events theo quy tắc hiển thị
+  // Ẩn sự kiện đã qua > 1 ngày
+  // ============================================================
+  const filterValidEvents = useCallback((events) => {
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+    
+    return events.filter(event => {
+      if (!event.endTime) return true; // Keep if no endTime
+      
+      const end = new Date(event.endTime);
+      
+      // Ẩn events đã kết thúc > 1 ngày
+      if (end < oneDayAgo) {
         return false;
       }
       
       return true;
     });
+  }, []);
+
+  // ============================================================
+  // SECTION 2: SỰ KIỆN NỔI BẬT
+  // Sorting: Kết hợp thời gian + độ phổ biến
+  // Badge: Thông minh dựa trên thời gian và metrics
+  // ============================================================
+  const featuredEvents = useMemo(() => {
+    console.log('=== FEATURED EVENTS LOGIC ===');
     
-    // Phân loại sự kiện: sắp diễn ra, đang diễn ra, đã qua
-    const upcomingEvents = []; // startTime > now
-    const activeEvents = [];   // startTime <= now && endTime >= now
-    const pastEvents = [];     // endTime < now hoặc startTime < now && không có endTime
+    const now = new Date();
     
-    validEvents.forEach(event => {
-      const start = new Date(event.startTime);
-      const end = event.endTime ? new Date(event.endTime) : null;
+    // Filter: Chưa kết thúc, status Open, không quá 1 ngày sau kết thúc
+    const validEvents = filterValidEvents(baseEventsForCarousel);
+    const eligible = validEvents.filter(event => {
+      if (!event.startTime || !event.endTime) return false;
       
-      if (start.getTime() > now.getTime()) {
-        // Sự kiện sắp diễn ra
-        upcomingEvents.push(event);
-      } else if (end && end.getTime() >= now.getTime()) {
-        // Sự kiện đang diễn ra
-        activeEvents.push(event);
-      } else {
-        // Sự kiện đã qua
-        pastEvents.push(event);
-      }
+      const end = new Date(event.endTime);
+      
+      // Chưa kết thúc, status Open
+      return end > now && event.status === 'Open';
     });
     
-    // Sắp xếp:
-    // - Sắp diễn ra: theo startTime tăng dần (gần nhất trước)
-    // - Đang diễn ra: theo startTime giảm dần (mới nhất trước)
-    // - Đã qua: theo startTime giảm dần (mới nhất trước)
-    upcomingEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-    activeEvents.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-    pastEvents.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    // Sort: Kết hợp độ phổ biến (vé) + thời gian gần
+    const sorted = eligible.sort((a, b) => {
+      const ticketsA = getRemainingTickets(a) || 0;
+      const ticketsB = getRemainingTickets(b) || 0;
+      const daysA = getDaysUntilEvent(a) || 999;
+      const daysB = getDaysUntilEvent(b) || 999;
+      
+      // Score = tickets * 0.7 + (100 - days) * 0.3
+      const scoreA = (ticketsA * 0.7) + ((100 - Math.min(daysA, 100)) * 0.3);
+      const scoreB = (ticketsB * 0.7) + ((100 - Math.min(daysB, 100)) * 0.3);
+      
+      return scoreB - scoreA;
+    });
     
-    // Ưu tiên: sắp diễn ra > đang diễn ra > gần nhất (nếu không có sự kiện sắp/đang diễn ra)
-    let selectedEvents = [];
+    const selected = sorted.slice(0, 5);
     
-    if (upcomingEvents.length > 0) {
-      // Có sự kiện sắp diễn ra: lấy 5 sự kiện sắp diễn ra gần nhất
-      selectedEvents = upcomingEvents.slice(0, 5);
-    } else if (activeEvents.length > 0) {
-      // Không có sự kiện sắp diễn ra, nhưng có sự kiện đang diễn ra: lấy 5 sự kiện đang diễn ra
-      selectedEvents = activeEvents.slice(0, 5);
-    } else {
-      // Không có sự kiện sắp/đang diễn ra: lấy 5 sự kiện gần nhất (mới nhất)
-      selectedEvents = pastEvents.slice(0, 5);
-    }
+    console.log('Featured events:', selected.map(e => ({
+      title: e.title?.substring(0, 30),
+      badge: getEventBadgeType(e),
+      tickets: getRemainingTickets(e),
+      daysUntil: getDaysUntilEvent(e)
+    })));
     
-    // Debug log kết quả (chỉ trong development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('=== HERO SECTION DEBUG ===');
-      console.log('Total events in baseEventsForCarousel:', baseEventsForCarousel.length);
-      console.log('Valid events:', validEvents.length);
-      console.log('Upcoming events:', upcomingEvents.length);
-      console.log('Active events:', activeEvents.length);
-      console.log('Past events:', pastEvents.length);
-      console.log('Selected events for hero:', selectedEvents.length);
-      if (selectedEvents.length > 0) {
-        console.log('Hero Section - Selected events:', selectedEvents.map(e => ({
-          eventId: e.eventId,
-          title: e.title?.substring(0, 50),
-          startTime: e.startTime,
-          endTime: e.endTime,
-          status: e.status
-        })));
-      } else {
-        console.warn('Hero Section - No events selected!');
-      }
-      console.log('========================');
-    }
+    return selected;
+  }, [baseEventsForCarousel, getEventBadgeType, getRemainingTickets, getDaysUntilEvent, filterValidEvents]);
+
+  // ============================================================
+  // SECTION 3: SỰ KIỆN XU HƯỚNG
+  // Sorting: Tăng trưởng trong 7 ngày qua (mock: dựa vào tickets + recency)
+  // Không duplicate với Featured
+  // ============================================================
+  const trendingEvents = useMemo(() => {
+    console.log('=== TRENDING EVENTS LOGIC ===');
     
-    // Lấy 5 sự kiện (hoặc ít hơn nếu không đủ 5)
-    return selectedEvents;
-  }, [baseEventsForCarousel]);
+    const now = new Date();
+    const featuredIds = new Set(featuredEvents.map(e => e.eventId));
+    
+    // Filter: Valid events, chưa kết thúc, status Open, không trùng Featured
+    const validEvents = filterValidEvents(baseEventsForCarousel);
+    const eligible = validEvents.filter(event => {
+      if (!event.endTime) return false;
+      if (featuredIds.has(event.eventId)) return false; // Không duplicate
+      
+      const end = new Date(event.endTime);
+      return end > now && event.status === 'Open';
+    });
+    
+    // Sort: Growth score (mock) = tickets * recency_factor
+    const sorted = eligible.sort((a, b) => {
+      const ticketsA = getRemainingTickets(a) || 0;
+      const ticketsB = getRemainingTickets(b) || 0;
+      const daysA = getDaysUntilEvent(a) || 999;
+      const daysB = getDaysUntilEvent(b) || 999;
+      
+      // Recency bonus: events closer get higher multiplier (max 2x for < 7 days)
+      const recencyA = daysA < 7 ? (2 - daysA / 7) : 1;
+      const recencyB = daysB < 7 ? (2 - daysB / 7) : 1;
+      
+      const scoreA = ticketsA * recencyA;
+      const scoreB = ticketsB * recencyB;
+      
+      return scoreB - scoreA;
+    });
+    
+    const selected = sorted.slice(0, 8);
+    
+    console.log('Trending events count:', selected.length);
+    
+    return selected;
+  }, [baseEventsForCarousel, featuredEvents, getRemainingTickets, getDaysUntilEvent, filterValidEvents]);
 
-  const featuredEvents = useMemo(() => filteredEvents
-    .filter(event => {
-      const start = new Date(event.startTime);
-      return start > new Date();
-    })
-    .slice(0, 6),
-    [filteredEvents]
-  );
+  // ============================================================
+  // SECTION 4: MUSIC (và các categories khác)
+  // Logic: Filter by category, sắp xếp theo thời gian gần → xa
+  // Hiển thị: Countdown, sắp hết vé
+  // ============================================================
+  const musicEvents = useMemo(() => {
+    console.log('=== MUSIC EVENTS LOGIC ===');
+    
+    const now = new Date();
+    
+    // Filter: Category = Music, valid events, chưa kết thúc
+    const validEvents = filterValidEvents(baseEventsForCarousel);
+    const eligible = validEvents.filter(event => {
+      if (event.category !== 'Music') return false;
+      if (!event.endTime) return false;
+      
+      const end = new Date(event.endTime);
+      return end > now;
+    });
+    
+    // Sort: Mặc định - Thời gian gần nhất trước
+    const sorted = eligible.sort((a, b) => 
+      new Date(a.startTime) - new Date(b.startTime)
+    );
+    
+    const selected = sorted.slice(0, 10);
+    
+    console.log('Music events:', selected.length, '- Sorted by time (nearest first)');
+    
+    return selected;
+  }, [baseEventsForCarousel, filterValidEvents]);
+  
+  const workshopEvents = useMemo(() => {
+    const now = new Date();
+    const validEvents = filterValidEvents(baseEventsForCarousel);
+    const eligible = validEvents.filter(event => {
+      if (event.category !== 'Workshop') return false;
+      if (!event.endTime) return false;
+      const end = new Date(event.endTime);
+      return end > now;
+    });
+    
+    return eligible
+      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+      .slice(0, 10);
+  }, [baseEventsForCarousel, filterValidEvents]);
+  
+  const campusEvents = useMemo(() => {
+    const now = new Date();
+    const validEvents = filterValidEvents(baseEventsForCarousel);
+    const eligible = validEvents.filter(event => {
+      if (event.category !== 'Campus Event') return false;
+      if (!event.endTime) return false;
+      const end = new Date(event.endTime);
+      return end > now;
+    });
+    
+    return eligible
+      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+      .slice(0, 10);
+  }, [baseEventsForCarousel, filterValidEvents]);
 
-
-
-  // Get trending events - Use validEvents (from database) if available - Memoized
-  const trendingEvents = useMemo(() => baseEventsForCarousel
-    .filter(event => {
-      const start = new Date(event.startTime);
-      return start > new Date();
-    })
-    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-    .slice(0, 8),
-    [baseEventsForCarousel]
-  );
-
-
-  // Get recommended events (random selection for now) - Memoized (với seed để tránh random mỗi render)
+  // ============================================================
+  // SECTION 5: DÀNH CHO BẠN
+  // Sorting: Personalized ranking (location + preferences)
+  // Không duplicate với Featured, Trending
+  // ============================================================
   const recommendedEvents = useMemo(() => {
-    // Sử dụng length làm seed để random ổn định
-    const sorted = [...baseEventsForCarousel].sort((a, b) => (a.eventId || 0) - (b.eventId || 0));
-    return sorted.slice(0, 8);
-  }, [baseEventsForCarousel]);
+    console.log('=== RECOMMENDED EVENTS LOGIC ===');
+    
+    const now = new Date();
+    const usedIds = new Set([
+      ...featuredEvents.map(e => e.eventId),
+      ...trendingEvents.map(e => e.eventId)
+    ]);
+    
+    // Filter: Valid events, chưa kết thúc, status Open, không duplicate
+    const validEvents = filterValidEvents(baseEventsForCarousel);
+    const eligible = validEvents.filter(event => {
+      if (!event.endTime) return false;
+      if (usedIds.has(event.eventId)) return false;
+      
+      const end = new Date(event.endTime);
+      return end > now && event.status === 'Open';
+    });
+    
+    // TODO: Implement real user-based recommendation with history
+    // Current: Location-based (Đà Nẵng) + Popular
+    const sorted = eligible.sort((a, b) => {
+      // Ưu tiên Đà Nẵng
+      const aIsDN = a.location?.includes('Đà Nẵng') || a.campus?.includes('Đà Nẵng');
+      const bIsDN = b.location?.includes('Đà Nẵng') || b.campus?.includes('Đà Nẵng');
+      
+      if (aIsDN && !bIsDN) return -1;
+      if (!aIsDN && bIsDN) return 1;
+      
+      // Sau đó theo số lượng vé (popular)
+      const ticketsA = getRemainingTickets(a) || 0;
+      const ticketsB = getRemainingTickets(b) || 0;
+      
+      if (ticketsA !== ticketsB) return ticketsB - ticketsA;
+      
+      // Cuối cùng theo thời gian
+      return new Date(a.startTime) - new Date(b.startTime);
+    });
+    
+    const selected = sorted.slice(0, 8);
+    
+    console.log('Recommended events:', selected.length);
+    
+    return selected;
+  }, [baseEventsForCarousel, featuredEvents, trendingEvents, getRemainingTickets, filterValidEvents]);
 
-
-
-  // Get upcoming events (sorted by start time) - Memoized
-
-  const upcomingEvents = useMemo(() => baseEventsForCarousel
-    .filter(event => {
+  // ============================================================
+  // SECTION 6: SỰ KIỆN SẮP DIỄN RA
+  // Sorting: Mặc định - Thời gian gần nhất trước
+  // Hiển thị countdown cho events < 7 ngày
+  // Không duplicate với các section khác
+  // ============================================================
+  const upcomingEvents = useMemo(() => {
+    console.log('=== UPCOMING EVENTS LOGIC ===');
+    
+    const now = new Date();
+    const usedIds = new Set([
+      ...featuredEvents.map(e => e.eventId),
+      ...trendingEvents.map(e => e.eventId),
+      ...recommendedEvents.map(e => e.eventId)
+    ]);
+    
+    // Filter: Valid events, chưa bắt đầu, trong 30 ngày, status Open, không duplicate
+    const validEvents = filterValidEvents(baseEventsForCarousel);
+    const eligible = validEvents.filter(event => {
+      if (!event.startTime) return false;
+      if (usedIds.has(event.eventId)) return false;
+      
       const start = new Date(event.startTime);
-      return start > new Date();
-    })
-    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-    .slice(0, 8),
-    [baseEventsForCarousel]
-  );
-
-
-
-  // Get events by category for carousel sections - Memoized
-  const workshopEvents = useMemo(() => 
-    baseEventsForCarousel.filter(e => e.category === 'Workshop').slice(0, 10),
-    [baseEventsForCarousel]
-  );
-  const musicEvents = useMemo(() => 
-    baseEventsForCarousel.filter(e => e.category === 'Music').slice(0, 10),
-    [baseEventsForCarousel]
-  );
-  const campusEvents = useMemo(() => 
-    baseEventsForCarousel.filter(e => e.category === 'Campus Event').slice(0, 10),
-    [baseEventsForCarousel]
-  );
+      const daysUntilStart = (start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+      
+      return start > now && 
+             daysUntilStart <= 30 && 
+             event.status === 'Open';
+    });
+    
+    // Sort: Mặc định - Thời gian gần nhất trước
+    const sorted = eligible.sort((a, b) => {
+      const startA = new Date(a.startTime);
+      const startB = new Date(b.startTime);
+      return startA - startB;
+    });
+    
+    const selected = sorted.slice(0, 8);
+    
+    console.log('Upcoming events (sorted by time):', selected.map(e => ({
+      title: e.title?.substring(0, 30),
+      startTime: e.startTime,
+      daysUntil: getDaysUntilEvent(e),
+      showCountdown: getDaysUntilEvent(e) <= 7 // Hiển thị countdown cho < 7 ngày
+    })));
+    
+    return selected;
+  }, [baseEventsForCarousel, featuredEvents, trendingEvents, recommendedEvents, getDaysUntilEvent, filterValidEvents]);
 
   // Render filter UI with TicketBox styling
 
@@ -1642,18 +2016,22 @@ const HomePage = () => {
       }
     }
     
-    // Determine badge - chỉ set nếu thực sự có, không default
+    // UPDATED: Determine badge using intelligent logic
     let badgeValue = null;
     if (event.badge && event.badge.trim() !== '') {
+      // Use existing badge if provided
       badgeValue = event.badge;
     } else {
-      // Auto-detect badge based on event status
-      const now = new Date();
-      const start = event.startTime ? new Date(event.startTime) : null;
-      if (start && start > now) {
-        badgeValue = 'Sắp diễn ra';
-      }
+      // Auto-detect badge based on event status using helper function
+      badgeValue = getEventBadgeType(event);
     }
+    
+    // Calculate days until event for countdown display
+    const daysUntil = getDaysUntilEvent(event);
+    
+    // Calculate remaining tickets for "Sắp hết vé" indicator
+    const remainingTickets = getRemainingTickets(event);
+    const lowStock = isLowStock(event);
     
     // Calculate price from ticketTypes - Only show "Miễn phí" if ALL tickets are free
     // If any ticket is paid, don't show price badge at all
@@ -1713,11 +2091,15 @@ const HomePage = () => {
       endTime: event.endTime,
       hostName: event.hostName,
       image: imageUrl, // Use properly built URL - can be null if no image
-      badge: badgeValue, // Only set if exists, prevent duplicates
+      badge: badgeValue, // Intelligent badge based on event state
       price: displayPrice, // Only 0 if all free, null otherwise (don't show badge)
-      campus: eventCampus // Use campus from database, not location
+      campus: eventCampus, // Use campus from database, not location
+      // New fields for enhanced display
+      daysUntil, // Days until event starts (for countdown)
+      remainingTickets, // Number of tickets remaining
+      lowStock, // Boolean: true if < 20 tickets remaining
     };
-  }, []);
+  }, [getEventBadgeType, getDaysUntilEvent, getRemainingTickets, isLowStock]);
 
   // Hàm constants để render loading state với giao diện đẹp và chuyên nghiệp
 
@@ -2058,12 +2440,13 @@ const HomePage = () => {
       ) : null}
 
       {/* Sự kiện nổi bật - Hiển thị sau filter bar */}
-      {featuredEventsForHero.length > 0 && (
+      {featuredEvents.length > 0 && (
         <Box sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0A0A0A' : '#FFFFFF', py: { xs: 1, md: 1 }, px: { xs: 2, md: 4 } }}>
           <Container maxWidth="xl" sx={{ px: { xs: 0, md: 2 } }}>
             <EventCarousel
               title="🔥 Sự kiện nổi bật"
-              events={featuredEventsForHero.map(convertEventForDisplay)}
+              events={featuredEvents.map(convertEventForDisplay)}
+              badge={featuredEvents.length}
               icon={<TrendingUp sx={{ fontSize: 32 }} />}
               showAutoPlay={true}
             />
@@ -2079,6 +2462,7 @@ const HomePage = () => {
             <EventCarousel
               title="⚡ Sự kiện xu hướng"
               events={trendingEvents.map(convertEventForDisplay)}
+              badge={trendingEvents.length}
               icon={<TrendingUp sx={{ fontSize: 32 }} />}
               showAutoPlay={true}
             />
@@ -2089,6 +2473,7 @@ const HomePage = () => {
             <EventCarousel
               title="🎓 Workshop"
               events={workshopEvents.map(convertEventForDisplay)}
+              badge={workshopEvents.length}
               icon={<Event sx={{ fontSize: 32 }} />}
               showAutoPlay={false}
             />
@@ -2099,6 +2484,7 @@ const HomePage = () => {
             <EventCarousel
               title="🎵 Music"
               events={musicEvents.map(convertEventForDisplay)}
+              badge={musicEvents.length}
               icon={<Event sx={{ fontSize: 32 }} />}
               showAutoPlay={false}
             />
@@ -2109,6 +2495,7 @@ const HomePage = () => {
             <EventCarousel
               title="🏫 Campus Event"
               events={campusEvents.map(convertEventForDisplay)}
+              badge={campusEvents.length}
               icon={<Event sx={{ fontSize: 32 }} />}
               showAutoPlay={false}
             />
@@ -2119,6 +2506,7 @@ const HomePage = () => {
             <EventCarousel
               title="✨ Dành cho bạn"
               events={recommendedEvents.map(convertEventForDisplay)}
+              badge={recommendedEvents.length}
               icon={<Event sx={{ fontSize: 32 }} />}
               showAutoPlay={true}
               bottomTight={true}
@@ -2130,6 +2518,7 @@ const HomePage = () => {
             <EventCarousel
               title="📅 Sự kiện sắp diễn ra"
               events={upcomingEvents.map(convertEventForDisplay)}
+              badge={upcomingEvents.length}
               icon={<AccessTime sx={{ fontSize: 32 }} />}
               showAutoPlay={false}
             />

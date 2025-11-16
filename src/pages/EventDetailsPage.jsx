@@ -704,13 +704,13 @@ const EventDetailsPage = () => {
           <Grid container spacing={0} alignItems="stretch" columns={{ xs: 12, sm: 12 }} wrap="nowrap">
             <Grid item xs={12} sm={5} sx={{ minWidth: 0 }}>
               <Stack
-                spacing={2}
+                spacing={event.status === 'Closed' ? 1.5 : 2}
                 sx={{
                   height: { xs: 240, md: 360 }, // force same height as image
                   bgcolor: '#2f3034',
                   borderRadius: '20px 0 0 20px',
-                  p: { xs: 2, md: 3 },
-                  pl: { xs: 2, md: 3 },
+                  p: { xs: 2, md: event.status === 'Closed' ? 2.5 : 3 },
+                  pl: { xs: 2, md: event.status === 'Closed' ? 2.5 : 3 },
                   border: '1px solid rgba(255,255,255,0.05)',
                   display: 'flex',
                   justifyContent: 'flex-start',
@@ -721,13 +721,14 @@ const EventDetailsPage = () => {
                   variant="h5"
                   sx={{
                     fontWeight: 800,
-                    lineHeight: 1.5,
-                    mb: 0.5,
+                    fontSize: { xs: '1.15rem', md: '1.3rem' },
+                    lineHeight: 1.3,
+                    mb: 0,
                     whiteSpace: 'normal',
                     wordBreak: 'break-word',
                     overflowWrap: 'anywhere',
                     display: '-webkit-box',
-                    WebkitLineClamp: 2,
+                    WebkitLineClamp: 3,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
                   }}
@@ -735,17 +736,17 @@ const EventDetailsPage = () => {
                   {decodeText(event.title)}
                 </Typography>
 
-                <Stack spacing={2.5}>
+                <Stack spacing={event.status === 'Closed' ? 1.8 : 2.5}>
                   <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                    <AccessTime sx={{ color: '#ff8c29', fontSize: '1.5rem', mt: 0.25, flexShrink: 0 }} />
-                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,200,150,0.95)', lineHeight: 1.6 }}>
+                    <AccessTime sx={{ color: '#ff8c29', fontSize: '1.4rem', mt: 0.2, flexShrink: 0 }} />
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,200,150,0.95)', lineHeight: 1.5, fontSize: '0.95rem' }}>
                       {formatTimeRangeVN(event.startTime, event.endTime)}
                     </Typography>
                   </Stack>
 
                   <Stack spacing={0.5}>
                     <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                      <LocationOn sx={{ color: '#ff8c29', fontSize: '1.5rem', mt: 0.25, flexShrink: 0 }} />
+                      <LocationOn sx={{ color: '#ff8c29', fontSize: '1.4rem', mt: 0.2, flexShrink: 0 }} />
                       <Typography
                         variant="body1"
                         sx={{
@@ -792,17 +793,18 @@ const EventDetailsPage = () => {
                   </Stack>
                 </Stack>
 
-                <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)', my: 2.5 }} />
+                <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)', my: event.status === 'Closed' ? 1.5 : 2.5 }} />
 
-                <Stack spacing={1.5} sx={{ mt: 'auto' }}>
+                <Stack spacing={event.status === 'Closed' ? 1.2 : 1.5} sx={{ mt: 'auto' }}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)', fontSize: event.status === 'Closed' ? '1rem' : '1.15rem' }}>
                       Giá từ
                     </Typography>
                     <Typography
                       variant="h5"
                       sx={{
                         fontWeight: 800,
+                        fontSize: event.status === 'Closed' ? '1.15rem' : '1.3rem',
                         background: 'linear-gradient(90deg, #ffa94d 0%, #ff7a18 50%, #ff4d00 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
@@ -821,14 +823,14 @@ const EventDetailsPage = () => {
                       spacing={1} 
                       alignItems="center"
                       sx={{
-                        p: 1.5,
+                        p: event.status === 'Closed' ? 1.2 : 1.5,
                         borderRadius: 2,
                         background: 'rgba(255,255,255,0.05)',
                         border: `1px solid ${getTotalRemainingTickets() > 0 ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)'}`
                       }}
                     >
-                      <ConfirmationNumber sx={{ color: getTotalRemainingTickets() > 0 ? '#4caf50' : '#f44336', fontSize: '1.3rem' }} />
-                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+                      <ConfirmationNumber sx={{ color: getTotalRemainingTickets() > 0 ? '#4caf50' : '#f44336', fontSize: event.status === 'Closed' ? '1.15rem' : '1.3rem' }} />
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: event.status === 'Closed' ? '0.9rem' : '1rem' }}>
                         Số vé còn lại: 
                       </Typography>
                       <Typography
@@ -836,7 +838,7 @@ const EventDetailsPage = () => {
                         sx={{
                           fontWeight: 700,
                           color: getTotalRemainingTickets() > 0 ? '#4caf50' : '#f44336',
-                          fontSize: '1.15rem'
+                          fontSize: event.status === 'Closed' ? '1rem' : '1.15rem'
                         }}
                       >
                         {getTotalRemainingTickets()} vé
@@ -848,11 +850,12 @@ const EventDetailsPage = () => {
                       component={event.status === 'Closed' ? 'div' : Link}
                       to={event.status === 'Closed' ? undefined : `/ticket-selection/${id}`}
                       fullWidth
-                      size="large"
+                      size={event.status === 'Closed' ? 'medium' : 'large'}
                       disabled={event.status === 'Closed'}
                       sx={{
-                        py: 1.1,
+                        py: event.status === 'Closed' ? 0.9 : 1.1,
                         fontWeight: 700,
+                        fontSize: event.status === 'Closed' ? '0.9rem' : '1rem',
                         letterSpacing: 0.3,
                         color: event.status === 'Closed' ? 'rgba(255,255,255,0.5)' : '#1e1e1e',
                         background: event.status === 'Closed' 
@@ -909,7 +912,7 @@ const EventDetailsPage = () => {
                   {event.status === 'Closed' && (
                     <Button
                       fullWidth
-                      size="large"
+                      size="medium"
                       onClick={() => {
                         const feedbackSection = document.getElementById('feedback-section');
                         if (feedbackSection) {
@@ -917,17 +920,18 @@ const EventDetailsPage = () => {
                         }
                       }}
                       sx={{
-                        mt: 1,
-                        py: 1.1,
+                        mt: 0.5,
+                        py: 0.9,
                         fontWeight: 700,
+                        fontSize: '0.9rem',
                         letterSpacing: 0.3,
                         color: '#fff',
                         background: 'linear-gradient(90deg, #42f592 0%, #2fe580 50%, #21d773 100%)',
                         borderRadius: 999,
-                        boxShadow: '0 10px 28px rgba(66, 245, 146, 0.35)',
+                        boxShadow: '0 8px 20px rgba(66, 245, 146, 0.3)',
                         '&:hover': {
                           filter: 'brightness(1.03)',
-                          boxShadow: '0 12px 32px rgba(66, 245, 146, 0.45)'
+                          boxShadow: '0 10px 24px rgba(66, 245, 146, 0.4)'
                         }
                       }}
                     >
