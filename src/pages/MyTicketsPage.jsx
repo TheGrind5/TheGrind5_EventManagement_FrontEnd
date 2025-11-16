@@ -26,7 +26,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider
+  Divider,
+  Snackbar
 } from '@mui/material';
 import { 
   Search, 
@@ -42,12 +43,16 @@ import {
   Warning,
   RateReview,
   QrCodeScanner,
-  SwapHoriz
+  SwapHoriz,
+  MoneyOff,
+  Refresh
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import TicketQRCode from '../components/tickets/TicketQRCode';
 import TransferTicketModal from '../components/tickets/TransferTicketModal';
+import RefundRequestModal from '../components/tickets/RefundRequestModal';
 import { ticketsAPI, eventsAPI } from '../services/apiClient';
+import refundService from '../services/refundService';
 import { subscriptionHelpers } from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
 import { decodeText } from '../utils/textDecoder';
@@ -57,6 +62,7 @@ const MyTicketsPage = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
+  const [refundRequests, setRefundRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -77,10 +83,36 @@ const MyTicketsPage = () => {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [selectedTicketForTransfer, setSelectedTicketForTransfer] = useState(null);
   
+  // Refund request dialog states
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [selectedOrderForRefund, setSelectedOrderForRefund] = useState(null);
+  
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [eventFilter, setEventFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+
+  // Snackbar state (thay thế alert browser)
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'info' // 'success', 'error', 'warning', 'info'
+  });
+
+  // Helper function to show snackbar
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  // Close snackbar
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -88,6 +120,7 @@ const MyTicketsPage = () => {
   useEffect(() => {
     fetchTickets();
     fetchMyEvents();
+    fetchRefundRequests();
   }, []);
 
   const fetchTickets = async () => {
@@ -132,6 +165,18 @@ const MyTicketsPage = () => {
     }
   };
 
+  const fetchRefundRequests = async () => {
+    try {
+      const response = await refundService.getMyRefundRequests();
+      const requests = response?.data || [];
+      setRefundRequests(requests);
+      console.log('🔍 Refund requests:', requests);
+    } catch (err) {
+      console.error('Error fetching refund requests:', err);
+      // Don't show error to user, just log it
+    }
+  };
+
   const fetchMyEvents = async () => {
     try {
       setEventsLoading(true);
@@ -152,9 +197,9 @@ const MyTicketsPage = () => {
       await ticketsAPI.checkInTicket(ticketId);
       // Refresh tickets after check-in
       await fetchTickets();
-      alert('Check-in thành công!');
+      showSnackbar('Check-in thành công!', 'success');
     } catch (err) {
-      alert(`Lỗi check-in: ${err.message}`);
+      showSnackbar(`Lỗi check-in: ${err.message}`, 'error');
     }
   };
 
@@ -167,10 +212,10 @@ const MyTicketsPage = () => {
       await ticketsAPI.cancelTicket(ticketId);
       // Refresh tickets after cancellation
       await fetchTickets();
-      alert('Hủy vé thành công!');
+      showSnackbar('Hủy vé thành công!', 'success');
     } catch (error) {
       console.error('Error cancelling ticket:', error);
-      alert('Hủy vé thất bại. Vui lòng thử lại.');
+      showSnackbar('Hủy vé thất bại. Vui lòng thử lại.', 'error');
     }
   };
 
@@ -185,6 +230,38 @@ const MyTicketsPage = () => {
         feedbackSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
+  };
+
+  const handleRefundSuccess = () => {
+    // Refresh tickets and refund requests after refund request
+    console.log('✅ Refund success - Refreshing tickets...');
+    
+    // Immediate refresh
+    fetchTickets();
+    fetchRefundRequests();
+    
+    // Refresh again after 2 seconds (backend processing time)
+    setTimeout(() => {
+      console.log('🔄 Auto-refresh after refund processing...');
+      fetchTickets();
+      fetchRefundRequests();
+    }, 2000);
+    
+    // And one more time after 4 seconds to be sure
+    setTimeout(() => {
+      console.log('🔄 Final refresh to ensure cancelled status...');
+      fetchTickets();
+      fetchRefundRequests();
+    }, 4000);
+    
+    setShowNewTicketsAlert(true);
+    setTimeout(() => setShowNewTicketsAlert(false), 5000);
+  };
+
+  // Helper function to get refund status for an order
+  const getRefundStatus = (orderId) => {
+    if (!orderId || !refundRequests || refundRequests.length === 0) return null;
+    return refundRequests.find(req => req.orderId === orderId);
   };
 
   const handleEditEvent = (event) => {
@@ -208,9 +285,9 @@ const MyTicketsPage = () => {
       
       setEditDialogOpen(false);
       await fetchMyEvents();
-      alert('Cập nhật sự kiện thành công!');
+      showSnackbar('Cập nhật sự kiện thành công!', 'success');
     } catch (err) {
-      alert(`Lỗi cập nhật: ${err.message}`);
+      showSnackbar(`Lỗi cập nhật: ${err.message}`, 'error');
     }
   };
 
@@ -287,7 +364,7 @@ const MyTicketsPage = () => {
         matchesStatus = ticketStatus === 'Used';
         break;
       case 'refunded':
-        matchesStatus = ticketStatus === 'Refunded';
+        matchesStatus = ticketStatus === 'Refunded' || ticketStatus === 'Cancelled';
         break;
       case 'cancelled':
         matchesStatus = ticketStatus === 'Cancelled';
@@ -601,7 +678,10 @@ const MyTicketsPage = () => {
                       onClick={() => setFilter('refunded')}
                     >
                       <Typography variant="h3" fontWeight={700} color="warning.main">
-                        {tickets.filter(t => (t.Status || t.status) === 'Refunded').length}
+                        {tickets.filter(t => {
+                          const status = t.Status || t.status;
+                          return status === 'Refunded' || status === 'Cancelled';
+                        }).length}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Đã hoàn
@@ -639,6 +719,22 @@ const MyTicketsPage = () => {
                       </Typography>
                     </Alert>
                   )}
+
+                  {/* Manual Refresh Button */}
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<Refresh />}
+                    onClick={() => {
+                      console.log('🔄 MANUAL REFRESH - Force reload tickets...');
+                      fetchTickets();
+                      fetchRefundRequests();
+                    }}
+                    fullWidth
+                    sx={{ mb: 1 }}
+                  >
+                    Làm mới dữ liệu vé (nếu status chưa cập nhật)
+                  </Button>
 
                   {/* Search Bar */}
                   <TextField
@@ -778,6 +874,23 @@ const MyTicketsPage = () => {
                     const ticketStatus = ticket.Status || ticket.status;
                     const isAssigned = ticketStatus === 'Assigned';
                     const isUsed = ticketStatus === 'Used';
+                    const isCancelled = ticketStatus === 'Cancelled';
+                    const isRefunded = ticketStatus === 'Refunded';
+                    const isRefundedOrCancelled = isRefunded || isCancelled;
+                    const refundStatus = getRefundStatus(orderData.OrderId || orderData.orderId);
+                    
+                    // DEBUG: Log ticket status - CRITICAL FOR DEBUGGING
+                    console.log('🎫 TICKET DEBUG:', {
+                      ticketId: ticket.TicketId || ticket.ticketId,
+                      status: ticketStatus,
+                      isCancelled: isCancelled,
+                      isRefunded: isRefunded,
+                      isRefundedOrCancelled: isRefundedOrCancelled,
+                      rawStatus: ticket.Status,
+                      rawStatusLower: ticket.status,
+                      orderStatus: orderData.Status || orderData.status,
+                      refundStatus: refundStatus?.status
+                    });
                     
                     return (
                       <Box key={ticket.TicketId || ticket.ticketId}>
@@ -803,7 +916,11 @@ const MyTicketsPage = () => {
                             position: 'absolute',
                             top: 16,
                             right: 16,
-                            zIndex: 1
+                            zIndex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 0.5,
+                            alignItems: 'flex-end'
                           }}>
                             <Chip
                               label={getStatusText(ticketStatus, orderData.Status || orderData.status)}
@@ -817,6 +934,33 @@ const MyTicketsPage = () => {
                                 textTransform: 'uppercase'
                               }}
                             />
+                            {refundStatus && (
+                              <Chip
+                                label={
+                                  refundStatus.status === 'Pending' ? 'Chờ hoàn tiền' :
+                                  refundStatus.status === 'Approved' ? 'Đã duyệt' :
+                                  refundStatus.status === 'Rejected' ? 'Từ chối' :
+                                  refundStatus.status === 'Processing' ? 'Đang xử lý' :
+                                  refundStatus.status === 'Completed' ? 'Hoàn thành' :
+                                  refundStatus.status
+                                }
+                                size="small"
+                                icon={<MoneyOff sx={{ fontSize: 14 }} />}
+                                sx={{
+                                  bgcolor: 
+                                    refundStatus.status === 'Pending' ? 'warning.main' :
+                                    refundStatus.status === 'Approved' ? 'info.main' :
+                                    refundStatus.status === 'Rejected' ? 'error.main' :
+                                    refundStatus.status === 'Processing' ? 'info.main' :
+                                    refundStatus.status === 'Completed' ? 'success.main' :
+                                    'grey.500',
+                                  color: 'white',
+                                  fontWeight: 600,
+                                  fontSize: '0.65rem',
+                                  height: 22
+                                }}
+                              />
+                            )}
                           </Box>
 
                           <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
@@ -928,45 +1072,107 @@ const MyTicketsPage = () => {
                           {/* Action Buttons */}
                           <Box sx={{ p: 3, pt: 0 }}>
                             <Stack spacing={1.5}>
-                              {isAssigned && (
-                                <Stack direction="row" spacing={1.5}>
+                              {/* Refunded/Cancelled tickets: No actions except view event and buy new */}
+                              {isRefundedOrCancelled && (
+                                <Alert severity="warning" sx={{ mb: 1 }}>
+                                  {isRefunded 
+                                    ? 'Vé này đã được hoàn tiền và không thể sử dụng. Bạn có thể mua vé mới cho sự kiện này.'
+                                    : 'Vé này đã bị hủy và không thể sử dụng. Bạn có thể mua vé mới cho sự kiện này.'}
+                                </Alert>
+                              )}
+                              
+                              {/* Active tickets: Full actions */}
+                              {/* CRITICAL: Only show for Assigned tickets that are NOT refunded or cancelled */}
+                              {isAssigned && !isRefundedOrCancelled && ticketStatus === 'Assigned' && (
+                                <>
+                                  <Stack direction="row" spacing={1.5}>
+                                    <Button
+                                      variant="contained"
+                                      color="primary"
+                                      startIcon={<QrCodeScanner sx={{ fontSize: 18 }} />}
+                                      onClick={() => {
+                                        console.log('QR Click - Status:', ticketStatus, 'isRefundedOrCancelled:', isRefundedOrCancelled);
+                                        if (isRefundedOrCancelled) {
+                                          showSnackbar('Vé này đã được hoàn tiền/hủy, không thể xem QR Code!', 'warning');
+                                          return;
+                                        }
+                                        setSelectedTicketForQR(ticket);
+                                        setQrDialogOpen(true);
+                                      }}
+                                      fullWidth
+                                      sx={{ 
+                                        fontWeight: 600,
+                                        fontSize: '0.875rem',
+                                        py: 1,
+                                        textTransform: 'none'
+                                      }}
+                                    >
+                                      QR Code
+                                    </Button>
+                                    <Button
+                                      variant="contained"
+                                      color="secondary"
+                                      startIcon={<SwapHoriz sx={{ fontSize: 18 }} />}
+                                      onClick={() => {
+                                        console.log('Transfer Click - Status:', ticketStatus, 'isRefundedOrCancelled:', isRefundedOrCancelled);
+                                        if (isRefundedOrCancelled) {
+                                          showSnackbar('Vé này đã được hoàn tiền/hủy, không thể chuyển nhượng!', 'warning');
+                                          return;
+                                        }
+                                        setSelectedTicketForTransfer(ticket);
+                                        setTransferModalOpen(true);
+                                      }}
+                                      fullWidth
+                                      sx={{ 
+                                        fontWeight: 600,
+                                        fontSize: '0.875rem',
+                                        py: 1,
+                                        textTransform: 'none'
+                                      }}
+                                    >
+                                      Chuyển nhượng
+                                    </Button>
+                                  </Stack>
+                                  
                                   <Button
-                                    variant="contained"
-                                    color="primary"
-                                    startIcon={<QrCodeScanner sx={{ fontSize: 18 }} />}
+                                    variant="outlined"
+                                    color={refundStatus && refundStatus.status === 'Pending' ? "warning" : "error"}
+                                    startIcon={<MoneyOff sx={{ fontSize: 18 }} />}
                                     onClick={() => {
-                                      setSelectedTicketForQR(ticket);
-                                      setQrDialogOpen(true);
+                                      console.log('Refund Click - Status:', ticketStatus, 'isRefundedOrCancelled:', isRefundedOrCancelled);
+                                      if (isRefundedOrCancelled) {
+                                        showSnackbar('Vé này đã được hoàn tiền/hủy, không thể yêu cầu hoàn tiền!', 'warning');
+                                        return;
+                                      }
+                                      // Prepare order data for refund modal
+                                      const orderForRefund = {
+                                        orderId: orderData.OrderId || orderData.orderId,
+                                        amount: orderData.Amount || orderData.amount || 0,
+                                        discountAmount: orderData.DiscountAmount || orderData.discountAmount || 0,
+                                        eventTitle: eventData.Title || eventData.title,
+                                        eventName: eventData.Title || eventData.title
+                                      };
+                                      setSelectedOrderForRefund(orderForRefund);
+                                      setRefundModalOpen(true);
                                     }}
+                                    disabled={isRefundedOrCancelled || (refundStatus && (refundStatus.status === 'Pending' || refundStatus.status === 'Approved' || refundStatus.status === 'Processing'))}
                                     fullWidth
                                     sx={{ 
                                       fontWeight: 600,
                                       fontSize: '0.875rem',
                                       py: 1,
-                                      textTransform: 'none'
+                                      textTransform: 'none',
+                                      borderWidth: 2,
+                                      '&:hover': {
+                                        borderWidth: 2
+                                      }
                                     }}
                                   >
-                                    QR Code
+                                    {refundStatus && refundStatus.status === 'Pending' ? 'Đang chờ duyệt' : 
+                                     refundStatus && refundStatus.status === 'Processing' ? 'Đang xử lý' :
+                                     'Yêu cầu hoàn tiền'}
                                   </Button>
-                                  <Button
-                                    variant="contained"
-                                    color="secondary"
-                                    startIcon={<SwapHoriz sx={{ fontSize: 18 }} />}
-                                    onClick={() => {
-                                      setSelectedTicketForTransfer(ticket);
-                                      setTransferModalOpen(true);
-                                    }}
-                                    fullWidth
-                                    sx={{ 
-                                      fontWeight: 600,
-                                      fontSize: '0.875rem',
-                                      py: 1,
-                                      textTransform: 'none'
-                                    }}
-                                  >
-                                    Chuyển nhượng
-                                  </Button>
-                                </Stack>
+                                </>
                               )}
 
                               <Button
@@ -984,7 +1190,26 @@ const MyTicketsPage = () => {
                                 Chi tiết sự kiện
                               </Button>
 
-                              {isUsed && (
+                              {/* Buy new ticket button for refunded/cancelled tickets */}
+                              {isRefundedOrCancelled && (
+                                <Button
+                                  variant="contained"
+                                  color="primary"
+                                  onClick={() => navigate(`/event/${eventData.EventId || eventData.eventId}`)}
+                                  fullWidth
+                                  startIcon={<ConfirmationNumber sx={{ fontSize: 18 }} />}
+                                  sx={{
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem',
+                                    py: 1,
+                                    textTransform: 'none'
+                                  }}
+                                >
+                                  Mua vé mới
+                                </Button>
+                              )}
+
+                              {isUsed && !isRefundedOrCancelled && (
                                 <Button
                                   variant="outlined"
                                   color="info"
@@ -1170,6 +1395,36 @@ const MyTicketsPage = () => {
               }}
             />
           )}
+
+          {/* Refund Request Modal */}
+          {refundModalOpen && selectedOrderForRefund && (
+            <RefundRequestModal
+              open={refundModalOpen}
+              order={selectedOrderForRefund}
+              onClose={() => {
+                setRefundModalOpen(false);
+                setSelectedOrderForRefund(null);
+              }}
+              onSuccess={handleRefundSuccess}
+            />
+          )}
+
+          {/* Snackbar for notifications (thay thế alert browser) */}
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={handleCloseSnackbar}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          >
+            <Alert 
+              onClose={handleCloseSnackbar} 
+              severity={snackbar.severity}
+              variant="filled"
+              sx={{ width: '100%', fontSize: '1rem' }}
+            >
+              {snackbar.message}
+            </Alert>
+          </Snackbar>
         </Stack>
       </Container>
     </Box>

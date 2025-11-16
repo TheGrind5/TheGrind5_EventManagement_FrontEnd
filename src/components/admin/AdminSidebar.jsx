@@ -48,6 +48,7 @@ const AdminSidebar = ({ onLogout }) => {
     { path: '/admin/event-approval', icon: <CheckCircle />, label: 'Duyệt Sự Kiện' },
     { path: '/admin/waitlist', icon: <Queue />, label: 'Quản Lý Danh Sách Chờ' },
     { path: '/admin/withdrawals', icon: <MoneyOff />, label: 'Quản Lý Rút Tiền' },
+    { path: '/admin/refunds', icon: <MoneyOff />, label: 'Quản Lý Hoàn Tiền' },
     { path: '/admin/audit-logs', icon: <History />, label: 'Audit Logs' },
     { path: '/admin/revenue', icon: <TrendingUp />, label: 'Doanh Thu Sàn' },
   ];
