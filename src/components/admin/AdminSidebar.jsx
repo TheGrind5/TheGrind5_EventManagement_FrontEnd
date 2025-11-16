@@ -17,7 +17,8 @@ import {
   ExpandLess,
   Queue,
   MoneyOff,
-  History
+  History,
+  TrendingUp
 } from '@mui/icons-material';
 import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
@@ -48,6 +49,7 @@ const AdminSidebar = ({ onLogout }) => {
     { path: '/admin/waitlist', icon: <Queue />, label: 'Quản Lý Danh Sách Chờ' },
     { path: '/admin/withdrawals', icon: <MoneyOff />, label: 'Quản Lý Rút Tiền' },
     { path: '/admin/audit-logs', icon: <History />, label: 'Audit Logs' },
+    { path: '/admin/revenue', icon: <TrendingUp />, label: 'Doanh Thu Sàn' },
   ];
 
   const chartSubItems = [

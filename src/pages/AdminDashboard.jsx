@@ -15,6 +15,7 @@ import AdminChartsPage from './admin/AdminChartsPage';
 import AdminWaitlistPage from './admin/AdminWaitlistPage';
 import AdminWithdrawalPage from './admin/AdminWithdrawalPage';
 import AdminAuditLogPage from './admin/AdminAuditLogPage';
+import AdminRevenuePage from './admin/AdminRevenuePage';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminDashboard.css';
 
@@ -51,6 +52,7 @@ const AdminDashboard = () => {
           <Route path="/waitlist" element={<AdminWaitlistPage />} />
           <Route path="/withdrawals" element={<AdminWithdrawalPage />} />
           <Route path="/audit-logs" element={<AdminAuditLogPage />} />
+          <Route path="/revenue" element={<AdminRevenuePage />} />
         </Routes>
       </div>
     </div>
