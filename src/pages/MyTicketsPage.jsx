@@ -39,7 +39,8 @@ import {
   FilterList,
   Edit,
   Delete,
-  Warning
+  Warning,
+  RateReview
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import { ticketsAPI, eventsAPI } from '../services/apiClient';
@@ -152,12 +153,26 @@ const MyTicketsPage = () => {
 
     try {
       await ticketsAPI.cancelTicket(ticketId);
-      // Refresh tickets after cancel
+      // Refresh tickets after cancellation
       await fetchTickets();
       alert('Hủy vé thành công!');
-    } catch (err) {
-      alert(`Lỗi hủy vé: ${err.message}`);
+    } catch (error) {
+      console.error('Error cancelling ticket:', error);
+      alert('Hủy vé thất bại. Vui lòng thử lại.');
     }
+  };
+
+  const handleFeedback = (eventId) => {
+    // Navigate to event page
+    navigate(`/event/${eventId}`);
+    
+    // Scroll to feedback section after navigation
+    setTimeout(() => {
+      const feedbackSection = document.getElementById('feedback-section');
+      if (feedbackSection) {
+        feedbackSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const handleEditEvent = (event) => {
@@ -773,9 +788,10 @@ const MyTicketsPage = () => {
                           const ticketStatus = ticket.Status || ticket.status;
                           const orderStatus = ticket.Order?.Status || ticket.order?.status || ticket.Order?.status;
                           const isAssigned = ticketStatus === 'Assigned';
+                          const isUsed = ticketStatus === 'Used';
                           const isPaymentFailed = orderStatus === 'Failed';
                           
-                          // Chỉ hiển thị nút khi ticket là Assigned VÀ order không phải Failed
+                          // Hiển thị nút Check-in và Hủy vé khi ticket là Assigned VÀ order không phải Failed
                           if (isAssigned && !isPaymentFailed) {
                             return (
                               <>
@@ -810,6 +826,27 @@ const MyTicketsPage = () => {
                               </>
                             );
                           }
+                          
+                          // Hiển thị nút đánh giá cho vé đã sử dụng hoặc còn hợp lệ
+                          if ((isAssigned || isUsed) && !isPaymentFailed) {
+                            return (
+                              <Button 
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                onClick={() => handleFeedback(ticket.Event?.EventId || ticket.event?.eventId || ticket.Event?.eventId)}
+                                sx={{ 
+                                  flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                                  minWidth: '100px',
+                                  textTransform: 'none',
+                                  fontWeight: 600
+                                }}
+                              >
+                                Đánh giá
+                              </Button>
+                            );
+                          }
+                          
                           return null;
                         })()}
                         <Button 

@@ -679,4 +679,15 @@ export const hostMarketingAPI = {
   }
 };
 
+// Rating API
+export const ratingsAPI = {
+  getSummary: async (eventId) => {
+    return api.get(`/Rating/event/${eventId}`);
+  },
+  
+  rateEvent: async (eventId, stars) => {
+    return api.post('/Rating', { eventId, stars });
+  }
+};
+
 export default apiClient;
