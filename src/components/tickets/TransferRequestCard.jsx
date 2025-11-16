@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import TicketTransferService from '../../services/ticketTransferService';
 
-const TransferRequestCard = ({ transfer, currentUserEmail, onUpdate }) => {
+const TransferRequestCard = ({ transfer, currentUserEmail, onUpdate, showSnackbar }) => {
   const [loading, setLoading] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -44,9 +44,11 @@ const TransferRequestCard = ({ transfer, currentUserEmail, onUpdate }) => {
     setLoading(true);
     try {
       await TicketTransferService.acceptTransfer(transfer.transferCode);
+      showSnackbar && showSnackbar('✅ Chấp nhận chuyển nhượng thành công!', 'success');
       onUpdate && onUpdate();
     } catch (error) {
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi chấp nhận chuyển nhượng');
+      const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra khi chấp nhận chuyển nhượng';
+      showSnackbar ? showSnackbar(errorMsg, 'error') : alert(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -57,9 +59,11 @@ const TransferRequestCard = ({ transfer, currentUserEmail, onUpdate }) => {
     try {
       await TicketTransferService.rejectTransfer(transfer.transferCode, rejectionReason);
       setShowRejectDialog(false);
+      showSnackbar && showSnackbar('❌ Từ chối chuyển nhượng thành công!', 'info');
       onUpdate && onUpdate();
     } catch (error) {
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi từ chối chuyển nhượng');
+      const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra khi từ chối chuyển nhượng';
+      showSnackbar ? showSnackbar(errorMsg, 'error') : alert(errorMsg);
     } finally {
       setLoading(false);
     }
