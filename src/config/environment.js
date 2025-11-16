@@ -29,7 +29,7 @@ const config = {
   ],
   
   // API Timeout
-  API_TIMEOUT: 10000, // 10 seconds
+  API_TIMEOUT: 30000, // 30 seconds (PayOS can be slow)
   
   // Retry Configuration
   MAX_RETRIES: 3,

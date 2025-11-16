@@ -288,6 +288,90 @@ const adminService = {
       console.error(`Error getting platform revenue statistics for year ${year}:`, error);
       throw error;
     }
+  },
+
+  // ==================== WITHDRAWAL MANAGEMENT ====================
+
+  /**
+   * Lấy danh sách tất cả withdrawal requests
+   * @param {Object} params - Query parameters
+   * @param {string} params.status - Filter theo status (optional)
+   * @param {number} params.pageNumber - Số trang
+   * @param {number} params.pageSize - Số items mỗi trang
+   */
+  async getAllWithdrawalRequests(params = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.status) queryParams.append('status', params.status);
+      if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+      if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+      const response = await apiClient.get(`/admin/withdrawal/requests?${queryParams.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error getting withdrawal requests:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy chi tiết withdrawal request
+   * @param {number} requestId - ID của withdrawal request
+   */
+  async getWithdrawalRequestById(requestId) {
+    try {
+      const response = await apiClient.get(`/admin/withdrawal/requests/${requestId}`);
+      return response;
+    } catch (error) {
+      console.error(`Error getting withdrawal request ${requestId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Duyệt withdrawal request
+   * @param {number} requestId - ID của withdrawal request
+   */
+  async approveWithdrawalRequest(requestId) {
+    try {
+      const response = await apiClient.post(`/admin/withdrawal/requests/${requestId}/approve`);
+      return response;
+    } catch (error) {
+      console.error(`Error approving withdrawal request ${requestId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Từ chối withdrawal request
+   * @param {number} requestId - ID của withdrawal request
+   * @param {string} reason - Lý do từ chối
+   */
+  async rejectWithdrawalRequest(requestId, reason) {
+    try {
+      const response = await apiClient.post(`/admin/withdrawal/requests/${requestId}/reject`, {
+        reason
+      });
+      return response;
+    } catch (error) {
+      console.error(`Error rejecting withdrawal request ${requestId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Hoàn thành withdrawal request (sau khi đã chuyển tiền)
+   * @param {number} requestId - ID của withdrawal request
+   */
+  async completeWithdrawalRequest(requestId) {
+    try {
+      const response = await apiClient.post(`/admin/withdrawal/requests/${requestId}/complete`);
+      return response;
+    } catch (error) {
+      console.error(`Error completing withdrawal request ${requestId}:`, error);
+      throw error;
+    }
   }
 };
 
