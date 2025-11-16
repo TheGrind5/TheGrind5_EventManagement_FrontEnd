@@ -40,9 +40,11 @@ import {
   Edit,
   Delete,
   Warning,
-  RateReview
+  RateReview,
+  QrCodeScanner
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
+import TicketQRCode from '../components/tickets/TicketQRCode';
 import { ticketsAPI, eventsAPI } from '../services/apiClient';
 import { subscriptionHelpers } from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
@@ -64,6 +66,10 @@ const MyTicketsPage = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [editFormData, setEditFormData] = useState({ title: '', description: '' });
+  
+  // QR Code dialog states
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [selectedTicketForQR, setSelectedTicketForQR] = useState(null);
   
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -603,13 +609,28 @@ const MyTicketsPage = () => {
                           <Box sx={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
                             <Typography 
                               variant="h6" 
+                              onClick={() => {
+                                // 🔒 CRITICAL: Click vào event title để filter tickets của event đó
+                                const eventTitle = ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || '';
+                                if (eventTitle) {
+                                  setEventFilter(eventTitle);
+                                  // Scroll to top để user thấy filter đã áp dụng
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              }}
                               sx={{ 
                                 fontWeight: 600,
                                 mb: 1,
                                 lineHeight: 1.4,
                                 wordWrap: 'break-word',
                                 overflowWrap: 'break-word',
-                                hyphens: 'auto'
+                                hyphens: 'auto',
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  color: 'primary.main',
+                                  textDecoration: 'underline'
+                                },
+                                transition: 'all 0.2s ease'
                               }}
                             >
                               {decodeText(ticket.Event?.Title || ticket.event?.title || ticket.Event?.title || 'Chưa có tiêu đề')}
@@ -769,6 +790,35 @@ const MyTicketsPage = () => {
                             </Box>
                           )}
                         </Stack>
+                        
+                        {/* 🎫 QR Code Display - Hiển thị trực tiếp trong ticket card */}
+                        {(() => {
+                          const ticketStatus = ticket.Status || ticket.status;
+                          const orderStatus = ticket.Order?.Status || ticket.order?.status || ticket.Order?.status;
+                          const isAssigned = ticketStatus === 'Assigned';
+                          const isUsed = ticketStatus === 'Used';
+                          const isPaymentFailed = orderStatus === 'Failed';
+                          const serialNumber = ticket.SerialNumber || ticket.serialNumber;
+                          const hasValidSerialNumber = serialNumber && serialNumber !== 'N/A' && serialNumber.trim() !== '';
+                          
+                          // Hiển thị QR code cho tickets có status Assigned hoặc Used và có SerialNumber
+                          const canShowQR = (isAssigned || isUsed) && !isPaymentFailed && hasValidSerialNumber;
+                          
+                          if (canShowQR) {
+                            return (
+                              <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 1 }}>
+                                  QR Code Vé
+                                </Typography>
+                                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                  <TicketQRCode ticket={ticket} size={150} showSerialNumber={true} />
+                                </Box>
+                              </Box>
+                            );
+                          }
+                          
+                          return null;
+                        })()}
                       </Stack>
                     </CardContent>
 
@@ -791,6 +841,9 @@ const MyTicketsPage = () => {
                           const isUsed = ticketStatus === 'Used';
                           const isPaymentFailed = orderStatus === 'Failed';
                           
+                          // Hiển thị QR code cho tickets có status Assigned hoặc Used
+                          const canShowQR = (isAssigned || isUsed) && !isPaymentFailed;
+                          
                           // Hiển thị nút Check-in và Hủy vé khi ticket là Assigned VÀ order không phải Failed
                           if (isAssigned && !isPaymentFailed) {
                             return (
@@ -808,6 +861,24 @@ const MyTicketsPage = () => {
                                   }}
                                 >
                                   Check-in
+                                </Button>
+                                <Button 
+                                  variant="outlined"
+                                  color="primary"
+                                  size="small"
+                                  startIcon={<QrCodeScanner />}
+                                  onClick={() => {
+                                    setSelectedTicketForQR(ticket);
+                                    setQrDialogOpen(true);
+                                  }}
+                                  sx={{ 
+                                    flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                                    minWidth: '100px',
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  QR Code
                                 </Button>
                                 <Button 
                                   variant="outlined"
@@ -843,6 +914,30 @@ const MyTicketsPage = () => {
                                 }}
                               >
                                 Đánh giá
+                              </Button>
+                            );
+                          }
+                          
+                          // Hiển thị QR code button cho tickets đã sử dụng
+                          if (isUsed && !isPaymentFailed) {
+                            return (
+                              <Button 
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                startIcon={<QrCodeScanner />}
+                                onClick={() => {
+                                  setSelectedTicketForQR(ticket);
+                                  setQrDialogOpen(true);
+                                }}
+                                sx={{ 
+                                  flex: { xs: '1 1 auto', sm: '0 0 auto' }, 
+                                  minWidth: '100px',
+                                  textTransform: 'none',
+                                  fontWeight: 600
+                                }}
+                              >
+                                QR Code
                               </Button>
                             );
                           }
@@ -1062,6 +1157,52 @@ const MyTicketsPage = () => {
           </Button>
           <Button onClick={handleSaveEvent} variant="contained">
             Lưu thay đổi
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog
+        open={qrDialogOpen}
+        onClose={() => {
+          setQrDialogOpen(false);
+          setSelectedTicketForQR(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <QrCodeScanner />
+            <Typography variant="h6">QR Code Vé</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedTicketForQR && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+              <TicketQRCode ticket={selectedTicketForQR} size={250} showSerialNumber={true} />
+              {selectedTicketForQR.Event && (
+                <Box sx={{ mt: 3, textAlign: 'center', width: '100%' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Sự kiện: {decodeText(selectedTicketForQR.Event.Title || selectedTicketForQR.Event.title || 'N/A')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    Quét QR code này tại sự kiện để check-in
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setQrDialogOpen(false);
+              setSelectedTicketForQR(null);
+            }}
+            variant="contained"
+          >
+            Đóng
           </Button>
         </DialogActions>
       </Dialog>

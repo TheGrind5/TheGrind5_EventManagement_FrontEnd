@@ -20,7 +20,8 @@ import {
   Event as EventIcon,
   Cancel as CancelIcon,
   ShoppingCart as ShoppingCartIcon,
-  CalendarToday as CalendarIcon
+  CalendarToday as CalendarIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { waitlistAPI } from '../services/apiClient';
@@ -45,10 +46,11 @@ const WaitlistPage = () => {
 
   const fetchWaitlists = async () => {
     try {
+      console.log('🔄 [fetchWaitlists] Fetching waitlists...');
       setLoading(true);
       setError(null);
       const response = await waitlistAPI.getMyWaitlists();
-      console.log('Waitlist API response:', response);
+      console.log('📊 [fetchWaitlists] API response:', response);
       
       // Handle different response formats
       let waitlistsData = [];
@@ -87,16 +89,43 @@ const WaitlistPage = () => {
     }
   };
 
-  const handleCancel = async (waitlistId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hủy đăng ký danh sách chờ này?')) {
+  const handleDelete = async (waitlistId, eventName) => {
+    console.log(`🔔 [handleDelete] Starting delete for waitlistId=${waitlistId}, eventName=${eventName}`);
+    
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa sự kiện "${eventName}" khỏi danh sách chờ?`)) {
+      console.log('❌ User cancelled delete');
       return;
     }
 
+    // Optimistic update - xóa khỏi UI ngay lập tức
+    const originalWaitlists = [...waitlists];
+    setWaitlists(prev => prev.filter(w => w.waitlistId !== waitlistId));
+    console.log(`� Removed waitlist ${waitlistId} from UI optimistically`);
+
     try {
-      await waitlistAPI.cancel(waitlistId);
-      fetchWaitlists();
+      console.log(`🗑️ [API Call] DELETE /Waitlist/${waitlistId}`);
+      const response = await waitlistAPI.cancel(waitlistId);
+      console.log(`✅ API Response:`, response);
+      console.log(`✅ Deleted waitlist ${waitlistId} successfully`);
+      
+      // Refresh danh sách để đảm bảo sync với server
+      console.log('🔄 Refreshing waitlist from server...');
+      await fetchWaitlists();
+      
+      // Show success message
+      alert(`Đã xóa "${eventName}" khỏi danh sách chờ thành công!`);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi hủy đăng ký');
+      console.error('❌ [handleDelete] Error:', err);
+      console.error('❌ Response:', err?.response);
+      console.error('❌ Response data:', err?.response?.data);
+      
+      // Rollback optimistic update
+      console.log('↩️ Rolling back optimistic update');
+      setWaitlists(originalWaitlists);
+      
+      const errorMsg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi xóa';
+      setError(errorMsg);
+      alert(`Lỗi xóa: ${errorMsg}`);
     }
   };
 
@@ -346,23 +375,22 @@ const WaitlistPage = () => {
                           color="success"
                           onClick={() => handleBuyNow(waitlist.eventId)}
                           startIcon={<ShoppingCartIcon />}
-                          sx={{ ml: 'auto' }}
                         >
                           Mua ngay
                         </Button>
                       )}
                       
-                      {(waitlist.status === 'Pending' || waitlist.status === 'Notified') && (
-                        <Button
-                          size="small"
-                          color="error"
-                          onClick={() => handleCancel(waitlist.waitlistId)}
-                          startIcon={<CancelIcon />}
-                          sx={{ ml: 'auto' }}
-                        >
-                          Hủy
-                        </Button>
-                      )}
+                      {/* Luôn hiển thị nút xóa để user có thể xóa bất cứ lúc nào */}
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                        onClick={() => handleDelete(waitlist.waitlistId, waitlist.eventName)}
+                        startIcon={<DeleteIcon />}
+                        sx={{ ml: 'auto' }}
+                      >
+                        Xóa
+                      </Button>
                     </Stack>
                   </CardActions>
                 </Card>
