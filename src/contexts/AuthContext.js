@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/apiClient';
 import config from '../config/environment';
+import oauthService from '../services/oauthService';
 
 const AuthContext = createContext();
 
@@ -257,6 +258,62 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
+  const loginWithGoogle = async (googleResponse) => {
+    try {
+      setLoading(true);
+      const result = await oauthService.googleLogin(googleResponse.credential);
+      
+      if (result.data && result.data.token) {
+        // Save token
+        localStorage.setItem('token', result.data.token);
+        
+        // Set user
+        const userData = result.data.user;
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        return { success: true };
+      }
+      return { success: false, message: 'Google login failed' };
+    } catch (error) {
+      console.error('Google login failed:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Đăng nhập Google thất bại'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithFacebook = async (facebookResponse) => {
+    try {
+      setLoading(true);
+      const result = await oauthService.facebookLogin(facebookResponse.accessToken);
+      
+      if (result.data && result.data.token) {
+        // Save token
+        localStorage.setItem('token', result.data.token);
+        
+        // Set user
+        const userData = result.data.user;
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        return { success: true };
+      }
+      return { success: false, message: 'Facebook login failed' };
+    } catch (error) {
+      console.error('Facebook login failed:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Đăng nhập Facebook thất bại'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -264,7 +321,9 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     refreshProfile,
-    updateUser
+    updateUser,
+    loginWithGoogle,
+    loginWithFacebook
   };
 
   return (
