@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
-import { ordersAPI, walletAPI } from '../services/apiClient';
+import { ordersAPI, walletAPI, ticketsAPI } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Container,
@@ -172,19 +172,72 @@ const PaymentPage = () => {
                 const result = await ordersAPI.processPayment(orderId, paymentData);
                 console.log('Payment result:', result);
                 
-                // Check if payment was successful (backend returns message: "Thanh toán thành công")
-                if (result.message && result.message.includes('Thanh toán thành công')) {
-                    console.log('Payment successful, showing popup');
-                    // Show success popup
-                    setShowSuccessPopup(true);
+                // 🔒 CRITICAL: Check if payment was successful
+                // Backend trả về: { message: "Thanh toán thành công", orderStatus: "Paid", ... }
+                const isPaymentSuccess = result.message && result.message.includes('Thanh toán thành công');
+                const orderStatus = result.orderStatus || result.order?.status || result.order?.Status;
+                
+                if (isPaymentSuccess || orderStatus === 'Paid') {
+                    console.log('✅ Payment successful! Order status:', orderStatus);
+                    console.log('💰 New wallet balance:', result.newWalletBalance);
+                    console.log('💳 Wallet transaction ID:', result.walletTransactionId);
                     
-                    // Redirect to my-tickets page after 3 seconds
-                    setTimeout(() => {
-                        console.log('Redirecting to my-tickets');
-                        navigate('/my-tickets');
-                    }, 3000);
+                    // 🔒 CRITICAL: Backend đã tạo tickets đồng bộ, nhưng đợi một chút để đảm bảo
+                    // Backend có delay 500ms + tạo tickets, nên đợi 1s để chắc chắn
+                    console.log('⏳ Waiting for tickets to be created...');
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Đợi 1s để backend tạo tickets xong
+                    
+                    // 🎫 Fetch tickets ngay để đảm bảo có vé trước khi redirect
+                    let ticketsFetched = false;
+                    let retryCount = 0;
+                    const maxRetries = 3;
+                    
+                    while (!ticketsFetched && retryCount < maxRetries) {
+                        try {
+                            console.log(`🎫 Fetching tickets (attempt ${retryCount + 1}/${maxRetries})...`);
+                            const ticketsData = await ticketsAPI.getTicketsByOrder(orderId);
+                            const ticketsList = ticketsData?.tickets || ticketsData?.data || ticketsData || [];
+                            
+                            if (ticketsList.length > 0) {
+                                console.log(`✅ Tickets fetched successfully: ${ticketsList.length} tickets`);
+                                ticketsFetched = true;
+                            } else {
+                                retryCount++;
+                                if (retryCount < maxRetries) {
+                                    console.log(`⚠️ No tickets found, retrying in 500ms... (${retryCount}/${maxRetries})`);
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                } else {
+                                    console.warn('⚠️ No tickets found after retries, will fetch on order-confirmation page');
+                                }
+                            }
+                        } catch (ticketError) {
+                            retryCount++;
+                            console.warn(`⚠️ Error fetching tickets (attempt ${retryCount}/${maxRetries}):`, ticketError);
+                            if (retryCount < maxRetries) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            } else {
+                                console.warn('⚠️ Could not fetch tickets after retries, will fetch on order-confirmation page');
+                            }
+                        }
+                    }
+                    
+                    // Redirect đến order-confirmation để show vé
+                    console.log('✅ Redirecting to order-confirmation to show tickets');
+                    navigate(`/order-confirmation/${orderId}`, {
+                        state: {
+                            order: {
+                                ...order,
+                                status: 'Paid',
+                                Status: 'Paid'
+                            },
+                            fromPayment: true,
+                            paymentSuccess: true,
+                            orderStatus: 'Paid'
+                        },
+                        replace: true
+                    });
                 } else {
-                    console.log('Payment failed:', result.message);
+                    console.log('❌ Payment failed:', result.message);
                     setError(result.message || 'Thanh toán thất bại');
                 }
             } else {
@@ -548,49 +601,41 @@ const PaymentPage = () => {
                 </Paper>
             </Container>
             
-            {/* Success Popup */}
-            <Dialog
-                open={showSuccessPopup}
-                onClose={() => setShowSuccessPopup(false)}
-                maxWidth="sm"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: 3,
-                        p: 2
-                    }
-                }}
-            >
-                <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                        <CheckCircle sx={{ fontSize: 60, color: 'success.main' }} />
-                    </Box>
-                    <Typography variant="h4" component="h2" color="success.main" fontWeight="bold">
-                        🎉 Thanh toán thành công!
-                    </Typography>
-                </DialogTitle>
-                <DialogContent sx={{ textAlign: 'center', py: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                        Cảm ơn bạn đã mua vé!
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                        Vé của bạn đã được tạo và gửi đến email. Bạn sẽ được chuyển đến trang vé trong giây lát...
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                        <CircularProgress size={24} />
-                    </Box>
-                </DialogContent>
-                <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => navigate('/my-tickets')}
-                        sx={{ minWidth: 120 }}
-                    >
-                        Xem vé ngay
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            {/* Success Popup - Hiển thị khi đang redirect */}
+            {showSuccessPopup && (
+                <Dialog
+                    open={showSuccessPopup}
+                    onClose={() => {}}
+                    maxWidth="sm"
+                    fullWidth
+                    PaperProps={{
+                        sx: {
+                            borderRadius: 3,
+                            p: 2
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                            <CheckCircle sx={{ fontSize: 60, color: 'success.main' }} />
+                        </Box>
+                        <Typography variant="h4" component="h2" color="success.main" fontWeight="bold">
+                            🎉 Thanh toán thành công!
+                        </Typography>
+                    </DialogTitle>
+                    <DialogContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h6" gutterBottom>
+                            Cảm ơn bạn đã mua vé!
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                            Đang chuyển đến trang xem vé...
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                            <CircularProgress size={24} />
+                        </Box>
+                    </DialogContent>
+                </Dialog>
+            )}
         </Box>
     );
 };

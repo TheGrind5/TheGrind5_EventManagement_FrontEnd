@@ -1,0 +1,168 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    ADMIN SETTINGS - NEW STRUCTURE                        ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+📂 Project Structure:
+└── src/
+    ├── components/
+    │   └── admin/
+    │       └── settings/                    [NEW FOLDER]
+    │           ├── EmailTab.jsx             ✨ NEW
+    │           ├── PaymentTab.jsx           ✨ NEW
+    │           ├── GeneralTab.jsx           ✨ NEW
+    │           ├── AdvancedTab.jsx          ✨ NEW
+    │           └── index.js                 ✨ NEW (export helper)
+    │
+    └── pages/
+        └── admin/
+            ├── AdminSettingsPage.jsx        ✏️ UPDATE THIS
+            └── AdminSettingsDemo.jsx        ✨ NEW (test page)
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+📊 TABS STRUCTURE:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ADMIN SETTINGS PAGE                                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  [Profile] [Security] [System] [Email] [Payment] [General] [Notify] [Advanced]  │
+│     ✓         ✓         ✓        ✨       ✨        ✨        ✓         ✨      │
+│  existing  existing  existing   NEW      NEW       NEW    existing    NEW     │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎨 TAB DETAILS:
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Tab 3: EMAIL                                                             │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 📧 Email SMTP Configuration                                              │
+│                                                                          │
+│ Settings:                                                                │
+│   • SMTP Host (text)                    • SMTP Port (number)            │
+│   • Username (text)                     • Password (password)           │
+│   • Use SSL/TLS (toggle)                                                │
+│   • From Email (text)                   • From Name (text)              │
+│   • Reply To Email (text)                                               │
+│                                                                          │
+│ Actions:                                                                 │
+│   [Save Settings]  [Send Test Email]                                    │
+│                                                                          │
+│ Help: Gmail setup instructions included                                 │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Tab 4: PAYMENT                                                           │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 💳 Payment Gateway Configuration                                         │
+│                                                                          │
+│ PayOS Settings:                                                          │
+│   • Enable PayOS (toggle)               • Environment (dropdown)        │
+│   • Client ID (text)                    • API Key (password)            │
+│   • Checksum Key (password)                                             │
+│                                                                          │
+│ VNPay Settings:                                                          │
+│   • Enable VNPay (toggle)               • TMN Code (text)               │
+│   • Hash Secret (password)              • VNPay URL (text)              │
+│                                                                          │
+│ Transaction Rules:                                                       │
+│   • Fee % (number)                      • Min Amount (number)           │
+│   • Max Amount (number)                                                 │
+│                                                                          │
+│ Actions:                                                                 │
+│   [Save Settings]                                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Tab 5: GENERAL                                                           │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 🌐 General Site Settings                                                 │
+│                                                                          │
+│ Site Information:                                                        │
+│   • Site Name (text)                    • Site URL (text)               │
+│   • Description (textarea)                                              │
+│                                                                          │
+│ Contact Information:                                                     │
+│   • Contact Email (email)               • Support Email (email)         │
+│   • Support Phone (text)                                                │
+│                                                                          │
+│ Localization:                                                            │
+│   • Language (dropdown)                 • Timezone (dropdown)           │
+│   • Currency (dropdown)                 • Date Format (dropdown)        │
+│   • Time Format (dropdown)              • Items Per Page (number)       │
+│                                                                          │
+│ Actions:                                                                 │
+│   [Save Settings]                                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Tab 7: ADVANCED                                                          │
+├──────────────────────────────────────────────────────────────────────────┤
+│ ⚡ Advanced System Settings                                              │
+│                                                                          │
+│ Cache & Performance:                                                     │
+│   • Enable Cache (toggle)               • Cache Lifetime (number)       │
+│   • [Clear Cache] button                                                │
+│                                                                          │
+│ Storage Information:                                                     │
+│   • Used: 2.5 GB / 50 GB (progress bar)                                 │
+│   • Images: 1.2 GB                      • Documents: 0.8 GB             │
+│   • Backups: 0.5 GB                                                     │
+│                                                                          │
+│ Backup Settings:                                                         │
+│   • Auto Backup (toggle)                • Frequency (dropdown)          │
+│   • [Backup Now] button                                                 │
+│                                                                          │
+│ Other Settings:                                                          │
+│   • Log Level (dropdown)                • Max Upload Size (number)      │
+│   • Debug Mode (toggle - warning)                                       │
+│                                                                          │
+│ Actions:                                                                 │
+│   [Save Settings]                                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+📋 INTEGRATION STEPS:
+
+Step 1: Copy Files
+  └── Copy 4 tabs to: /src/components/admin/settings/
+
+Step 2: Update AdminSettingsPage.jsx
+  ├── Add imports (line ~20)
+  ├── Update Tabs (line ~425)
+  └── Add tab content (line ~440)
+
+Step 3: Test
+  └── Navigate to /admin/settings-demo
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ COMPLETION STATUS:
+
+Files Created:        ████████████████████ 100%
+Features Implemented: ████████████████████ 100%
+Documentation:        ████████████████████ 100%
+Demo Page:            ████████████████████ 100%
+
+Total: 6 files, 40+ settings, ~1,500 lines of code
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎉 READY TO USE!
+
+Navigate to the demo page to see it in action:
+http://localhost:3000/admin/settings-demo
+
+Or integrate into AdminSettingsPage following the guide.
+
+
+═══════════════════════════════════════════════════════════════════════════

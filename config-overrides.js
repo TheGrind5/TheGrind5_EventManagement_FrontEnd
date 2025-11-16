@@ -13,5 +13,19 @@ module.exports = function override(config, env) {
     type: 'javascript/auto',
   });
 
+  // Fix for duplicate identifier errors - ensure proper module resolution
+  config.optimization = {
+    ...config.optimization,
+    moduleIds: 'deterministic',
+  };
+
+  // Add fallback for Node.js modules if needed
+  config.resolve.fallback = {
+    ...config.resolve.fallback,
+    "fs": false,
+    "path": false,
+    "crypto": false,
+  };
+
   return config;
 };

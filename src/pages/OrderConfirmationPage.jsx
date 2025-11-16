@@ -38,6 +38,7 @@ import {
   ArrowBack
 } from '@mui/icons-material';
 import Header from '../components/layout/Header';
+import TicketQRCode from '../components/tickets/TicketQRCode';
 import { ordersAPI, ticketsAPI } from '../services/apiClient';
 import { decodeText } from '../utils/textDecoder';
 
@@ -72,8 +73,42 @@ const OrderConfirmationPage = () => {
                     setOrder(orderData);
                 }
                 
-                // Fetch tickets for this order
-        await fetchTickets();
+                // Fetch tickets for this order (ngay lập tức)
+        console.log('🎫 Fetching tickets immediately after order loaded...');
+        
+        // Check if this is a free ticket (from CreateOrderPage)
+        const isFreeTicket = location.state?.isFreeTicket === true;
+        const orderStatus = orderData.status || orderData.Status;
+        
+        // Nếu order đã Paid, fetch tickets ngay và retry nếu chưa có
+        if (orderStatus === 'Paid') {
+          console.log('✅ Order is Paid, fetching tickets immediately...');
+          if (isFreeTicket) {
+            console.log('🎫 This is a FREE ticket - tickets should already be created');
+          }
+          
+          const currentTickets = await fetchTicketsWithReturn();
+          
+          if (currentTickets && currentTickets.length > 0) {
+            setTickets(currentTickets);
+            console.log('✅ Tickets loaded immediately:', currentTickets.length, 'tickets');
+          } else {
+            // Retry ngay sau 500ms nếu chưa có tickets (backend có thể đang tạo)
+            // Với vé free, tickets đã được tạo trong CreateOrderPage, nên retry nhanh hơn
+            const retryDelay = isFreeTicket ? 300 : 500;
+            console.log(`⚠️ No tickets found, retrying in ${retryDelay}ms...`);
+            setTimeout(async () => {
+              const retryTickets = await fetchTicketsWithReturn();
+              if (retryTickets && retryTickets.length > 0) {
+                setTickets(retryTickets);
+              }
+            }, retryDelay);
+          }
+        } else {
+          await fetchTickets();
+        }
+        
+        // Nếu order đã Paid nhưng chưa có tickets, sẽ polling tự động (logic ở useEffect phía dưới)
                 
             } catch (err) {
                 console.error('Error fetching data:', err);
@@ -114,28 +149,76 @@ const OrderConfirmationPage = () => {
   
   // Poll for tickets if order is paid but tickets not yet created
   useEffect(() => {
-    if (!order || order.status !== 'Paid' || tickets.length > 0 || pollingCount >= 5) {
+    const orderStatus = order?.status || order?.Status;
+    if (!order || orderStatus !== 'Paid' || tickets.length > 0 || pollingCount >= 5) {
       return;
     }
     
-    const interval = setInterval(async () => {
-      setPollingCount(prev => prev + 1);
-      await fetchTickets();
-    }, 3000); // Poll every 3 seconds
+    // Poll nhanh hơn: 1s đầu tiên, sau đó 2s
+    const delay = pollingCount === 0 ? 1000 : 2000;
     
-    return () => clearInterval(interval);
+    const timeout = setTimeout(async () => {
+      setPollingCount(prev => prev + 1);
+      console.log(`🔄 Polling for tickets (attempt ${pollingCount + 1}/5)...`);
+      await fetchTickets();
+    }, delay);
+    
+    return () => clearTimeout(timeout);
   }, [order, tickets.length, pollingCount]);
   
   const fetchTickets = async () => {
+    const ticketsList = await fetchTicketsWithReturn();
+    if (ticketsList && ticketsList.length > 0) {
+      setTickets(ticketsList);
+    }
+  };
+  
+  const fetchTicketsWithReturn = async () => {
     try {
+      console.log('🎫 Fetching tickets for order:', orderId);
       const ticketsData = await ticketsAPI.getTicketsByOrder(orderId);
-      const ticketsList = ticketsData.tickets || ticketsData.data || ticketsData;
-      if (Array.isArray(ticketsList) && ticketsList.length > 0) {
-        setTickets(ticketsList);
+      console.log('🎫 Tickets data received:', ticketsData);
+      
+      // Handle different response structures
+      let ticketsList = [];
+      if (ticketsData?.tickets && Array.isArray(ticketsData.tickets)) {
+        ticketsList = ticketsData.tickets;
+      } else if (ticketsData?.data && Array.isArray(ticketsData.data)) {
+        ticketsList = ticketsData.data;
+      } else if (Array.isArray(ticketsData)) {
+        ticketsList = ticketsData;
+      }
+      
+      console.log('🎫 Parsed tickets list:', ticketsList);
+      
+      if (ticketsList.length > 0) {
+        // 🔒 CRITICAL: Verify mỗi ticket có SerialNumber
+        const ticketsWithSerial = ticketsList.filter(t => {
+          const serial = t.SerialNumber || t.serialNumber;
+          return serial && serial !== 'N/A' && serial.trim() !== '';
+        });
+        
+        console.log(`✅ Tickets loaded: ${ticketsList.length} total, ${ticketsWithSerial.length} with SerialNumber`);
+        
+        // Log tickets không có SerialNumber
+        ticketsList.forEach((ticket, idx) => {
+          const serial = ticket.SerialNumber || ticket.serialNumber;
+          if (!serial || serial === 'N/A' || serial.trim() === '') {
+            console.warn(`⚠️ Ticket ${idx + 1} missing SerialNumber:`, ticket);
+          } else {
+            console.log(`✅ Ticket ${idx + 1} has SerialNumber: ${serial}`);
+          }
+        });
+        
+        return ticketsList; // Return tất cả tickets, component sẽ handle missing SerialNumber
+      } else {
+        console.log('⚠️ No tickets found yet, will continue polling...');
+        return [];
       }
     } catch (ticketError) {
-      console.warn('Could not fetch tickets:', ticketError);
-      // Tickets might not be created yet, that's okay
+      console.warn('⚠️ Could not fetch tickets:', ticketError);
+      // Tickets might not be created yet, that's okay - will continue polling
+      return [];
     }
   };
     
@@ -457,6 +540,13 @@ const OrderConfirmationPage = () => {
                       const serialNumber = ticket.serialNumber || ticket.SerialNumber || 'N/A';
                       const ticketTypeName = ticketType.typeName || ticketType.TypeName || 'N/A';
                       
+                      // 🔒 CRITICAL: Đảm bảo có SerialNumber để hiển thị QR code
+                      const hasValidSerialNumber = serialNumber && serialNumber !== 'N/A';
+                      
+                      if (!hasValidSerialNumber) {
+                        console.warn(`⚠️ Ticket ${ticket.ticketId || ticket.TicketId || index} missing SerialNumber:`, ticket);
+                      }
+                      
                       return (
                         <Paper
                           key={ticket.ticketId || ticket.TicketId || index}
@@ -503,7 +593,20 @@ const OrderConfirmationPage = () => {
                             sx={{ mt: 1 }}
                           />
                           
-                          <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                          {/* QR Code Display - Hiển thị NGAY LẬP TỨC khi có SerialNumber */}
+                          {hasValidSerialNumber ? (
+                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                              <TicketQRCode ticket={ticket} size={180} showSerialNumber={true} />
+                            </Box>
+                          ) : (
+                            <Alert severity="warning" sx={{ mt: 2 }}>
+                              <Typography variant="body2">
+                                ⚠️ Vé chưa có mã serial. Vui lòng liên hệ hỗ trợ.
+                              </Typography>
+                            </Alert>
+                          )}
+                          
+                          <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center' }}>
                             <Tooltip title="Tải vé">
                               <IconButton
                                 size="small"
@@ -528,13 +631,31 @@ const OrderConfirmationPage = () => {
                     })}
                   </Stack>
                 ) : (
-                  <Alert severity="info" icon={<Email />}>
+                  <Alert 
+                    severity="info" 
+                    icon={<CircularProgress size={20} />}
+                    sx={{ 
+                      '& .MuiAlert-message': {
+                        width: '100%'
+                      }
+                    }}
+                  >
                     <Typography variant="body2" fontWeight={600} gutterBottom>
-                      Vé đang được tạo
+                      🎫 Vé đang được tạo...
                     </Typography>
-                    <Typography variant="body2">
-                      Bạn sẽ nhận được thông báo khi vé sẵn sàng. Thông thường vé sẽ được tạo trong vòng vài phút.
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      Hệ thống đang xử lý và tạo vé cho bạn. Vui lòng đợi trong giây lát.
                     </Typography>
+                    {pollingCount > 0 && (
+                      <Typography variant="caption" color="text.secondary">
+                        Đang tìm kiếm vé... (Lần thử: {pollingCount}/10)
+                      </Typography>
+                    )}
+                    {pollingCount >= 10 && (
+                      <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 1 }}>
+                        ⚠️ Vé chưa được tạo. Vui lòng liên hệ hỗ trợ nếu vấn đề vẫn tiếp tục.
+                      </Typography>
+                    )}
                   </Alert>
                 )}
               </CardContent>

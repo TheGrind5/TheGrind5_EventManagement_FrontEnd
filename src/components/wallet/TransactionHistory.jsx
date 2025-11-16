@@ -158,11 +158,11 @@ const TransactionHistory = () => {
   }
 
   return (
-    <Card>
-      <CardContent>
-        <Stack spacing={3}>
+    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
+        <Stack spacing={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
             <Typography variant="h5" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
               <AccountBalanceWallet />
               Lịch sử giao dịch
@@ -182,24 +182,54 @@ const TransactionHistory = () => {
               <Button color="inherit" size="small" onClick={() => fetchTransactions(true)}>
                 Thử lại
               </Button>
-            }>
+            } sx={{ flexShrink: 0 }}>
               {error}
             </Alert>
           )}
 
-          {transactions.length === 0 && !loading && !error ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Inbox sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Chưa có giao dịch nào
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Lịch sử giao dịch sẽ hiển thị ở đây khi bạn thực hiện nạp tiền, rút tiền hoặc thanh toán.
-              </Typography>
-            </Box>
-          ) : (
-            <>
-              <List>
+          {/* List với thanh cuộn - Luôn chiếm hết chiều cao */}
+          <Box sx={{ 
+            flex: 1, 
+            overflowY: 'auto', 
+            overflowX: 'hidden',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'rgba(0,0,0,0.1)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: 'rgba(0,0,0,0.3)',
+              borderRadius: '4px',
+              '&:hover': {
+                background: 'rgba(0,0,0,0.5)',
+              },
+            },
+          }}>
+            {transactions.length === 0 && !loading && !error ? (
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 4, 
+                flex: 1, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'center',
+                minHeight: '100%'
+              }}>
+                <Inbox sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Chưa có giao dịch nào
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Lịch sử giao dịch sẽ hiển thị ở đây khi bạn thực hiện nạp tiền, rút tiền hoặc thanh toán.
+                </Typography>
+              </Box>
+            ) : (
+              <List sx={{ flex: 1 }}>
                 {transactions.map((transaction, index) => {
                   const TransactionIcon = getTransactionIcon(transaction.transactionType);
                   const isPositive = transaction.transactionType === 'Deposit' || transaction.transactionType === 'Refund';
@@ -257,20 +287,20 @@ const TransactionHistory = () => {
                   );
                 })}
               </List>
+            )}
+          </Box>
 
-              {hasMore && (
-                <Box sx={{ textAlign: 'center' }}>
-                  <Button 
-                    variant="outlined"
-                    onClick={() => fetchTransactions()}
-                    disabled={loading}
-                    startIcon={loading ? <CircularProgress size={16} /> : null}
-                  >
-                    {loading ? 'Đang tải...' : 'Tải thêm'}
-                  </Button>
-                </Box>
-              )}
-            </>
+          {hasMore && transactions.length > 0 && (
+            <Box sx={{ textAlign: 'center', flexShrink: 0, pt: 1 }}>
+              <Button 
+                variant="outlined"
+                onClick={() => fetchTransactions()}
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={16} /> : null}
+              >
+                {loading ? 'Đang tải...' : 'Tải thêm'}
+              </Button>
+            </Box>
           )}
         </Stack>
       </CardContent>
