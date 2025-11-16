@@ -551,6 +551,9 @@ const WishlistPage = () => {
                             variant="h6" 
                             sx={{ 
                               fontWeight: 600,
+                              lineHeight: 1.4,
+                              pt: 0.3,
+                              pb: 0.3,
                               mb: 0.5,
                               color: theme.palette.mode === 'dark' ? '#ffffff' : '#1a1a1a',
                               display: '-webkit-box',
