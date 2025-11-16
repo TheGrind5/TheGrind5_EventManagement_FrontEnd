@@ -69,11 +69,30 @@ const AdminWaitlistPage = () => {
 
   const fetchEvents = async () => {
     try {
+      console.log('🔄 [fetchEvents] Fetching events...');
       const response = await eventsAPI.getAll(1, 100);
-      const eventsData = response.data?.events || response.data || [];
+      console.log('📊 [fetchEvents] API response:', response);
+      
+      // Handle different response formats và đảm bảo luôn là array
+      let eventsData = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          eventsData = response.data;
+        } else if (response.data.events && Array.isArray(response.data.events)) {
+          eventsData = response.data.events;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          eventsData = response.data.data;
+        }
+      } else if (Array.isArray(response)) {
+        eventsData = response;
+      }
+      
+      console.log(`✅ [fetchEvents] Parsed ${eventsData.length} events`);
       setEvents(eventsData);
     } catch (err) {
-      console.error('Error fetching events:', err);
+      console.error('❌ [fetchEvents] Error:', err);
+      // Đảm bảo events là array rỗng nếu lỗi
+      setEvents([]);
     }
   };
 
@@ -81,13 +100,34 @@ const AdminWaitlistPage = () => {
     if (!selectedEventId) return;
 
     try {
+      console.log(`🔄 [fetchWaitlists] Fetching waitlists for eventId=${selectedEventId}...`);
       setLoading(true);
       setError(null);
       const response = await adminWaitlistAPI.getByEvent(parseInt(selectedEventId));
-      const data = response.data || response;
-      setWaitlists(data.waitlists || data || []);
+      console.log('📊 [fetchWaitlists] API response:', response);
+      
+      // Handle different response formats và đảm bảo luôn là array
+      let waitlistsData = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          waitlistsData = response.data;
+        } else if (response.data.waitlists && Array.isArray(response.data.waitlists)) {
+          waitlistsData = response.data.waitlists;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          waitlistsData = response.data.data;
+        }
+      } else if (Array.isArray(response)) {
+        waitlistsData = response;
+      }
+      
+      console.log(`✅ [fetchWaitlists] Parsed ${waitlistsData.length} waitlists`);
+      setWaitlists(waitlistsData);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi tải danh sách chờ');
+      console.error('❌ [fetchWaitlists] Error:', err);
+      const errorMsg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi tải danh sách chờ';
+      setError(errorMsg);
+      // Đảm bảo waitlists là array rỗng nếu lỗi
+      setWaitlists([]);
     } finally {
       setLoading(false);
     }
@@ -197,7 +237,7 @@ const AdminWaitlistPage = () => {
             <MenuItem value="">
               <em>Tất cả sự kiện</em>
             </MenuItem>
-            {events.map((event) => (
+            {Array.isArray(events) && events.map((event) => (
               <MenuItem key={event.eventId} value={event.eventId}>
                 {event.title}
               </MenuItem>

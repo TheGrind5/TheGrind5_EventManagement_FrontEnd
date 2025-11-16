@@ -312,24 +312,31 @@ const CreateOrderPage = () => {
             };
             
             // Gọi API tạo order
-            const response = await ordersAPI.create(orderData);
-            
-            // Debug: Log toàn bộ response để xem cấu trúc
-            console.log('Full API response:', response);
-            console.log('Response data:', response.data);
-            
-            // Hiển thị thành công
-            setOrderSuccess(true);
+            console.log('📦 Creating order with data:', orderData);
+            let response;
+            try {
+                response = await ordersAPI.create(orderData);
+                console.log('✅ Order created successfully, full API response:', response);
+                console.log('Response data:', response.data);
+            } catch (error) {
+                console.error('❌ Error creating order:', error);
+                console.error('Error response:', error.response);
+                console.error('Error message:', error.message);
+                setError(error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.');
+                return;
+            }
             
             // 🔧 FIX: Handle different response structures (PascalCase and camelCase)
-            // Backend trả về: { message: "...", order: { OrderId: 123, ... } }
-            // apiClient normalize: response.data = { message: "...", order: { OrderId/orderId: 123 } }
-            let orderId;
-            const order = response.data?.order || response.order || response.data;
+            // Backend trả về: { message: "...", order: { OrderId: 123, TotalAmount: 0, Status: "Paid", ... } }
+            // apiClient normalize: response.data = { message: "...", order: { OrderId/orderId: 123, TotalAmount/totalAmount: 0, Status/status: "Paid" } }
+            const responseData = response.data || response;
+            let orderResponse = responseData?.order || responseData?.Order || response.order || response.Order || responseData;
             
-            if (order) {
+            // Extract orderId
+            let orderId;
+            if (orderResponse) {
                 // Check both PascalCase and camelCase
-                orderId = order.OrderId || order.orderId || order.id || order.Id;
+                orderId = orderResponse.OrderId || orderResponse.orderId || orderResponse.id || orderResponse.Id;
             }
             
             if (!orderId) {
@@ -341,30 +348,124 @@ const CreateOrderPage = () => {
                 return;
             }
             
-            console.log('Extracted orderId:', orderId);
+            // 🎫 FIX: Reload order từ API để đảm bảo có status mới nhất (sau khi backend xử lý vé free)
+            // Điều này đảm bảo nếu backend đã set status = "Paid" cho vé free, frontend sẽ nhận được status mới nhất
+            try {
+                console.log('🔄 Reloading order to get latest status...');
+                const reloadedOrder = await ordersAPI.getById(orderId);
+                const reloadedOrderData = reloadedOrder?.data || reloadedOrder;
+                if (reloadedOrderData) {
+                    console.log('✅ Reloaded order data:', reloadedOrderData);
+                    // Ưu tiên dùng order data từ reload (có status mới nhất)
+                    orderResponse = reloadedOrderData;
+                }
+            } catch (reloadError) {
+                console.warn('⚠️ Could not reload order, using original response:', reloadError);
+                // Nếu reload fail, vẫn dùng orderResponse từ create response
+            }
             
+            // 🎫 FIX: Kiểm tra totalAmount và status từ order object (sau khi áp voucher)
+            // Backend trả về: { message: "...", order: CreateOrderResponseDTO { OrderId, TotalAmount, Status, ... } }
+            // apiClient normalize: response.data = { message: "...", order: { OrderId, TotalAmount, Status, ... } }
             
-            // 🔧 FIX: Sử dụng React Router thay vì window.location để preserve state
-            setTimeout(() => {
+            // Extract totalAmount từ nhiều nguồn (fallback chain)
+            const totalAmount = orderResponse?.TotalAmount ?? 
+                               orderResponse?.totalAmount ?? 
+                               orderResponse?.Amount ?? 
+                               orderResponse?.amount ?? 
+                               responseData?.TotalAmount ?? 
+                               responseData?.totalAmount ?? 
+                               responseData?.Amount ?? 
+                               responseData?.amount ?? 0;
+            
+            // Extract orderStatus từ nhiều nguồn (fallback chain)
+            const orderStatus = orderResponse?.Status ?? 
+                               orderResponse?.status ?? 
+                               responseData?.Status ?? 
+                               responseData?.status ?? 
+                               'Pending';
+            
+            // Check giá vé gốc (trước voucher)
                 const selectedTicketForNav = ticketTypes.find(tt => tt.ticketTypeId == selectedTicketType);
-                const orderDataForNav = response.data?.order || response.order || response.data;
+            const ticketPrice = selectedTicketForNav?.price ?? selectedTicketForNav?.Price ?? 0;
+            
+            console.log('🎫 Payment check (DETAILED):', {
+                orderId,
+                totalAmount,
+                orderStatus,
+                ticketPrice,
+                orderResponse: orderResponse,
+                responseData: responseData,
+                fullResponse: response,
+                'orderResponse?.TotalAmount': orderResponse?.TotalAmount,
+                'orderResponse?.totalAmount': orderResponse?.totalAmount,
+                'orderResponse?.Status': orderResponse?.Status,
+                'orderResponse?.status': orderResponse?.status
+            });
+            
+            // Nếu totalAmount = 0 HOẶC order status = "Paid" HOẶC vé free (price = 0), bỏ qua payment
+            const isFreeTicket = ticketPrice === 0 || selectedTicketForNav?.isFree === true;
+            const isFreeAfterVoucher = totalAmount === 0;
+            const isAlreadyPaid = orderStatus === 'Paid';
+            
+            const isFreeOrPaid = isFreeTicket || isFreeAfterVoucher || isAlreadyPaid;
+            
+            console.log('🎫 Final decision:', {
+                isFreeOrPaid,
+                isFreeTicket,
+                isFreeAfterVoucher,
+                isAlreadyPaid,
+                totalAmount,
+                orderStatus,
+                ticketPrice,
+                willSkipPayment: isFreeOrPaid
+            });
+            
+            // 🔧 FIX: Redirect NGAY LẬP TỨC cho vé free, không cần setOrderSuccess (tránh delay)
+            if (isFreeOrPaid) {
+                // Bỏ qua bước thanh toán, đi thẳng đến order confirmation NGAY
+                console.log('✅ FREE/PAID TICKET - Skipping payment, redirecting IMMEDIATELY to order confirmation');
                 
-                if (selectedTicketForNav && (selectedTicketForNav.isFree || selectedTicketForNav.price === 0)) {
-                    navigate(`/order-confirmation/${orderId}`, {
-                        state: {
-                            order: orderDataForNav,
-                            fromOrderCreation: true
-                        }
-                    });
-                } else {
+                // 🎫 OPTIMIZE: Đợi một chút để backend tạo tickets xong (vé free được tạo ngay sau khi commit)
+                // Backend tạo tickets đồng bộ trong CreateOrderAsync, nên chỉ cần đợi ngắn
+                await new Promise(resolve => setTimeout(resolve, 600)); // Đợi 600ms để backend tạo tickets
+                
+                // Fetch tickets ngay để đảm bảo có vé trước khi redirect
+                try {
+                    console.log('🎫 Fetching tickets immediately for free ticket...');
+                    const ticketsData = await ticketsAPI.getTicketsByOrder(orderId);
+                    const ticketsList = ticketsData?.tickets || ticketsData?.data || ticketsData || [];
+                    console.log('🎫 Tickets fetched for free ticket:', ticketsList.length, 'tickets');
+                } catch (ticketError) {
+                    console.warn('⚠️ Could not fetch tickets immediately, will fetch on order-confirmation page:', ticketError);
+                    // Không fail, sẽ fetch lại ở OrderConfirmationPage
+                }
+                
+                // Redirect đến order confirmation với tickets đã sẵn sàng
+                navigate(`/order-confirmation/${orderId}`, {
+                    state: {
+                        order: orderResponse,
+                        fromOrderCreation: true,
+                        isFreeTicket: true
+                    },
+                    replace: true // Replace history để không thể back về trang tạo order
+                });
+                return; // Return ngay để không chạy code phía dưới
+            }
+            
+            // Chỉ set success và delay cho vé cần thanh toán
+            setOrderSuccess(true);
+            
+            // Cần thanh toán, đi đến payment page (có delay 2s để user thấy success message)
+            console.log('💳 Payment required, redirecting to payment page');
+            setTimeout(() => {
                     navigate(`/payment/${orderId}`, {
                         state: {
-                            order: orderDataForNav,
+                        order: orderResponse,
                             fromOrderCreation: true,
                             orderData: orderData
                         }
                     });
-                }
             }, 2000);
             
         } catch (error) {

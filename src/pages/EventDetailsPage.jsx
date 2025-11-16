@@ -385,6 +385,23 @@ const EventDetailsPage = () => {
     ) || ticketTypes[0];
   };
 
+  // Helper function để tính tổng số vé còn lại của sự kiện
+  const getTotalRemainingTickets = () => {
+    if (!ticketTypes || ticketTypes.length === 0) return 0;
+    
+    const now = new Date();
+    return ticketTypes
+      .filter(ticket => 
+        ticket.status === 'Active' &&
+        (!ticket.saleStart || new Date(ticket.saleStart) <= now) &&
+        (!ticket.saleEnd || new Date(ticket.saleEnd) >= now)
+      )
+      .reduce((total, ticket) => {
+        const availableQty = ticket.availableQuantity || 0;
+        return total + availableQty;
+      }, 0);
+  };
+
   // Function để toggle event wishlist
   const handleToggleEventWishlist = async () => {
     if (!user) {
@@ -681,6 +698,36 @@ const EventDetailsPage = () => {
                       {getEventPriceSummary() || 'Miễn phí'}
                     </Typography>
                   </Stack>
+                  
+                  {/* Hiển thị tổng số vé còn lại */}
+                  {ticketTypes && ticketTypes.length > 0 && (
+                    <Stack 
+                      direction="row" 
+                      spacing={1} 
+                      alignItems="center"
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        background: 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${getTotalRemainingTickets() > 0 ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)'}`
+                      }}
+                    >
+                      <ConfirmationNumber sx={{ color: getTotalRemainingTickets() > 0 ? '#4caf50' : '#f44336', fontSize: '1.3rem' }} />
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+                        Số vé còn lại: 
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 700,
+                          color: getTotalRemainingTickets() > 0 ? '#4caf50' : '#f44336',
+                          fontSize: '1.15rem'
+                        }}
+                      >
+                        {getTotalRemainingTickets()} vé
+                      </Typography>
+                    </Stack>
+                  )}
                   <Stack direction="row" spacing={1.5}>
                     <Button
                       component={event.status === 'Closed' ? 'div' : Link}
