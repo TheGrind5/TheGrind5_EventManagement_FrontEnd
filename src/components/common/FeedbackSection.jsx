@@ -236,7 +236,8 @@ const FeedbackSection = ({ eventId }) => {
 
   const handleToggleReaction = async (commentId, reactionType) => {
     if (!user) {
-      alert('Vui lòng đăng nhập để like/dislike.');
+      // Thay alert bằng thông báo đẹp hơn
+      setError('Vui lòng đăng nhập để thực hiện chức năng này.');
       return;
     }
 
@@ -247,6 +248,7 @@ const FeedbackSection = ({ eventId }) => {
       }
     } catch (err) {
       console.error('Error toggling reaction:', err);
+      setError(err.message || 'Không thể thực hiện thao tác. Vui lòng thử lại sau.');
     }
   };
 
@@ -348,9 +350,6 @@ const FeedbackSection = ({ eventId }) => {
                       >
                         <ThumbUp fontSize="small" />
                       </IconButton>
-                      <Typography variant="caption" color="text.secondary">
-                        Hay
-                      </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {comment.likeCount || 0}
                       </Typography>
@@ -541,7 +540,7 @@ const FeedbackSection = ({ eventId }) => {
 
                   {userHasCommented && (
                     <Alert severity="info">
-                      Bạn đã bình luận cho sự kiện này.
+                      Mỗi sự kiện chỉ được comment 1 lần
                     </Alert>
                   )}
 
