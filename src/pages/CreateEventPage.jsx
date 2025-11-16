@@ -111,6 +111,102 @@ const CreateEventPage = () => {
       organizerLogo: ''
     };
   }
+  
+  // QUAN TRỌNG: Helper function để parse và load đầy đủ step1Data từ backend response
+  function parseStep1DataFromBackend(eventData) {
+    console.log('=== parseStep1DataFromBackend ===');
+    console.log('Raw eventData:', eventData);
+    
+    // Parse eventDetails và organizerInfo
+    let eventDetails = {};
+    let organizerInfo = {};
+    
+    try {
+      if (typeof eventData.eventDetails === 'string') {
+        eventDetails = JSON.parse(eventData.eventDetails) || {};
+      } else {
+        eventDetails = eventData.eventDetails || {};
+      }
+    } catch (e) {
+      console.warn('Error parsing eventDetails:', e);
+      eventDetails = {};
+    }
+    
+    try {
+      if (typeof eventData.organizerInfo === 'string') {
+        organizerInfo = JSON.parse(eventData.organizerInfo) || {};
+      } else {
+        organizerInfo = eventData.organizerInfo || {};
+      }
+    } catch (e) {
+      console.warn('Error parsing organizerInfo:', e);
+      organizerInfo = {};
+    }
+    
+    // Lấy ảnh từ nhiều nguồn
+    let eventImage = eventData.eventImage || eventDetails.eventImage || '';
+    let backgroundImage = eventData.backgroundImage || eventDetails.backgroundImage || '';
+    let organizerLogo = eventData.organizerLogo || organizerInfo.organizerLogo || '';
+    
+    // Nếu có images array trong eventDetails, lấy từ đó
+    if (!eventImage && eventDetails.images && Array.isArray(eventDetails.images) && eventDetails.images.length > 0) {
+      eventImage = eventDetails.images[0] || '';
+    }
+    if (!backgroundImage && eventDetails.images && Array.isArray(eventDetails.images) && eventDetails.images.length > 1) {
+      backgroundImage = eventDetails.images[1] || '';
+    }
+    
+    // QUAN TRỌNG: Lấy campus từ eventData.campus (backend trả về Campus.Name)
+    // Backend trả về campus name trong MapToEventDetailDto: campus = eventData.Campus?.Name ?? null
+    const campus = eventData.campus || eventData.Campus || eventDetails.campus || '';
+    
+    // QUAN TRỌNG: Lấy organizerLogo từ nhiều nguồn
+    // Ưu tiên: eventData.organizerLogo > organizerInfo.organizerLogo > organizerInfo.OrganizerLogo
+    const finalOrganizerLogo = eventData.organizerLogo || organizerInfo.organizerLogo || organizerInfo.OrganizerLogo || '';
+    
+    // Tạo step1Data với TẤT CẢ các field
+    const step1Data = {
+      title: eventData.title || '',
+      eventIntroduction: eventData.description || eventData.eventIntroduction || '',
+      category: eventData.category || '',
+      eventMode: eventData.eventMode || 'Offline',
+      // QUAN TRỌNG: Lấy campus từ eventData.campus (backend trả về Campus.Name)
+      campus: campus,
+      // QUAN TRỌNG: Lấy địa chỉ từ eventDetails (backend lưu ở đây)
+      venueName: eventDetails.venueName || eventDetails.VenueName || '',
+      province: eventDetails.province || eventDetails.Province || '',
+      district: eventDetails.district || eventDetails.District || '',
+      ward: eventDetails.ward || eventDetails.Ward || '',
+      streetAddress: eventDetails.streetAddress || eventDetails.StreetAddress || '',
+      location: eventData.location || '',
+      // QUAN TRỌNG: Lấy từ organizerInfo riêng biệt
+      organizerName: organizerInfo.organizerName || organizerInfo.OrganizerName || '',
+      organizerInfo: organizerInfo.organizerInfo || organizerInfo.OrganizerInfo || '',
+      // QUAN TRỌNG: Lấy ảnh từ nhiều nguồn
+      eventImage: eventImage,
+      backgroundImage: backgroundImage,
+      // QUAN TRỌNG: Lấy organizerLogo từ nhiều nguồn
+      organizerLogo: finalOrganizerLogo
+    };
+    
+    console.log('Parsed step1Data:', step1Data);
+    console.log('EventDetails:', eventDetails);
+    console.log('OrganizerInfo:', organizerInfo);
+    console.log('Campus sources:', {
+      eventDataCampus: eventData.campus,
+      eventDataCampusObject: eventData.Campus,
+      eventDetailsCampus: eventDetails.campus,
+      finalCampus: campus
+    });
+    console.log('OrganizerLogo sources:', {
+      eventDataOrganizerLogo: eventData.organizerLogo,
+      organizerInfoOrganizerLogo: organizerInfo.organizerLogo,
+      organizerInfoOrganizerLogoPascal: organizerInfo.OrganizerLogo,
+      finalOrganizerLogo: finalOrganizerLogo
+    });
+    
+    return step1Data;
+  }
 
   const [step2Data, setStep2Data] = useState(() => {
     if (isEditMode) {
@@ -523,61 +619,111 @@ const CreateEventPage = () => {
       const response = await eventsAPI.getById(parseInt(editEventId));
       const eventData = response.data;
       
-      console.log('Loading event data for edit:', eventData);
+      console.log('=== Loading event data for edit ===');
+      console.log('Raw eventData from API:', eventData);
       
-      // Load step 1 data
-      const eventDetails = eventData.eventDetails || {};
+      // Parse eventDetails và organizerInfo nếu là JSON string
+      let eventDetails = {};
+      let organizerInfo = {};
       
-      // QUAN TRỌNG: Lấy organizerInfo từ trường riêng biệt organizerInfo, không phải từ eventDetails
-      const organizerInfo = eventData.organizerInfo || {};
+      try {
+        if (typeof eventData.eventDetails === 'string') {
+          eventDetails = JSON.parse(eventData.eventDetails) || {};
+        } else {
+          eventDetails = eventData.eventDetails || {};
+        }
+      } catch (e) {
+        console.warn('Error parsing eventDetails:', e);
+        eventDetails = {};
+      }
       
-      // Lấy eventImage và backgroundImage từ nhiều nguồn (ưu tiên eventImage trực tiếp, sau đó eventDetails)
-      const eventImage = eventData.eventImage || eventDetails.eventImage || '';
-      const backgroundImage = eventData.backgroundImage || eventDetails.backgroundImage || '';
+      try {
+        if (typeof eventData.organizerInfo === 'string') {
+          organizerInfo = JSON.parse(eventData.organizerInfo) || {};
+        } else {
+          organizerInfo = eventData.organizerInfo || {};
+        }
+      } catch (e) {
+        console.warn('Error parsing organizerInfo:', e);
+        organizerInfo = {};
+      }
       
-      console.log('Loading event data for edit:', { 
-        eventData,
+      // Lấy eventImage và backgroundImage từ nhiều nguồn
+      // Ưu tiên: eventData.eventImage/backgroundImage > eventDetails.eventImage/backgroundImage
+      // Nếu có trong eventDetails.images array, lấy từ đó
+      let eventImage = eventData.eventImage || eventDetails.eventImage || '';
+      let backgroundImage = eventData.backgroundImage || eventDetails.backgroundImage || '';
+      
+      // Nếu có images array trong eventDetails, lấy từ đó
+      if (!eventImage && eventDetails.images && Array.isArray(eventDetails.images) && eventDetails.images.length > 0) {
+        eventImage = eventDetails.images[0] || '';
+      }
+      if (!backgroundImage && eventDetails.images && Array.isArray(eventDetails.images) && eventDetails.images.length > 1) {
+        backgroundImage = eventDetails.images[1] || '';
+      }
+      
+      console.log('Parsed data:', {
         eventDetails,
         organizerInfo,
-        eventDataImage: eventData.eventImage, 
-        eventDetailsImage: eventDetails.eventImage,
-        finalEventImage: eventImage,
-        eventDataBg: eventData.backgroundImage,
-        eventDetailsBg: eventDetails.backgroundImage,
-        finalBackgroundImage: backgroundImage
+        eventImage,
+        backgroundImage,
+        eventDataEventImage: eventData.eventImage,
+        eventDataBackgroundImage: eventData.backgroundImage,
+        eventDetailsEventImage: eventDetails.eventImage,
+        eventDetailsBackgroundImage: eventDetails.backgroundImage,
+        eventDetailsImages: eventDetails.images
       });
       
-      setStep1Data({
-        title: eventData.title || '',
-        eventIntroduction: eventData.description || '',
-        category: eventData.category || '',
-        eventMode: eventData.eventMode || 'Offline',
-        campus: eventData.campus || eventDetails.province || '',
-        venueName: eventDetails.venueName || '',
-        province: eventDetails.province || '',
-        district: eventDetails.district || '',
-        ward: eventDetails.ward || '',
-        streetAddress: eventDetails.streetAddress || '',
-        location: eventData.location || '',
-        // QUAN TRỌNG: Lấy từ organizerInfo riêng biệt, không phải từ eventDetails
-        organizerName: organizerInfo.organizerName || '',
-        organizerInfo: organizerInfo.organizerInfo || '',
-        eventImage: eventImage,
-        backgroundImage: backgroundImage,
-        organizerLogo: organizerInfo.organizerLogo || ''
-      });
+      // QUAN TRỌNG: Sử dụng helper function để parse đầy đủ tất cả field
+      const loadedStep1Data = parseStep1DataFromBackend(eventData);
       
-      // Load step 2 data
+      console.log('✅ Loaded step1Data with ALL fields:', loadedStep1Data);
+      
+      setStep1Data(loadedStep1Data);
+      
+      // QUAN TRỌNG: Load step 2 data - ticket types
+      // Cần fetch ticket types riêng vì có thể không có trong eventData
+      let ticketTypes = [];
+      try {
+        const { ticketsAPI } = await import('../services/apiClient');
+        const ticketTypesResponse = await ticketsAPI.getTicketTypesByEvent(parseInt(editEventId));
+        console.log('Ticket types response:', ticketTypesResponse);
+        ticketTypes = ticketTypesResponse.data || [];
+        console.log('✅ Loaded ticket types:', ticketTypes);
+      } catch (ticketErr) {
+        console.warn('Error loading ticket types, using from eventData:', ticketErr);
+        ticketTypes = eventData.ticketTypes || [];
+      }
+      
       setStep2Data({
         startTime: eventData.startTime || '',
         endTime: eventData.endTime || '',
-        ticketTypes: eventData.ticketTypes || []
+        ticketTypes: ticketTypes
       });
       
-      // Load step 3 data - venue layout
+      // QUAN TRỌNG: Load step 3 data - venue layout
+      // Parse venueLayout nếu là JSON string
+      let venueLayout = eventData.venueLayout;
+      if (typeof venueLayout === 'string' && venueLayout.trim()) {
+        try {
+          venueLayout = JSON.parse(venueLayout);
+          console.log('✅ Parsed venueLayout from JSON string');
+        } catch (e) {
+          console.warn('Error parsing venueLayout JSON string:', e);
+          venueLayout = null;
+        }
+      }
+      
+      console.log('VenueLayout loaded:', {
+        raw: eventData.venueLayout,
+        parsed: venueLayout,
+        hasVirtualStage: venueLayout?.hasVirtualStage || false,
+        areasCount: venueLayout?.areas?.length || 0
+      });
+      
       setStep3Data({
-        hasVirtualStage: eventData.venueLayout ? true : false,
-        layout: eventData.venueLayout || null
+        hasVirtualStage: venueLayout?.hasVirtualStage || false,
+        layout: venueLayout || null
       });
       
       // Load step 4 data - products
@@ -723,10 +869,14 @@ const CreateEventPage = () => {
           locationString = addressParts.join(', ');
         }
         
+        // QUAN TRỌNG: Gửi TẤT CẢ các field, kể cả empty string để backend có thể cập nhật
+        // Backend sẽ merge với data cũ nếu field là null/undefined, nhưng sẽ cập nhật nếu có giá trị (kể cả empty string)
         const eventData = {
           title: step1Data.title || '',
           description: step1Data.eventIntroduction || '',
           eventMode: step1Data.eventMode || 'Offline',
+          // QUAN TRỌNG: Gửi tất cả các field địa chỉ
+          // Sử dụng || '' để đảm bảo luôn gửi string (kể cả empty), không phải null/undefined
           venueName: step1Data.venueName || '',
           province: step1Data.province || '',
           district: step1Data.district || '',
@@ -735,6 +885,7 @@ const CreateEventPage = () => {
           eventType: 'Public',
           category: step1Data.category || '',
           location: locationString,
+          // QUAN TRỌNG: Gửi ảnh
           eventImage: step1Data.eventImage || '',
           backgroundImage: step1Data.backgroundImage || '',
           eventIntroduction: step1Data.eventIntroduction || '',
@@ -744,10 +895,32 @@ const CreateEventPage = () => {
           termsAndConditions: '', // Có thể thêm sau
           childrenTerms: '', // Có thể thêm sau
           vatTerms: '', // Có thể thêm sau
+          // QUAN TRỌNG: Gửi organizer info
           organizerLogo: step1Data.organizerLogo || '',
           organizerName: step1Data.organizerName || '',
-          organizerInfo: step1Data.organizerInfo || ''
+          organizerInfo: step1Data.organizerInfo || '',
+          // QUAN TRỌNG: Gửi campus
+          campus: step1Data.campus || ''
         };
+        
+        console.log('=== Event Data to Send (Step 1) ===');
+        console.log('Title:', eventData.title);
+        console.log('Description:', eventData.description);
+        console.log('EventMode:', eventData.eventMode);
+        console.log('VenueName:', eventData.venueName);
+        console.log('Province:', eventData.province);
+        console.log('District:', eventData.district);
+        console.log('Ward:', eventData.ward);
+        console.log('StreetAddress:', eventData.streetAddress);
+        console.log('Category:', eventData.category);
+        console.log('Location:', eventData.location);
+        console.log('EventImage:', eventData.eventImage);
+        console.log('BackgroundImage:', eventData.backgroundImage);
+        console.log('OrganizerLogo:', eventData.organizerLogo);
+        console.log('OrganizerName:', eventData.organizerName);
+        console.log('OrganizerInfo:', eventData.organizerInfo);
+        console.log('Campus:', eventData.campus);
+        console.log('Full step1Data:', step1Data);
         
         console.log('Sending event data:', eventData);
         
@@ -789,38 +962,13 @@ const CreateEventPage = () => {
           }
           
           if (updatedData) {
-            // Update step1Data with the latest data from backend
-            // QUAN TRỌNG: Ưu tiên lấy từ eventImage/backgroundImage trực tiếp, sau đó mới đến eventDetails
-            const updatedEventImage = updatedData.eventImage || updatedEventDetails.eventImage || '';
-            const updatedBackgroundImage = updatedData.backgroundImage || updatedEventDetails.backgroundImage || '';
-            const updatedOrganizerLogo = (updatedEventDetails.organizerLogo || '').replace('/uploads/', '/assets/images/');
+            // QUAN TRỌNG: Sử dụng helper function để parse đầy đủ tất cả field
+            const parsedStep1Data = parseStep1DataFromBackend(updatedData);
             
-            console.log('Updating step1Data with backend data:', {
-              eventImage: updatedEventImage,
-              backgroundImage: updatedBackgroundImage,
-              organizerLogo: updatedOrganizerLogo,
-              updatedAt: updatedData.updatedAt
-            });
+            console.log('✅ Updating step1Data with ALL fields from backend:', parsedStep1Data);
             
-            setStep1Data(prev => ({
-              ...prev,
-              eventImage: updatedEventImage,
-              backgroundImage: updatedBackgroundImage,
-              // Also update other fields to ensure sync
-              title: updatedData.title || prev.title,
-              eventIntroduction: updatedData.description || prev.eventIntroduction,
-              category: updatedData.category || prev.category,
-              eventMode: updatedData.eventMode || prev.eventMode,
-              location: updatedData.location || prev.location,
-              venueName: updatedEventDetails.venueName || prev.venueName,
-              province: updatedEventDetails.province || prev.province,
-              district: updatedEventDetails.district || prev.district,
-              ward: updatedEventDetails.ward || prev.ward,
-              streetAddress: updatedEventDetails.streetAddress || prev.streetAddress,
-              organizerName: updatedEventDetails.organizerName || prev.organizerName,
-              organizerInfo: updatedEventDetails.organizerInfo || prev.organizerInfo,
-              organizerLogo: updatedOrganizerLogo || prev.organizerLogo
-            }));
+            // QUAN TRỌNG: Replace toàn bộ step1Data với data từ backend để đảm bảo sync
+            setStep1Data(parsedStep1Data);
           }
         } else {
           // QUAN TRỌNG: KHÔNG tạo event ở bước 1 - chỉ lưu vào localStorage
@@ -1088,9 +1236,13 @@ const CreateEventPage = () => {
         } else {
           console.log('=== Creating Complete Event ===');
         }
+        console.log('=== Complete Event Request Data ===');
         console.log('Step 1 Data:', step1Data);
+        console.log('Step 1 Campus:', step1Data.campus);
         console.log('Step 2 Data:', step2Data);
         console.log('Step 3 Data:', step3Data);
+        console.log('Step 3 hasVirtualStage:', step3Data?.hasVirtualStage);
+        console.log('Step 3 layout:', step3Data?.layout);
         console.log('Step 4 Data (Products):', step4Data);
         console.log('Step 5 Data (Settings):', step5Data);
         console.log('Step 6 Data (Payment):', step6Data);
@@ -1154,9 +1306,15 @@ const CreateEventPage = () => {
           status: ticket.status || 'Active'
         }));
 
-        // Chuẩn bị venue layout từ step3Data
+        // QUAN TRỌNG: Chuẩn bị venue layout từ step3Data
         let venueLayout = null;
+        console.log('=== Preparing VenueLayout ===');
+        console.log('step3Data:', step3Data);
+        console.log('step3Data.hasVirtualStage:', step3Data?.hasVirtualStage);
+        console.log('step3Data.layout:', step3Data?.layout);
+        
         if (step3Data && step3Data.hasVirtualStage && step3Data.layout) {
+          console.log('✅ VenueLayout will be created');
           // PATCH: TỰ ĐỘNG BỔ SUNG LINKEDTICKET nếu cần
           const ticketTypesMap = new Map((step2Data.ticketTypes || []).map(ticket => [ticket.ticketTypeId || ticket.id || ticket.idAuto, ticket]));
           venueLayout = {
@@ -1193,6 +1351,16 @@ const CreateEventPage = () => {
               }
             })
           };
+          console.log('✅ VenueLayout created:', venueLayout);
+          console.log('HasVirtualStage:', venueLayout.hasVirtualStage);
+          console.log('Areas count:', venueLayout.areas?.length);
+        } else {
+          console.log('❌ VenueLayout will NOT be created');
+          console.log('Reason:', {
+            hasStep3Data: !!step3Data,
+            hasVirtualStage: step3Data?.hasVirtualStage,
+            hasLayout: !!step3Data?.layout
+          });
         }
 
         // Tạo complete event request
@@ -1226,7 +1394,7 @@ const CreateEventPage = () => {
           startTime: step2Data.startTime ? new Date(step2Data.startTime).toISOString() : new Date().toISOString(),
           endTime: step2Data.endTime ? new Date(step2Data.endTime).toISOString() : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           ticketTypes: ticketTypes,
-          // Step 3
+          // Step 3 - QUAN TRỌNG: Gửi venueLayout
           venueLayout: venueLayout,
           // Step 4 - Products (optional)
           products: step4Data?.products || [],
@@ -1249,6 +1417,14 @@ const CreateEventPage = () => {
           })(),
           taxInfo: step6Data.taxInfo || ''
         };
+        
+        // QUAN TRỌNG: Log complete request để debug
+        console.log('=== Complete Event Request ===');
+        console.log('Campus:', completeEventRequest.campus);
+        console.log('VenueLayout:', completeEventRequest.venueLayout);
+        console.log('VenueLayout type:', typeof completeEventRequest.venueLayout);
+        console.log('HasVirtualStage:', completeEventRequest.venueLayout?.hasVirtualStage);
+        console.log('Areas count:', completeEventRequest.venueLayout?.areas?.length);
         
         console.log('=== Complete Event Request ===');
         console.log('Complete Event Request:', completeEventRequest);
@@ -1568,8 +1744,118 @@ const CreateEventPage = () => {
     }
   };
 
-  const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+  const handleBack = async () => {
+    const newStep = activeStep - 1;
+    
+    // QUAN TRỌNG: Khi quay lại bước 1 trong edit mode, reload lại data từ backend
+    // để đảm bảo có ảnh và dữ liệu mới nhất
+    if (newStep === 0 && isEditMode && eventId) {
+      try {
+        console.log('=== Reloading event data when returning to step 1 ===');
+        console.log('EventId:', eventId);
+        const response = await eventsAPI.getById(eventId);
+        const eventData = response.data;
+        
+        console.log('Raw eventData from API:', eventData);
+        
+        // Parse eventDetails và organizerInfo nếu là JSON string
+        let eventDetails = {};
+        let organizerInfo = {};
+        
+        try {
+          if (typeof eventData.eventDetails === 'string') {
+            eventDetails = JSON.parse(eventData.eventDetails) || {};
+          } else {
+            eventDetails = eventData.eventDetails || {};
+          }
+        } catch (e) {
+          console.warn('Error parsing eventDetails:', e);
+          eventDetails = {};
+        }
+        
+        try {
+          if (typeof eventData.organizerInfo === 'string') {
+            organizerInfo = JSON.parse(eventData.organizerInfo) || {};
+          } else {
+            organizerInfo = eventData.organizerInfo || {};
+          }
+        } catch (e) {
+          console.warn('Error parsing organizerInfo:', e);
+          organizerInfo = {};
+        }
+        
+        // Lấy eventImage và backgroundImage từ nhiều nguồn
+        // Ưu tiên: eventData.eventImage/backgroundImage > eventDetails.eventImage/backgroundImage
+        // Nếu có trong eventDetails.images array, lấy từ đó
+        let eventImage = eventData.eventImage || eventDetails.eventImage || '';
+        let backgroundImage = eventData.backgroundImage || eventDetails.backgroundImage || '';
+        let organizerLogo = eventData.organizerLogo || organizerInfo.organizerLogo || '';
+        
+        // Nếu có images array trong eventDetails, lấy từ đó
+        if (!eventImage && eventDetails.images && Array.isArray(eventDetails.images) && eventDetails.images.length > 0) {
+          eventImage = eventDetails.images[0] || '';
+        }
+        if (!backgroundImage && eventDetails.images && Array.isArray(eventDetails.images) && eventDetails.images.length > 1) {
+          backgroundImage = eventDetails.images[1] || '';
+        }
+        
+        console.log('Parsed data:', {
+          eventDetails,
+          organizerInfo,
+          eventImage,
+          backgroundImage,
+          organizerLogo,
+          eventDataEventImage: eventData.eventImage,
+          eventDataBackgroundImage: eventData.backgroundImage,
+          eventDataOrganizerLogo: eventData.organizerLogo,
+          eventDetailsEventImage: eventDetails.eventImage,
+          eventDetailsBackgroundImage: eventDetails.backgroundImage,
+          organizerInfoOrganizerLogo: organizerInfo.organizerLogo,
+          eventDetailsImages: eventDetails.images
+        });
+        
+        // QUAN TRỌNG: Sử dụng helper function để parse đầy đủ tất cả field
+        const reloadedStep1Data = parseStep1DataFromBackend(eventData);
+        
+        console.log('=== Reloaded Step1Data with ALL fields ===');
+        console.log('Title:', reloadedStep1Data.title);
+        console.log('EventIntroduction:', reloadedStep1Data.eventIntroduction);
+        console.log('Category:', reloadedStep1Data.category);
+        console.log('EventMode:', reloadedStep1Data.eventMode);
+        console.log('Campus:', reloadedStep1Data.campus);
+        console.log('VenueName:', reloadedStep1Data.venueName);
+        console.log('Province:', reloadedStep1Data.province);
+        console.log('District:', reloadedStep1Data.district);
+        console.log('Ward:', reloadedStep1Data.ward);
+        console.log('StreetAddress:', reloadedStep1Data.streetAddress);
+        console.log('Location:', reloadedStep1Data.location);
+        console.log('OrganizerName:', reloadedStep1Data.organizerName);
+        console.log('OrganizerInfo:', reloadedStep1Data.organizerInfo);
+        console.log('EventImage:', reloadedStep1Data.eventImage);
+        console.log('BackgroundImage:', reloadedStep1Data.backgroundImage);
+        console.log('OrganizerLogo:', reloadedStep1Data.organizerLogo);
+        
+        // Force update bằng cách set state với object mới
+        setStep1Data(reloadedStep1Data);
+        
+        // Force re-render bằng cách update một lần nữa sau một chút để đảm bảo component re-render
+        setTimeout(() => {
+          setStep1Data(prev => ({ ...prev }));
+        }, 100);
+        
+        console.log('✅ Event data reloaded successfully');
+      } catch (reloadError) {
+        console.error('❌ Error reloading event data:', reloadError);
+        console.error('Error details:', {
+          message: reloadError.message,
+          stack: reloadError.stack,
+          response: reloadError.response?.data
+        });
+        // Vẫn cho phép quay lại bước 1, chỉ log lỗi
+      }
+    }
+    
+    setActiveStep(newStep);
   };
 
   const clearFormData = () => {
@@ -1802,6 +2088,8 @@ const CreateEventPage = () => {
           <EventInfoStep
             data={step1Data}
             onChange={setStep1Data}
+            eventId={eventId}
+            isEditMode={isEditMode}
           />
         );
       case 1:

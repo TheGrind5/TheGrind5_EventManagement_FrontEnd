@@ -18,7 +18,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
-import { ticketsAPI, eventsAPI } from '../../services/apiClient';
+import { ticketsAPI, eventsAPI, ordersAPI } from '../../services/apiClient';
 import { decodeText } from '../../utils/textDecoder';
 import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -132,73 +132,82 @@ const SalesChart = ({ hostEvents = [] }) => {
         return;
       }
 
-      // Fetch tickets for all host events
-      const allTickets = [];
+      // Tính tickets sold và revenue từ Orders có status = "Paid" - ĐÂY LÀ CÁCH TÍNH CHÍNH XÁC
+      // Tickets sold nên được tính từ Order.Quantity của các orders đã thanh toán
+      // Revenue nên được tính từ Order.Amount (đã trừ discount/voucher), không phải từ ticket price
       const ticketCountByDate = {};
-      let totalRevenue = 0;
       let totalTickets = 0;
+      let totalRevenue = 0;
+      
+      try {
+        // Fetch tất cả orders của host với status = "Paid" trong khoảng thời gian
+        let page = 1;
+        let hasMore = true;
+        let allPaidOrders = [];
 
-      for (const eventId of eventIds) {
-        try {
-          const ticketsResponse = await ticketsAPI.getTicketsByEvent(eventId);
-          const tickets = Array.isArray(ticketsResponse.data) ? ticketsResponse.data : [];
-          
-          console.log(`[SalesChart] Event ${eventId}: Found ${tickets.length} tickets`);
-          
-          tickets.forEach(ticket => {
-            // Filter by status first - handle both camelCase and PascalCase
-            const status = ticket.status || ticket.Status;
-            if (status !== 'Assigned' && status !== 'Used') {
-              return; // Skip tickets not sold
-            }
-
-            // Get ticket date - use issuedAt, fallback to order.createdAt, or skip if neither exists
-            let ticketDate = null;
-            
-            // Try issuedAt first (camelCase or PascalCase)
-            if (ticket.issuedAt) {
-              ticketDate = new Date(ticket.issuedAt);
-            } else if (ticket.IssuedAt) {
-              ticketDate = new Date(ticket.IssuedAt);
-            } 
-            // Fallback to Order.CreatedAt
-            else if (ticket.order?.createdAt) {
-              ticketDate = new Date(ticket.order.createdAt);
-            } else if (ticket.Order?.CreatedAt) {
-              ticketDate = new Date(ticket.Order.CreatedAt);
-            }
-            
-            // Skip if no valid date
-            if (!ticketDate || isNaN(ticketDate.getTime())) {
-              console.warn(`[SalesChart] Ticket ${ticket.ticketId || ticket.TicketId} has no valid date`, ticket);
-              return;
-            }
-
-            // Filter by date range (skip if isAllTime or if within range)
-            if (isAllTime || (ticketDate >= start && ticketDate <= end)) {
-              allTickets.push(ticket);
-              
-              // Group by date/week/month
-              const dateKey = getDateKey(ticketDate);
-              if (!ticketCountByDate[dateKey]) {
-                ticketCountByDate[dateKey] = { tickets: 0, revenue: 0 };
-              }
-              ticketCountByDate[dateKey].tickets += 1;
-              
-              // Get price - handle both camelCase and PascalCase
-              const price = ticket.ticketType?.price || ticket.TicketType?.Price || 0;
-              if (price > 0) {
-                ticketCountByDate[dateKey].revenue += price;
-                totalRevenue += price;
-              }
-              totalTickets += 1;
-            }
+        while (hasMore) {
+          const ordersResponse = await ordersAPI.getHostOrders({
+            page,
+            pageSize: 100,
+            status: 'Paid'
           });
-          
-          console.log(`[SalesChart] Event ${eventId}: Processed ${allTickets.length} tickets in range`);
-        } catch (err) {
-          console.error(`[SalesChart] Error fetching tickets for event ${eventId}:`, err);
+
+          const payload = ordersResponse?.data || {};
+          const ordersData = payload.Data || payload.data || [];
+          const total = payload.TotalCount ?? payload.totalCount ?? 0;
+
+          // Filter orders theo eventIds và date range
+          const filteredOrders = ordersData.filter(order => {
+            const orderEventId = order.eventId ?? order.EventId;
+            if (!eventIds.includes(orderEventId)) {
+              return false;
+            }
+
+            const orderDate = order.createdAt ? new Date(order.createdAt) : null;
+            if (!orderDate || isNaN(orderDate.getTime())) {
+              return false;
+            }
+
+            return isAllTime || (orderDate >= start && orderDate <= end);
+          });
+
+          allPaidOrders = allPaidOrders.concat(filteredOrders);
+
+          // Kiểm tra xem còn orders nào không
+          if (ordersData.length < 100 || allPaidOrders.length >= total) {
+            hasMore = false;
+          } else {
+            page++;
+          }
         }
+
+        // Group orders theo ngày và tính tickets sold + revenue
+        allPaidOrders.forEach(order => {
+          const orderDate = order.createdAt ? new Date(order.createdAt) : null;
+          if (!orderDate || isNaN(orderDate.getTime())) {
+            return;
+          }
+
+          const dateKey = getDateKey(orderDate);
+          if (!ticketCountByDate[dateKey]) {
+            ticketCountByDate[dateKey] = { tickets: 0, revenue: 0 };
+          }
+
+          const amount = order.amount ?? order.Amount ?? 0;
+          const quantity = order.quantity ?? order.Quantity ?? 0;
+          
+          ticketCountByDate[dateKey].tickets += quantity; // Đếm tickets sold từ quantity
+          ticketCountByDate[dateKey].revenue += amount;
+          
+          totalTickets += quantity;
+          totalRevenue += amount;
+        });
+
+        console.log(`[SalesChart] Total tickets sold: ${totalTickets} from ${allPaidOrders.length} paid orders`);
+        console.log(`[SalesChart] Total revenue: ${totalRevenue}`);
+      } catch (err) {
+        console.error('[SalesChart] Error fetching host orders for tickets and revenue calculation:', err);
+        // Nếu không lấy được orders, vẫn tiếp tục với dữ liệu rỗng
       }
 
       console.log(`[SalesChart] Total tickets found: ${totalTickets}, Total revenue: ${totalRevenue}`);
@@ -268,46 +277,57 @@ const SalesChart = ({ hostEvents = [] }) => {
     let totalTickets = 0;
     let totalRevenue = 0;
 
-    for (const eventId of eventIds) {
-      try {
-        const ticketsResponse = await ticketsAPI.getTicketsByEvent(eventId);
-        const tickets = Array.isArray(ticketsResponse.data) ? ticketsResponse.data : [];
-        
-        tickets.forEach(ticket => {
-          // Filter by status first - handle both camelCase and PascalCase
-          const status = ticket.status || ticket.Status;
-          if (status !== 'Assigned' && status !== 'Used') {
-            return;
-          }
+    // Tính tickets sold và revenue từ orders của previous period
+    try {
+      let page = 1;
+      let hasMore = true;
+      let allPaidOrders = [];
 
-          // Get ticket date - use issuedAt, fallback to order.createdAt
-          let ticketDate = null;
-          
-          if (ticket.issuedAt) {
-            ticketDate = new Date(ticket.issuedAt);
-          } else if (ticket.IssuedAt) {
-            ticketDate = new Date(ticket.IssuedAt);
-          } else if (ticket.order?.createdAt) {
-            ticketDate = new Date(ticket.order.createdAt);
-          } else if (ticket.Order?.CreatedAt) {
-            ticketDate = new Date(ticket.Order.CreatedAt);
-          }
-          
-          if (!ticketDate || isNaN(ticketDate.getTime())) {
-            return;
-          }
-
-          if (ticketDate >= start && ticketDate <= end) {
-            totalTickets += 1;
-            const price = ticket.ticketType?.price || ticket.TicketType?.Price || 0;
-            if (price > 0) {
-              totalRevenue += price;
-            }
-          }
+      while (hasMore) {
+        const ordersResponse = await ordersAPI.getHostOrders({
+          page,
+          pageSize: 100,
+          status: 'Paid'
         });
-      } catch (err) {
-        // Silently fail for previous period
+
+        const payload = ordersResponse?.data || {};
+        const ordersData = payload.Data || payload.data || [];
+        const total = payload.TotalCount ?? payload.totalCount ?? 0;
+
+        // Filter orders theo eventIds và date range của previous period
+        const filteredOrders = ordersData.filter(order => {
+          const orderEventId = order.eventId ?? order.EventId;
+          if (!eventIds.includes(orderEventId)) {
+            return false;
+          }
+
+          const orderDate = order.createdAt ? new Date(order.createdAt) : null;
+          if (!orderDate || isNaN(orderDate.getTime())) {
+            return false;
+          }
+
+          return orderDate >= start && orderDate <= end;
+        });
+
+        allPaidOrders = allPaidOrders.concat(filteredOrders);
+
+        if (ordersData.length < 100 || allPaidOrders.length >= total) {
+          hasMore = false;
+        } else {
+          page++;
+        }
       }
+
+      // Tính tổng tickets sold và revenue từ orders
+      allPaidOrders.forEach(order => {
+        const amount = order.amount ?? order.Amount ?? 0;
+        const quantity = order.quantity ?? order.Quantity ?? 0;
+        
+        totalTickets += quantity; // Đếm tickets sold từ quantity
+        totalRevenue += amount;
+      });
+    } catch (err) {
+      // Silently fail for previous period
     }
 
     return { totalTickets, totalRevenue };
@@ -461,6 +481,52 @@ const SalesChart = ({ hostEvents = [] }) => {
     }).format(amount);
   };
 
+  // Format currency for PDF (without currency symbol to avoid encoding issues)
+  const formatCurrencyForPDF = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount) + ' VND';
+  };
+
+  // Convert Vietnamese text with accents to non-accented text
+  // Example: "Thanh âm việt" -> "Thanh am viet"
+  const removeVietnameseAccents = (str) => {
+    if (!str) return str;
+    
+    // Map of Vietnamese characters to their non-accented equivalents
+    const vietnameseMap = {
+      'à': 'a', 'á': 'a', 'ạ': 'a', 'ả': 'a', 'ã': 'a',
+      'â': 'a', 'ầ': 'a', 'ấ': 'a', 'ậ': 'a', 'ẩ': 'a', 'ẫ': 'a',
+      'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ặ': 'a', 'ẳ': 'a', 'ẵ': 'a',
+      'è': 'e', 'é': 'e', 'ẹ': 'e', 'ẻ': 'e', 'ẽ': 'e',
+      'ê': 'e', 'ề': 'e', 'ế': 'e', 'ệ': 'e', 'ể': 'e', 'ễ': 'e',
+      'ì': 'i', 'í': 'i', 'ị': 'i', 'ỉ': 'i', 'ĩ': 'i',
+      'ò': 'o', 'ó': 'o', 'ọ': 'o', 'ỏ': 'o', 'õ': 'o',
+      'ô': 'o', 'ồ': 'o', 'ố': 'o', 'ộ': 'o', 'ổ': 'o', 'ỗ': 'o',
+      'ơ': 'o', 'ờ': 'o', 'ớ': 'o', 'ợ': 'o', 'ở': 'o', 'ỡ': 'o',
+      'ù': 'u', 'ú': 'u', 'ụ': 'u', 'ủ': 'u', 'ũ': 'u',
+      'ư': 'u', 'ừ': 'u', 'ứ': 'u', 'ự': 'u', 'ử': 'u', 'ữ': 'u',
+      'ỳ': 'y', 'ý': 'y', 'ỵ': 'y', 'ỷ': 'y', 'ỹ': 'y',
+      'đ': 'd',
+      'À': 'A', 'Á': 'A', 'Ạ': 'A', 'Ả': 'A', 'Ã': 'A',
+      'Â': 'A', 'Ầ': 'A', 'Ấ': 'A', 'Ậ': 'A', 'Ẩ': 'A', 'Ẫ': 'A',
+      'Ă': 'A', 'Ằ': 'A', 'Ắ': 'A', 'Ặ': 'A', 'Ẳ': 'A', 'Ẵ': 'A',
+      'È': 'E', 'É': 'E', 'Ẹ': 'E', 'Ẻ': 'E', 'Ẽ': 'E',
+      'Ê': 'E', 'Ề': 'E', 'Ế': 'E', 'Ệ': 'E', 'Ể': 'E', 'Ễ': 'E',
+      'Ì': 'I', 'Í': 'I', 'Ị': 'I', 'Ỉ': 'I', 'Ĩ': 'I',
+      'Ò': 'O', 'Ó': 'O', 'Ọ': 'O', 'Ỏ': 'O', 'Õ': 'O',
+      'Ô': 'O', 'Ồ': 'O', 'Ố': 'O', 'Ộ': 'O', 'Ổ': 'O', 'Ỗ': 'O',
+      'Ơ': 'O', 'Ờ': 'O', 'Ớ': 'O', 'Ợ': 'O', 'Ở': 'O', 'Ỡ': 'O',
+      'Ù': 'U', 'Ú': 'U', 'Ụ': 'U', 'Ủ': 'U', 'Ũ': 'U',
+      'Ư': 'U', 'Ừ': 'U', 'Ứ': 'U', 'Ự': 'U', 'Ử': 'U', 'Ữ': 'U',
+      'Ỳ': 'Y', 'Ý': 'Y', 'Ỵ': 'Y', 'Ỷ': 'Y', 'Ỹ': 'Y',
+      'Đ': 'D'
+    };
+    
+    return str.split('').map(char => vietnameseMap[char] || char).join('');
+  };
+
   // Export CSV function
   const handleExportCSV = () => {
     if (chartData.length === 0) {
@@ -512,13 +578,15 @@ const SalesChart = ({ hostEvents = [] }) => {
   // Export PDF function
   const handleExportPDF = async () => {
     if (chartData.length === 0) {
-      alert('Không có dữ liệu để export');
+      alert('No data to export');
       return;
     }
 
     try {
       const { start, end } = getDateRange();
       const eventLabel = getSelectedEventLabel();
+      // Convert Vietnamese event name to non-accented text for PDF compatibility
+      const eventLabelForPDF = removeVietnameseAccents(eventLabel);
       const dateRangeStr = `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`;
       const exportDate = format(new Date(), 'dd/MM/yyyy HH:mm:ss');
 
@@ -527,38 +595,56 @@ const SalesChart = ({ hostEvents = [] }) => {
       
       // Title
       doc.setFontSize(18);
-      doc.text('Báo cáo bán vé theo thời gian', 14, 15);
+      doc.text('Ticket Sales Report by Time', 14, 15);
       
       // Subtitle
       doc.setFontSize(12);
-      doc.text(`Sự kiện: ${eventLabel}`, 14, 22);
-      doc.text(`Khoảng thời gian: ${dateRangeStr}`, 14, 28);
-      doc.text(`Ngày xuất: ${exportDate}`, 14, 34);
+      doc.text(`Event: ${eventLabelForPDF}`, 14, 22);
+      doc.text(`Time Period: ${dateRangeStr}`, 14, 28);
+      doc.text(`Export Date: ${exportDate}`, 14, 34);
 
       // Summary section
       let yPos = 45;
       doc.setFontSize(14);
-      doc.text('Tổng quan', 14, yPos);
+      doc.text('Overview', 14, yPos);
       
       yPos += 8;
       doc.setFontSize(10);
       const summaryData = [
-        ['Tổng vé đã bán', metrics.totalTicketsSold.toString()],
-        ['Tổng doanh thu', formatCurrency(metrics.totalRevenue)],
-        ['Trung bình vé/ngày', metrics.avgTicketsPerDay.toString()],
-        ['Giá trị đơn hàng TB', formatCurrency(metrics.avgOrderValue)]
+        ['Total Tickets Sold', metrics.totalTicketsSold.toString()],
+        ['Total Revenue', formatCurrencyForPDF(metrics.totalRevenue)],
+        ['Average Tickets/Day', metrics.avgTicketsPerDay.toString()],
+        ['Average Order Value', formatCurrencyForPDF(metrics.avgOrderValue)]
       ];
       
       autoTable(doc, {
         startY: yPos,
-        head: [['Chỉ số', 'Giá trị']],
+        head: [['Metric', 'Value']],
         body: summaryData,
         theme: 'grid',
         headStyles: { fillColor: [66, 139, 202] },
-        styles: { fontSize: 10 },
+        styles: { 
+          fontSize: 10,
+          font: 'helvetica',
+          fontStyle: 'normal',
+          cellPadding: 3,
+          overflow: 'linebreak',
+          halign: 'left',
+          // Ensure UTF-8 encoding
+          textColor: [0, 0, 0]
+        },
         columnStyles: {
           0: { cellWidth: 60 },
           1: { cellWidth: 80 }
+        },
+        didParseCell: function (data) {
+          // Ensure proper encoding for Vietnamese text in cells
+          // autoTable should handle UTF-8 encoding automatically
+          if (data.cell.text && typeof data.cell.text === 'string') {
+            // Text is already in UTF-8, autoTable will handle it
+            // The issue is that Helvetica font doesn't support Vietnamese diacritics
+            // We need a custom font for proper rendering
+          }
         }
       });
 
@@ -572,36 +658,53 @@ const SalesChart = ({ hostEvents = [] }) => {
       }
       
       doc.setFontSize(14);
-      doc.text('Chi tiết theo thời gian', 14, yPos);
+      doc.text('Details by Time', 14, yPos);
       
       yPos += 8;
       const tableData = chartData.map(item => [
         item.date,
         item.tickets.toString(),
-        formatCurrency(item.revenue)
+        formatCurrencyForPDF(item.revenue)
       ]);
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Ngày', 'Số vé', 'Doanh thu (VND)']],
+        head: [['Date', 'Tickets', 'Revenue (VND)']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [66, 139, 202] },
-        styles: { fontSize: 9 },
+        styles: { 
+          fontSize: 9,
+          font: 'helvetica',
+          fontStyle: 'normal',
+          cellPadding: 2,
+          overflow: 'linebreak',
+          // Ensure UTF-8 encoding
+          textColor: [0, 0, 0]
+        },
         columnStyles: {
           0: { cellWidth: 50 },
           1: { cellWidth: 40, halign: 'center' },
           2: { cellWidth: 60, halign: 'right' }
         },
-        margin: { left: 14, right: 14 }
+        margin: { left: 14, right: 14 },
+        didParseCell: function (data) {
+          // Ensure proper encoding for Vietnamese text in cells
+          // autoTable should handle UTF-8 encoding automatically
+          if (data.cell.text && typeof data.cell.text === 'string') {
+            // Text is already in UTF-8, autoTable will handle it
+            // The issue is that Helvetica font doesn't support Vietnamese diacritics
+            // We need a custom font for proper rendering
+          }
+        }
       });
 
       // Save PDF
-      const fileName = `thong_ke_ban_ve_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`;
+      const fileName = `ticket_sales_report_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`;
       doc.save(fileName);
     } catch (error) {
       console.error('Error exporting PDF:', error);
-      alert('Có lỗi xảy ra khi xuất PDF. Vui lòng thử lại.');
+      alert('An error occurred while exporting PDF. Please try again.');
     }
   };
 

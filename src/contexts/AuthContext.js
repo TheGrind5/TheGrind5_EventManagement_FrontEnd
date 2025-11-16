@@ -115,6 +115,15 @@ export const AuthProvider = ({ children }) => {
         };
       }
       
+      // Check if system is in maintenance mode (status 503)
+      if (error.response?.status === 503 && error.response?.data?.maintenanceMode) {
+        return { 
+          success: false, 
+          message: error.response.data.message || 'Hệ thống đang bảo trì. Vui lòng đợi đến khi bảo trì hoàn tất.',
+          maintenanceMode: true
+        };
+      }
+      
       return { 
         success: false, 
         message: error.response?.data?.message || error.message || 'Có lỗi xảy ra khi đăng nhập' 
@@ -243,13 +252,19 @@ export const AuthProvider = ({ children }) => {
 
   };
 
+  const updateUser = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
     logout,
-    refreshProfile
+    refreshProfile,
+    updateUser
   };
 
   return (

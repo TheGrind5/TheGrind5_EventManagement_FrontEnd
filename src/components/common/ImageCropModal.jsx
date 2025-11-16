@@ -85,8 +85,12 @@ const ImageCropModal = ({ open, onClose, imageSrc, aspectRatio, cropWidth, cropH
         type: 'image/jpeg',
       });
       
+      console.log(`[ImageCropModal] Crop completed, calling onCropComplete for field: ${fieldName}`);
+      
+      // Gọi onCropComplete - component cha sẽ xử lý việc đóng modal
+      // KHÔNG gọi handleClose() ở đây để tránh conflict
+      // handleCropDone trong EventInfoStep sẽ đóng modal
       onCropComplete(file);
-      handleClose();
     } catch (error) {
       console.error('Error cropping image:', error);
       alert('Có lỗi xảy ra khi crop ảnh: ' + error.message);
