@@ -34,6 +34,8 @@ import PaymentPage from './pages/PaymentPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import WalletPage from './pages/WalletPage';
 import MyTicketsPage from './pages/MyTicketsPage';
+import MyTransfersPage from './pages/MyTransfersPage';
+import TicketTransferAcceptPage from './pages/TicketTransferAcceptPage';
 import MyEventsPage from './pages/MyEventsPage';
 import CreateEventPage from './pages/CreateEventPage';
 import WishlistPage from './pages/WishlistPage';
@@ -206,6 +208,18 @@ function AppRoutes() {
             <MyTicketsPage />
           </ProtectedRoute>
         } 
+      />
+      <Route 
+        path="/my-transfers" 
+        element={
+          <ProtectedRoute>
+            <MyTransfersPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/ticket-transfer/accept/:transferCode" 
+        element={<TicketTransferAcceptPage />}
       />
       <Route 
         path="/my-events" 

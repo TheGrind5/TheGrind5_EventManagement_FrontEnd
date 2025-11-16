@@ -706,7 +706,7 @@ const EventDetailsPage = () => {
               <Stack
                 spacing={event.status === 'Closed' ? 1.5 : 2}
                 sx={{
-                  height: { xs: 240, md: 360 }, // force same height as image
+                  minHeight: { xs: 240, md: 360 }, // min height to match image, but can grow
                   bgcolor: '#2f3034',
                   borderRadius: '20px 0 0 20px',
                   p: { xs: 2, md: event.status === 'Closed' ? 2.5 : 3 },
@@ -714,7 +714,7 @@ const EventDetailsPage = () => {
                   border: '1px solid rgba(255,255,255,0.05)',
                   display: 'flex',
                   justifyContent: 'flex-start',
-                  overflow: 'hidden'
+                  overflow: 'visible'
                 }}
               >
                 <Typography
@@ -722,13 +722,15 @@ const EventDetailsPage = () => {
                   sx={{
                     fontWeight: 800,
                     fontSize: { xs: '1.15rem', md: '1.3rem' },
-                    lineHeight: 1.3,
+                    lineHeight: 1.4,
                     mb: 0,
+                    pt: 0,
+                    pb: 0,
                     whiteSpace: 'normal',
                     wordBreak: 'break-word',
                     overflowWrap: 'anywhere',
                     display: '-webkit-box',
-                    WebkitLineClamp: 3,
+                    WebkitLineClamp: 4,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
                   }}
@@ -751,6 +753,9 @@ const EventDetailsPage = () => {
                         variant="body1"
                         sx={{
                           fontWeight: 700,
+                          lineHeight: 1.6,
+                          pt: 0.2,
+                          pb: 0.2,
                           background: 'linear-gradient(90deg, #ffa94d 0%, #ff7a18 50%, #ff4d00 100%)',
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
@@ -1064,6 +1069,9 @@ const EventDetailsPage = () => {
                         component="h1"
                         sx={{
                           fontWeight: 700,
+                          lineHeight: 1.4,
+                          pt: 0.3,
+                          pb: 0.3,
                           mb: 2,
                           whiteSpace: 'normal',
                           wordBreak: 'break-word',

@@ -326,89 +326,102 @@ const HomePage = () => {
 
 
   // Filter events based on search and filter criteria - Memoized để tránh filter lại mỗi render
-  const filteredEvents = useMemo(() => validEvents.filter(event => {
-
-    // Search filter
-
-    const matchesSearch = !searchTerm || 
-
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-
-      event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-
-      event.category?.toLowerCase().includes(searchTerm.toLowerCase());
-
-
-
-    // Status filter
-
-    const matchesStatus = statusFilter === 'all' || getEventStatus(event.startTime, event.endTime) === statusFilter;
-
-
-
-    // Date filter
-
-    const now = new Date();
-
-    const eventStart = new Date(event.startTime);
-
-    let matchesDate = true;
-
-    if (dateFilter === 'today') {
-
-      matchesDate = eventStart.toDateString() === now.toDateString();
-
-    } else if (dateFilter === 'upcoming') {
-
-      matchesDate = eventStart > now;
-
-    } else if (dateFilter === 'past') {
-
-      matchesDate = eventStart < now;
-
-    }
-
-
-
-    // Campus filter
-
-    const matchesCampus = campusFilter === 'all' || 
-
-      event.location?.includes(campusFilter) || 
-
-      event.campus?.includes(campusFilter);
-
-
-
-    // Category filter - CHỈ filter theo danh mục thực tế (Music, Art, Workshop, etc.)
-    const matchesCategory = categoryFilter === 'all' || 
-      (event.category && event.category.toLowerCase() === categoryFilter.toLowerCase());
-
-
-
-    // Price filter - Filter theo giá vé
-    let matchesPrice = true;
-    
-    if (priceFilter !== 'all' && event.ticketTypes && event.ticketTypes.length > 0) {
-      if (priceFilter === 'free') {
-        matchesPrice = event.ticketTypes.some(t => (t.price === 0 || t.price === null) || t.isFree === true);
-      } else if (priceFilter === 'below50') {
-        matchesPrice = event.ticketTypes.some(t => t.price > 0 && t.price < 50000);
-      } else if (priceFilter === '50to100') {
-        matchesPrice = event.ticketTypes.some(t => t.price >= 50000 && t.price <= 100000);
-      } else if (priceFilter === 'above100') {
-        matchesPrice = event.ticketTypes.some(t => t.price > 100000);
+  const filteredEvents = useMemo(() => {
+    return validEvents.filter(event => {
+      // 1. SEARCH FILTER - Tìm kiếm trong title, description, category
+      if (searchTerm && searchTerm.trim() !== '') {
+        const search = searchTerm.toLowerCase().trim();
+        const title = (event.title || '').toLowerCase();
+        const desc = (event.description || '').toLowerCase();
+        const cat = (event.category || '').toLowerCase();
+        
+        if (!title.includes(search) && !desc.includes(search) && !cat.includes(search)) {
+          return false;
+        }
       }
-    } else if (priceFilter !== 'all') {
-      // Nếu filter giá được chọn nhưng event không có ticketTypes, không hiển thị
-      matchesPrice = false;
-    }
 
+      // 2. CATEGORY FILTER - Lọc theo danh mục
+      if (categoryFilter !== 'all') {
+        const eventCategory = (event.category || '').toLowerCase();
+        const filterCategory = categoryFilter.toLowerCase();
+        
+        if (eventCategory !== filterCategory) {
+          return false;
+        }
+      }
 
+      // 3. PRICE FILTER - Lọc theo giá vé
+      if (priceFilter !== 'all') {
+        const ticketTypes = event.ticketTypes || event.TicketTypes || [];
+        
+        if (ticketTypes.length === 0) {
+          return false; // Không có vé thì không hiển thị khi filter giá
+        }
+        
+        const prices = ticketTypes.map(t => t.price ?? t.Price ?? 0);
+        
+        let hasMatchingPrice = false;
+        
+        if (priceFilter === 'free') {
+          hasMatchingPrice = prices.some(p => p === 0);
+        } else if (priceFilter === 'below50') {
+          hasMatchingPrice = prices.some(p => p > 0 && p < 50000);
+        } else if (priceFilter === '50to100') {
+          hasMatchingPrice = prices.some(p => p >= 50000 && p <= 100000);
+        } else if (priceFilter === 'above100') {
+          hasMatchingPrice = prices.some(p => p > 100000);
+        }
+        
+        if (!hasMatchingPrice) {
+          return false;
+        }
+      }
 
-    return matchesSearch && matchesStatus && matchesDate && matchesCampus && matchesCategory && matchesPrice;
+      // 4. STATUS FILTER - Lọc theo trạng thái sự kiện
+      if (statusFilter !== 'all') {
+        const eventStatus = getEventStatus(event.startTime, event.endTime);
+        
+        if (eventStatus !== statusFilter) {
+          return false;
+        }
+      }
 
-  }), [validEvents, searchTerm, statusFilter, dateFilter, campusFilter, categoryFilter, priceFilter, getEventStatus]);
+      // 5. DATE FILTER - Lọc theo thời gian
+      if (dateFilter !== 'all') {
+        const now = new Date();
+        const startTime = new Date(event.startTime);
+        
+        if (dateFilter === 'today') {
+          const isToday = startTime.toDateString() === now.toDateString();
+          if (!isToday) {
+            return false;
+          }
+        } else if (dateFilter === 'upcoming') {
+          if (startTime <= now) {
+            return false;
+          }
+        } else if (dateFilter === 'past') {
+          if (startTime >= now) {
+            return false;
+          }
+        }
+      }
+
+      // 6. CAMPUS FILTER - Lọc theo địa điểm
+      if (campusFilter !== 'all') {
+        const location = (event.location || '').toLowerCase();
+        const campus = (event.campus || '').toLowerCase();
+        const filterValue = campusFilter.toLowerCase();
+        
+        if (!location.includes(filterValue) && !campus.includes(filterValue)) {
+          return false;
+        }
+      }
+
+      // Tất cả filters đều pass
+      return true;
+    });
+  }, [validEvents, searchTerm, categoryFilter, priceFilter, statusFilter, dateFilter, campusFilter, getEventStatus]);
 
 
 
@@ -1045,249 +1058,116 @@ const HomePage = () => {
 
       <Stack spacing={2}>
 
-        {/* Filter bar (dòng dưới Search) - Cải thiện labels và icons */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-start', mb: 1 }}>
-          {/* Dropdown Danh mục riêng biệt - Có icon và label rõ ràng */}
-          <FormControl 
-            sx={{ 
-              minWidth: { xs: '100%', sm: 180 }, 
-              maxWidth: { xs: '100%', sm: 200 } 
-            }} 
-            size="small"
-          >
-            <InputLabel id="category-filter-label">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Event sx={{ fontSize: 16 }} /> Danh mục
-              </Box>
-            </InputLabel>
+        {/* Filter bar - Clean professional design */}
+        <Box sx={{ 
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(6, 1fr)'
+          },
+          gap: 2,
+          alignItems: 'start'
+        }}>
+          {/* Category Filter */}
+          <FormControl size="small" fullWidth>
+            <InputLabel>Danh mục</InputLabel>
             <Select
-
               value={categoryFilter}
-
-              labelId="category-filter-label"
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Event sx={{ fontSize: 16 }} /> Danh mục
-                </Box>
-              }
+              label="Danh mục"
               onChange={e => setCategoryFilter(e.target.value)}
-
-              sx={{
-                '& .MuiSelect-select': {
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1
-                }
-              }}
             >
               {categoryOptions.map(o => (
                 <MenuItem value={o.value} key={o.value}>
-                  {o.value === 'all' ? '🏷️ ' : o.value === 'free' ? '🆓 ' : ''}
                   {o.label}
                 </MenuItem>
               ))}
             </Select>
-
           </FormControl>
 
-          
-          {/* Dropdown Giá tiền riêng biệt - Có icon và label rõ ràng */}
-          <FormControl 
-            sx={{ 
-              minWidth: { xs: '100%', sm: 180 }, 
-              maxWidth: { xs: '100%', sm: 200 } 
-            }} 
-            size="small"
-          >
-            <InputLabel id="price-filter-label">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                💰 Giá tiền
-              </Box>
-            </InputLabel>
+          {/* Price Filter */}
+          <FormControl size="small" fullWidth>
+            <InputLabel>Giá tiền</InputLabel>
             <Select
-
               value={priceFilter}
-
-              labelId="price-filter-label"
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  💰 Giá tiền
-                </Box>
-              }
+              label="Giá tiền"
               onChange={e => setPriceFilter(e.target.value)}
-
             >
-
               {priceOptions.map(o => (
                 <MenuItem value={o.value} key={o.value}>
-                  {o.value === 'all' ? '💰 ' : o.value === 'free' ? '🆓 ' : o.value === 'below50' ? '💵 ' : o.value === '50to100' ? '💶 ' : '💷 '}
                   {o.label}
                 </MenuItem>
               ))}
             </Select>
-
           </FormControl>
 
-
-
-          <Grid item xs={12} sm={6} md={2.5}>
-            <FormControl fullWidth>
-
-              <InputLabel id="status-filter-label">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <TrendingUp sx={{ fontSize: 16 }} /> Trạng thái
-                </Box>
-              </InputLabel>
-              <Select
-
-                value={statusFilter}
-
-                labelId="status-filter-label"
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TrendingUp sx={{ fontSize: 16 }} /> Trạng thái
-                  </Box>
-                }
-                onChange={(e) => setStatusFilter(e.target.value)}
-
-                sx={{ borderRadius: 2 }}
-
-              >
-
-                <MenuItem value="all">🔵 Tất cả</MenuItem>
-                <MenuItem value="Active">🟢 Đang diễn ra</MenuItem>
-                <MenuItem value="Upcoming">🟡 Sắp diễn ra</MenuItem>
-                <MenuItem value="Completed">⚫ Đã kết thúc</MenuItem>
-              </Select>
-
-            </FormControl>
-
-          </Grid>
-
-
-
-          <Grid item xs={12} sm={6} md={2.5}>
-            <FormControl fullWidth>
-
-              <InputLabel id="date-filter-label">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <AccessTime sx={{ fontSize: 16 }} /> Thời gian
-                </Box>
-              </InputLabel>
-              <Select
-
-                value={dateFilter}
-
-                labelId="date-filter-label"
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <AccessTime sx={{ fontSize: 16 }} /> Thời gian
-                  </Box>
-                }
-                onChange={(e) => setDateFilter(e.target.value)}
-
-              >
-
-                <MenuItem value="all">📅 Tất cả</MenuItem>
-                <MenuItem value="today">📆 Hôm nay</MenuItem>
-                <MenuItem value="upcoming">⏰ Sắp tới</MenuItem>
-                <MenuItem value="past">📋 Đã qua</MenuItem>
-              </Select>
-
-            </FormControl>
-
-          </Grid>
-
-
-
-          <Grid item xs={12} sm={6} md={2.5}>
-            <FormControl fullWidth>
-
-              <InputLabel id="campus-filter-label">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <LocationOn sx={{ fontSize: 16 }} /> Campus
-                </Box>
-              </InputLabel>
-              <Select
-
-                value={campusFilter}
-
-                labelId="campus-filter-label"
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <LocationOn sx={{ fontSize: 16 }} /> Campus
-                  </Box>
-                }
-                onChange={(e) => setCampusFilter(e.target.value)}
-
-              >
-
-                {campuses.map((campus) => (
-
-                  <MenuItem key={campus.value} value={campus.value}>
-
-                    {campus.value === 'all' ? '🌍 ' : '📍 '}
-                    {campus.label}
-
-                  </MenuItem>
-
-                ))}
-
-              </Select>
-
-            </FormControl>
-
-          </Grid>
-
-
-
-          <Grid item xs={12} sm={6} md={2}>
-
-            <Button
-
-              variant="outlined"
-
-              fullWidth
-
-              onClick={() => {
-
-                setSearchTerm('');
-
-                setCategoryFilter('all');
-
-                setStatusFilter('all');
-
-                setDateFilter('all');
-
-                setCampusFilter('all');
-
-                setPriceFilter('all');
-
-              }}
-
-              sx={{ 
-                height: '56px',
-                fontWeight: 600,
-                borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
-                '&:hover': {
-                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: theme.palette.mode === 'dark' 
-                    ? '0 4px 12px rgba(0,0,0,0.3)' 
-                    : '0 4px 12px rgba(0,0,0,0.1)',
-                },
-                '&:active': {
-                  transform: 'translateY(0)',
-                },
-                transition: 'all 0.2s ease'
-              }}
+          {/* Status Filter */}
+          <FormControl size="small" fullWidth>
+            <InputLabel>Trạng thái</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Trạng thái"
+              onChange={(e) => setStatusFilter(e.target.value)}
             >
-              🔄 Đặt lại
-            </Button>
+              <MenuItem value="all">Tất cả</MenuItem>
+              <MenuItem value="Active">Đang diễn ra</MenuItem>
+              <MenuItem value="Upcoming">Sắp diễn ra</MenuItem>
+              <MenuItem value="Completed">Đã kết thúc</MenuItem>
+            </Select>
+          </FormControl>
 
-          </Grid>
+          {/* Date Filter */}
+          <FormControl size="small" fullWidth>
+            <InputLabel>Thời gian</InputLabel>
+            <Select
+              value={dateFilter}
+              label="Thời gian"
+              onChange={(e) => setDateFilter(e.target.value)}
+            >
+              <MenuItem value="all">Tất cả</MenuItem>
+              <MenuItem value="today">Hôm nay</MenuItem>
+              <MenuItem value="upcoming">Sắp tới</MenuItem>
+              <MenuItem value="past">Đã qua</MenuItem>
+            </Select>
+          </FormControl>
 
+          {/* Campus Filter */}
+          <FormControl size="small" fullWidth>
+            <InputLabel>Campus</InputLabel>
+            <Select
+              value={campusFilter}
+              label="Campus"
+              onChange={(e) => setCampusFilter(e.target.value)}
+            >
+              {campuses.map((campus) => (
+                <MenuItem key={campus.value} value={campus.value}>
+                  {campus.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Reset Button */}
+          <Button
+            variant="outlined"
+            size="medium"
+            onClick={() => {
+              setSearchTerm('');
+              setCategoryFilter('all');
+              setStatusFilter('all');
+              setDateFilter('all');
+              setCampusFilter('all');
+              setPriceFilter('all');
+            }}
+            sx={{ 
+              height: '40px',
+              fontWeight: 600,
+              textTransform: 'none'
+            }}
+          >
+            Đặt lại
+          </Button>
         </Box>
 
 
