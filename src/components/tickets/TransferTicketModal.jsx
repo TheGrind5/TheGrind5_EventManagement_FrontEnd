@@ -11,9 +11,15 @@ import {
   Alert,
   IconButton,
   CircularProgress,
-  Divider
+  Divider,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormControl,
+  FormLabel,
+  InputAdornment
 } from '@mui/material';
-import { Close, Send, Mail } from '@mui/icons-material';
+import { Close, Send, Mail, AttachMoney } from '@mui/icons-material';
 import TicketTransferService from '../../services/ticketTransferService';
 
 const TransferTicketModal = ({ ticket, onClose, onSuccess }) => {
@@ -21,9 +27,14 @@ const TransferTicketModal = ({ ticket, onClose, onSuccess }) => {
     toEmail: '',
     message: ''
   });
+  const [transferType, setTransferType] = useState('free');
+  const [customPrice, setCustomPrice] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  // Get ticket price
+  const ticketPrice = ticket.ticketType?.price || 0;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -37,12 +48,28 @@ const TransferTicketModal = ({ ticket, onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Calculate transfer fee based on type
+    let transferFee = 0;
+    if (transferType === 'original') {
+      transferFee = ticketPrice;
+    } else if (transferType === 'custom') {
+      transferFee = parseFloat(customPrice) || 0;
+      if (transferFee <= 0) {
+        setError('Giá chuyển nhượng phải lớn hơn 0');
+        return;
+      }
+      if (transferFee > ticketPrice * 2) {
+        setError('Giá chuyển nhượng không được quá 2 lần giá gốc');
+        return;
+      }
+    }
+    
     // Validation
     const validation = TicketTransferService.validateTransferRequest({
       ticketId: ticket.ticketId,
       toEmail: formData.toEmail,
       message: formData.message,
-      transferFee: 0
+      transferFee: transferFee
     });
 
     if (!validation.isValid) {
@@ -58,7 +85,7 @@ const TransferTicketModal = ({ ticket, onClose, onSuccess }) => {
         ticketId: ticket.ticketId,
         toEmail: formData.toEmail.trim(),
         message: formData.message.trim(),
-        transferFee: 0
+        transferFee: transferFee
       });
 
       setSuccess(true);
@@ -140,12 +167,89 @@ const TransferTicketModal = ({ ticket, onClose, onSuccess }) => {
                 placeholder="recipient@example.com"
                 required
                 disabled={loading}
-                sx={{ mb: 2 }}
+                sx={{ mb: 3 }}
                 InputProps={{
                   startAdornment: <Mail sx={{ mr: 1, color: 'text.secondary' }} />
                 }}
                 helperText="Nhập email của người bạn muốn chuyển nhượng vé"
               />
+
+              {/* Payment Options */}
+              <FormControl component="fieldset" sx={{ mb: 3 }}>
+                <FormLabel component="legend" sx={{ mb: 1, fontWeight: 600 }}>
+                  <AttachMoney sx={{ fontSize: 18, verticalAlign: 'middle', mr: 0.5 }} />
+                  Phương thức chuyển nhượng
+                </FormLabel>
+                <RadioGroup
+                  value={transferType}
+                  onChange={(e) => setTransferType(e.target.value)}
+                >
+                  <FormControlLabel
+                    value="free"
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          Tặng miễn phí
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Người nhận không phải trả tiền
+                        </Typography>
+                      </Box>
+                    }
+                    disabled={loading}
+                  />
+                  <FormControlLabel
+                    value="original"
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          Hoàn giá gốc ({ticketPrice.toLocaleString('vi-VN')}₫)
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Bạn nhận lại {(ticketPrice * 0.95).toLocaleString('vi-VN')}₫ (sau phí 5%)
+                        </Typography>
+                      </Box>
+                    }
+                    disabled={loading}
+                  />
+                  <FormControlLabel
+                    value="custom"
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          Giá tự định
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Tối đa {(ticketPrice * 2).toLocaleString('vi-VN')}₫
+                        </Typography>
+                      </Box>
+                    }
+                    disabled={loading}
+                  />
+                </RadioGroup>
+              </FormControl>
+
+              {/* Custom Price Input */}
+              {transferType === 'custom' && (
+                <TextField
+                  fullWidth
+                  label="Giá chuyển nhượng"
+                  type="number"
+                  value={customPrice}
+                  onChange={(e) => setCustomPrice(e.target.value)}
+                  placeholder="Nhập giá"
+                  required
+                  disabled={loading}
+                  sx={{ mb: 3 }}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">₫</InputAdornment>
+                  }}
+                  helperText={`Bạn sẽ nhận: ${(parseFloat(customPrice) * 0.95 || 0).toLocaleString('vi-VN')}₫ (sau phí 5%)`}
+                />
+              )}
 
               <TextField
                 fullWidth

@@ -403,13 +403,13 @@ const MyTicketsPage = () => {
           )}
 
           {/* Header */}
-          <Paper sx={{ p: 3, borderRadius: 2, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+          <Box sx={{ mb: 3 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" spacing={2}>
               <Box>
-                <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5, color: 'white' }}>
-                  {activeTab === 'tickets' ? '🎫 Vé của tôi' : '🎉 Sự kiện của tôi'}
+                <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5, color: 'text.primary' }}>
+                  {activeTab === 'tickets' ? 'Vé của tôi' : 'Sự kiện của tôi'}
                 </Typography>
-                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   {activeTab === 'tickets' 
                     ? 'Quản lý vé đã mua và xem thông tin sự kiện' 
                     : 'Quản lý sự kiện đã tạo'}
@@ -417,22 +417,16 @@ const MyTicketsPage = () => {
               </Box>
               
               {activeTab === 'tickets' && (
-                <Stack direction="row" spacing={1}>
+                <Stack direction="row" spacing={1.5}>
                   <Button
                     component={Link}
                     to="/my-transfers"
-                    variant="contained"
+                    variant="outlined"
                     size="medium"
                     startIcon={<SwapHoriz />}
                     sx={{ 
-                      bgcolor: 'white',
-                      color: 'primary.main',
                       fontWeight: 600,
-                      '&:hover': {
-                        bgcolor: 'rgba(255,255,255,0.9)',
-                        transform: 'translateY(-2px)',
-                        boxShadow: 4
-                      }
+                      textTransform: 'none'
                     }}
                   >
                     Chuyển nhượng vé
@@ -440,18 +434,12 @@ const MyTicketsPage = () => {
                   <Button
                     component={Link}
                     to="/"
-                    variant="outlined"
+                    variant="contained"
                     size="medium"
                     startIcon={<Event />}
                     sx={{ 
-                      borderColor: 'white',
-                      color: 'white',
                       fontWeight: 600,
-                      '&:hover': {
-                        borderColor: 'white',
-                        bgcolor: 'rgba(255,255,255,0.1)',
-                        transform: 'translateY(-2px)'
-                      }
+                      textTransform: 'none'
                     }}
                   >
                     Khám phá sự kiện
@@ -459,51 +447,53 @@ const MyTicketsPage = () => {
                 </Stack>
               )}
             </Stack>
-          </Paper>
+          </Box>
 
           {/* Tabs */}
-          <Paper sx={{ borderRadius: 2 }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Stack direction="row" spacing={0}>
-                <Button
-                  onClick={() => setActiveTab('tickets')}
-                  sx={{
-                    flex: 1,
-                    py: 2,
-                    borderRadius: 0,
-                    borderTopLeftRadius: 8,
-                    borderBottom: activeTab === 'tickets' ? 2 : 0,
-                    borderColor: 'primary.main',
-                    bgcolor: activeTab === 'tickets' ? 'action.selected' : 'transparent',
-                    '&:hover': {
-                      bgcolor: 'action.hover'
-                    }
-                  }}
-                >
-                  <ConfirmationNumber sx={{ mr: 1 }} />
-                  Vé của tôi ({tickets.length})
-                </Button>
-                <Button
-                  onClick={() => setActiveTab('events')}
-                  sx={{
-                    flex: 1,
-                    py: 2,
-                    borderRadius: 0,
-                    borderTopRightRadius: 8,
-                    borderBottom: activeTab === 'events' ? 2 : 0,
-                    borderColor: 'primary.main',
-                    bgcolor: activeTab === 'events' ? 'action.selected' : 'transparent',
-                    '&:hover': {
-                      bgcolor: 'action.hover'
-                    }
-                  }}
-                >
-                  <Event sx={{ mr: 1 }} />
-                  Sự kiện của tôi ({myEvents.length})
-                </Button>
-              </Stack>
-            </Box>
-          </Paper>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Stack direction="row" spacing={0}>
+              <Button
+                onClick={() => setActiveTab('tickets')}
+                sx={{
+                  px: 3,
+                  py: 1.5,
+                  borderRadius: 0,
+                  borderBottom: 3,
+                  borderColor: activeTab === 'tickets' ? 'primary.main' : 'transparent',
+                  color: activeTab === 'tickets' ? 'primary.main' : 'text.secondary',
+                  fontWeight: activeTab === 'tickets' ? 700 : 500,
+                  textTransform: 'none',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                    color: 'primary.main'
+                  }
+                }}
+              >
+                <ConfirmationNumber sx={{ mr: 1, fontSize: 20 }} />
+                Vé của tôi ({tickets.length})
+              </Button>
+              <Button
+                onClick={() => setActiveTab('events')}
+                sx={{
+                  px: 3,
+                  py: 1.5,
+                  borderRadius: 0,
+                  borderBottom: 3,
+                  borderColor: activeTab === 'events' ? 'primary.main' : 'transparent',
+                  color: activeTab === 'events' ? 'primary.main' : 'text.secondary',
+                  fontWeight: activeTab === 'events' ? 700 : 500,
+                  textTransform: 'none',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                    color: 'primary.main'
+                  }
+                }}
+              >
+                <Event sx={{ mr: 1, fontSize: 20 }} />
+                Sự kiện của tôi ({myEvents.length})
+              </Button>
+            </Stack>
+          </Box>
 
           {/* Tickets Tab Content */}
           {activeTab === 'tickets' && (
@@ -512,88 +502,108 @@ const MyTicketsPage = () => {
               {tickets.length > 0 && (
                 <Grid container spacing={2}>
                   <Grid item xs={6} sm={3}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      textAlign: 'center',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'scale(1.05)' }
-                    }}
-                    onClick={() => setFilter('all')}
+                    <Paper 
+                      sx={{ 
+                        p: 2.5, 
+                        borderRadius: 2, 
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        border: filter === 'all' ? '2px solid' : '1px solid',
+                        borderColor: filter === 'all' ? 'primary.main' : 'divider',
+                        bgcolor: filter === 'all' ? 'action.selected' : 'background.paper',
+                        '&:hover': { 
+                          borderColor: 'primary.main',
+                          boxShadow: 2
+                        }
+                      }}
+                      onClick={() => setFilter('all')}
                     >
-                      <Typography variant="h3" fontWeight={700}>
+                      <Typography variant="h3" fontWeight={700} color="text.primary">
                         {tickets.length}
                       </Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Tổng vé
                       </Typography>
                     </Paper>
                   </Grid>
                   
                   <Grid item xs={6} sm={3}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      textAlign: 'center',
-                      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'scale(1.05)' }
-                    }}
-                    onClick={() => setFilter('available')}
+                    <Paper 
+                      sx={{ 
+                        p: 2.5, 
+                        borderRadius: 2, 
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        border: filter === 'available' ? '2px solid' : '1px solid',
+                        borderColor: filter === 'available' ? 'success.main' : 'divider',
+                        bgcolor: filter === 'available' ? 'success.lighter' : 'background.paper',
+                        '&:hover': { 
+                          borderColor: 'success.main',
+                          boxShadow: 2
+                        }
+                      }}
+                      onClick={() => setFilter('available')}
                     >
-                      <Typography variant="h3" fontWeight={700}>
+                      <Typography variant="h3" fontWeight={700} color="success.main">
                         {tickets.filter(t => (t.Status || t.status) === 'Assigned').length}
                       </Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Có thể dùng
                       </Typography>
                     </Paper>
                   </Grid>
                   
                   <Grid item xs={6} sm={3}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      textAlign: 'center',
-                      background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'scale(1.05)' }
-                    }}
-                    onClick={() => setFilter('used')}
+                    <Paper 
+                      sx={{ 
+                        p: 2.5, 
+                        borderRadius: 2, 
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        border: filter === 'used' ? '2px solid' : '1px solid',
+                        borderColor: filter === 'used' ? 'info.main' : 'divider',
+                        bgcolor: filter === 'used' ? 'info.lighter' : 'background.paper',
+                        '&:hover': { 
+                          borderColor: 'info.main',
+                          boxShadow: 2
+                        }
+                      }}
+                      onClick={() => setFilter('used')}
                     >
-                      <Typography variant="h3" fontWeight={700}>
+                      <Typography variant="h3" fontWeight={700} color="info.main">
                         {tickets.filter(t => (t.Status || t.status) === 'Used').length}
                       </Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Đã dùng
                       </Typography>
                     </Paper>
                   </Grid>
                   
                   <Grid item xs={6} sm={3}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      textAlign: 'center',
-                      background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'scale(1.05)' }
-                    }}
-                    onClick={() => setFilter('refunded')}
+                    <Paper 
+                      sx={{ 
+                        p: 2.5, 
+                        borderRadius: 2, 
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        border: filter === 'refunded' ? '2px solid' : '1px solid',
+                        borderColor: filter === 'refunded' ? 'warning.main' : 'divider',
+                        bgcolor: filter === 'refunded' ? 'warning.lighter' : 'background.paper',
+                        '&:hover': { 
+                          borderColor: 'warning.main',
+                          boxShadow: 2
+                        }
+                      }}
+                      onClick={() => setFilter('refunded')}
                     >
-                      <Typography variant="h3" fontWeight={700}>
+                      <Typography variant="h3" fontWeight={700} color="warning.main">
                         {tickets.filter(t => (t.Status || t.status) === 'Refunded').length}
                       </Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Đã hoàn
                       </Typography>
                     </Paper>
@@ -780,43 +790,43 @@ const MyTicketsPage = () => {
                           transition: 'all 0.2s ease-in-out',
                           overflow: 'visible',
                           position: 'relative',
-                          border: '2px solid',
-                          borderColor: isAssigned ? '#ff6b35' : 'rgba(255,255,255,0.1)',
-                          bgcolor: '#1a1a1a',
+                          border: '1px solid',
+                          borderColor: 'divider',
                           '&:hover': {
-                            boxShadow: '0 8px 24px rgba(255,107,53,0.3)',
-                            transform: 'translateY(-4px)',
-                            borderColor: '#ff6b35'
+                            boxShadow: 4,
+                            transform: 'translateY(-2px)',
+                            borderColor: 'primary.main'
                           }
                         }}>
                           {/* Status Banner */}
                           <Box sx={{ 
                             position: 'absolute',
-                            top: 12,
-                            right: -2,
-                            bgcolor: getStatusColor(ticketStatus, orderData.Status || orderData.status),
-                            color: 'white',
-                            px: 3,
-                            py: 0.5,
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            borderRadius: '4px 0 0 4px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                            zIndex: 1,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
+                            top: 16,
+                            right: 16,
+                            zIndex: 1
                           }}>
-                            {getStatusText(ticketStatus, orderData.Status || orderData.status)}
+                            <Chip
+                              label={getStatusText(ticketStatus, orderData.Status || orderData.status)}
+                              size="small"
+                              sx={{
+                                bgcolor: getStatusColor(ticketStatus, orderData.Status || orderData.status),
+                                color: 'white',
+                                fontWeight: 700,
+                                fontSize: '0.7rem',
+                                height: 24,
+                                textTransform: 'uppercase'
+                              }}
+                            />
                           </Box>
 
-                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2.5 }}>
+                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
                             {/* Header Section */}
                             <Box sx={{ mb: 2 }}>
                               <Typography variant="h6" sx={{ 
                                 fontWeight: 700, 
                                 mb: 1, 
-                                pr: 8,
-                                color: 'white',
+                                pr: 10,
+                                color: 'text.primary',
                                 lineHeight: 1.3
                               }}>
                                 {decodeText(eventData.Title || eventData.title || 'Không có tên sự kiện')}
@@ -825,9 +835,9 @@ const MyTicketsPage = () => {
                                 icon={<ConfirmationNumber sx={{ fontSize: 14 }} />}
                                 label={decodeText(ticketTypeData.TypeName || ticketTypeData.typeName || 'N/A')}
                                 size="small"
+                                variant="outlined"
+                                color="primary"
                                 sx={{
-                                  bgcolor: '#ff6b35',
-                                  color: 'white',
                                   fontWeight: 600,
                                   fontSize: '0.75rem',
                                   height: 24
@@ -835,7 +845,7 @@ const MyTicketsPage = () => {
                               />
                             </Box>
 
-                            <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mb: 2 }} />
+                            <Divider sx={{ mb: 2 }} />
 
                             {/* Details Section */}
                             <Stack spacing={1.5} sx={{ flexGrow: 1 }}>
@@ -843,20 +853,19 @@ const MyTicketsPage = () => {
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 gap: 1,
-                                bgcolor: 'rgba(255,107,53,0.1)',
+                                bgcolor: 'action.hover',
                                 p: 1.5,
-                                borderRadius: 1,
-                                border: '1px solid rgba(255,107,53,0.3)'
+                                borderRadius: 1
                               }}>
-                                <ConfirmationNumber sx={{ fontSize: 18, color: '#ff6b35' }} />
+                                <ConfirmationNumber sx={{ fontSize: 18, color: 'primary.main' }} />
                                 <Box sx={{ flex: 1 }}>
-                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.7rem' }}>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}>
                                     Mã vé
                                   </Typography>
                                   <Typography variant="body2" sx={{ 
                                     fontFamily: 'monospace', 
                                     fontWeight: 700,
-                                    color: 'white',
+                                    color: 'text.primary',
                                     fontSize: '0.85rem',
                                     letterSpacing: '0.5px'
                                   }}>
@@ -866,13 +875,13 @@ const MyTicketsPage = () => {
                               </Box>
 
                               {(eventData.StartTime || eventData.startTime) && (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5 }}>
-                                  <AccessTime sx={{ fontSize: 18, color: '#4fc3f7' }} />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                  <AccessTime sx={{ fontSize: 18, color: 'info.main' }} />
                                   <Box>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.7rem' }}>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}>
                                       Thời gian
                                     </Typography>
-                                    <Typography variant="body2" sx={{ color: 'white', fontWeight: 500, fontSize: '0.85rem' }}>
+                                    <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500, fontSize: '0.85rem' }}>
                                       {formatDate(eventData.StartTime || eventData.startTime)}
                                     </Typography>
                                   </Box>
@@ -880,14 +889,14 @@ const MyTicketsPage = () => {
                               )}
 
                               {(eventData.Location || eventData.location) && (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5 }}>
-                                  <LocationOn sx={{ fontSize: 18, color: '#ef5350' }} />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                  <LocationOn sx={{ fontSize: 18, color: 'error.main' }} />
                                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.7rem' }}>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}>
                                       Địa điểm
                                     </Typography>
                                     <Typography variant="body2" sx={{ 
-                                      color: 'white', 
+                                      color: 'text.primary', 
                                       fontWeight: 500,
                                       fontSize: '0.85rem',
                                       overflow: 'hidden',
@@ -901,13 +910,13 @@ const MyTicketsPage = () => {
                               )}
 
                               {(ticket.IssuedAt || ticket.issuedAt) && (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5 }}>
-                                  <Person sx={{ fontSize: 18, color: 'rgba(255,255,255,0.5)' }} />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                  <Person sx={{ fontSize: 18, color: 'text.secondary' }} />
                                   <Box>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.7rem' }}>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}>
                                       Phát hành
                                     </Typography>
-                                    <Typography variant="body2" sx={{ color: 'white', fontWeight: 500, fontSize: '0.85rem' }}>
+                                    <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500, fontSize: '0.85rem' }}>
                                       {formatDate(ticket.IssuedAt || ticket.issuedAt)}
                                     </Typography>
                                   </Box>
@@ -917,58 +926,42 @@ const MyTicketsPage = () => {
                           </CardContent>
 
                           {/* Action Buttons */}
-                          <Box sx={{ p: 2.5, pt: 0 }}>
+                          <Box sx={{ p: 3, pt: 0 }}>
                             <Stack spacing={1.5}>
                               {isAssigned && (
                                 <Stack direction="row" spacing={1.5}>
                                   <Button
                                     variant="contained"
-                                    startIcon={<QrCodeScanner sx={{ fontSize: 20 }} />}
+                                    color="primary"
+                                    startIcon={<QrCodeScanner sx={{ fontSize: 18 }} />}
                                     onClick={() => {
                                       setSelectedTicketForQR(ticket);
                                       setQrDialogOpen(true);
                                     }}
                                     fullWidth
                                     sx={{ 
-                                      bgcolor: '#ff6b35',
-                                      color: 'white',
-                                      fontWeight: 700,
-                                      fontSize: '0.9rem',
-                                      py: 1.2,
-                                      textTransform: 'none',
-                                      borderRadius: 1.5,
-                                      boxShadow: '0 4px 12px rgba(255,107,53,0.3)',
-                                      '&:hover': {
-                                        bgcolor: '#ff5722',
-                                        boxShadow: '0 6px 16px rgba(255,107,53,0.4)',
-                                        transform: 'translateY(-2px)'
-                                      }
+                                      fontWeight: 600,
+                                      fontSize: '0.875rem',
+                                      py: 1,
+                                      textTransform: 'none'
                                     }}
                                   >
                                     QR Code
                                   </Button>
                                   <Button
                                     variant="contained"
-                                    startIcon={<SwapHoriz sx={{ fontSize: 20 }} />}
+                                    color="secondary"
+                                    startIcon={<SwapHoriz sx={{ fontSize: 18 }} />}
                                     onClick={() => {
                                       setSelectedTicketForTransfer(ticket);
                                       setTransferModalOpen(true);
                                     }}
                                     fullWidth
                                     sx={{ 
-                                      bgcolor: '#ff6b35',
-                                      color: 'white',
-                                      fontWeight: 700,
-                                      fontSize: '0.9rem',
-                                      py: 1.2,
-                                      textTransform: 'none',
-                                      borderRadius: 1.5,
-                                      boxShadow: '0 4px 12px rgba(255,107,53,0.3)',
-                                      '&:hover': {
-                                        bgcolor: '#ff5722',
-                                        boxShadow: '0 6px 16px rgba(255,107,53,0.4)',
-                                        transform: 'translateY(-2px)'
-                                      }
+                                      fontWeight: 600,
+                                      fontSize: '0.875rem',
+                                      py: 1,
+                                      textTransform: 'none'
                                     }}
                                   >
                                     Chuyển nhượng
@@ -982,18 +975,10 @@ const MyTicketsPage = () => {
                                 fullWidth
                                 startIcon={<Event sx={{ fontSize: 18 }} />}
                                 sx={{
-                                  borderColor: 'rgba(255,255,255,0.2)',
-                                  color: 'white',
                                   fontWeight: 600,
-                                  fontSize: '0.85rem',
+                                  fontSize: '0.875rem',
                                   py: 1,
-                                  textTransform: 'none',
-                                  borderRadius: 1.5,
-                                  '&:hover': {
-                                    borderColor: '#ff6b35',
-                                    bgcolor: 'rgba(255,107,53,0.1)',
-                                    color: '#ff6b35'
-                                  }
+                                  textTransform: 'none'
                                 }}
                               >
                                 Chi tiết sự kiện
@@ -1002,22 +987,15 @@ const MyTicketsPage = () => {
                               {isUsed && (
                                 <Button
                                   variant="outlined"
+                                  color="info"
                                   startIcon={<RateReview sx={{ fontSize: 18 }} />}
                                   onClick={() => handleFeedback(eventData.EventId || eventData.eventId)}
                                   fullWidth
                                   sx={{
-                                    borderColor: 'rgba(255,255,255,0.2)',
-                                    color: 'white',
                                     fontWeight: 600,
-                                    fontSize: '0.85rem',
+                                    fontSize: '0.875rem',
                                     py: 1,
-                                    textTransform: 'none',
-                                    borderRadius: 1.5,
-                                    '&:hover': {
-                                      borderColor: '#4fc3f7',
-                                      bgcolor: 'rgba(79,195,247,0.1)',
-                                      color: '#4fc3f7'
-                                    }
+                                    textTransform: 'none'
                                   }}
                                 >
                                   Đánh giá
