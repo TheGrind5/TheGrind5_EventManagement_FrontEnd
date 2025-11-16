@@ -87,29 +87,46 @@ const WaitlistButton = ({ eventId, ticketTypeId, quantity: defaultQuantity = 1, 
     }
   };
 
-  const handleCancel = async () => {
-    if (!waitlistId) return;
+  const handleRemove = async () => {
+    if (!waitlistId) {
+      console.log('⚠️ [handleRemove] No waitlistId, skipping');
+      return;
+    }
     
-    if (!window.confirm('Bạn có chắc chắn muốn hủy đăng ký danh sách chờ?')) {
+    console.log(`🔔 [handleRemove] Starting remove for waitlistId=${waitlistId}`);
+    
+    if (!window.confirm('Bạn có chắc chắn muốn xóa sự kiện này khỏi danh sách chờ?')) {
+      console.log('❌ User cancelled remove');
       return;
     }
 
     try {
       setLoading(true);
-      await waitlistAPI.cancel(waitlistId);
+      console.log(`🗑️ [API Call] DELETE /Waitlist/${waitlistId}`);
       
+      const response = await waitlistAPI.cancel(waitlistId);
+      console.log(`✅ API Response:`, response);
+      console.log(`✅ Removed from waitlist successfully`);
+      
+      // Update state ngay lập tức
       setIsInWaitlist(false);
       setWaitlistId(null);
       setWaitlistStatus(null);
       setPosition(null);
+      console.log('📋 Updated local state: isInWaitlist=false');
       
-      setSnackbar({ open: true, message: 'Đã hủy đăng ký danh sách chờ thành công', severity: 'success' });
+      setSnackbar({ open: true, message: 'Đã xóa khỏi danh sách chờ thành công', severity: 'success' });
       
       if (onSuccess) {
+        console.log('🔔 Calling onSuccess callback');
         onSuccess(null);
       }
     } catch (err) {
-      const errorMessage = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi hủy đăng ký';
+      console.error('❌ [handleRemove] Error:', err);
+      console.error('❌ Response:', err?.response);
+      console.error('❌ Response data:', err?.response?.data);
+      
+      const errorMessage = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi xóa';
       setSnackbar({ open: true, message: errorMessage, severity: 'error' });
     } finally {
       setLoading(false);
@@ -156,13 +173,13 @@ const WaitlistButton = ({ eventId, ticketTypeId, quantity: defaultQuantity = 1, 
 
   return (
     <>
-      <Tooltip title={isInWaitlist ? 'Hủy đăng ký danh sách chờ' : 'Đăng ký danh sách chờ để nhận thông báo khi có vé'}>
+      <Tooltip title={isInWaitlist ? 'Xóa khỏi danh sách chờ' : 'Đăng ký danh sách chờ để nhận thông báo khi có vé'}>
         <Button
           variant={isInWaitlist ? 'contained' : variant}
           color={getButtonColor()}
           size={size}
           startIcon={isInWaitlist ? <Queue /> : <QueueOutlined />}
-          onClick={isInWaitlist ? handleCancel : handleOpenDialog}
+          onClick={isInWaitlist ? handleRemove : handleOpenDialog}
           disabled={loading || waitlistStatus === 'Fulfilled'}
           sx={{ 
             minWidth: 'auto',
