@@ -80,14 +80,15 @@ const CreateEventPage = () => {
     return false;
   };
 
-  // State cho từng bước với localStorage (chỉ load khi edit mode)
+  // State cho từng bước với localStorage (KHÔNG load từ localStorage khi edit mode)
   const [step1Data, setStep1Data] = useState(() => {
-    // Chỉ load localStorage nếu đang ở edit mode
+    // Edit mode sẽ load từ API, không từ localStorage để tránh conflict
     if (isEditMode) {
-      const saved = localStorage.getItem('createEvent_step1');
-      return saved ? JSON.parse(saved) : getInitialStep1Data();
+      return getInitialStep1Data();
     }
-    return getInitialStep1Data();
+    // Create mode: load từ localStorage nếu có
+    const saved = localStorage.getItem('createEvent_step1');
+    return saved ? JSON.parse(saved) : getInitialStep1Data();
   });
   
   // Helper function để get initial data
@@ -156,9 +157,55 @@ const CreateEventPage = () => {
       backgroundImage = eventDetails.images[1] || '';
     }
     
-    // QUAN TRỌNG: Lấy campus từ eventData.campus (backend trả về Campus.Name)
-    // Backend trả về campus name trong MapToEventDetailDto: campus = eventData.Campus?.Name ?? null
-    const campus = eventData.campus || eventData.Campus || eventDetails.campus || '';
+    // Parse province trước để dùng cho campus fallback
+    const province = eventDetails.province || eventDetails.Province || '';
+    
+    // QUAN TRỌNG: Lấy campus từ nhiều nguồn
+    // Backend trả về campus = eventData.Campus?.Name trong MapToEventDetailDto
+    // Nhưng có thể null nếu event chưa có CampusId
+    let campus = '';
+    
+    // Thử nguồn 1: eventData.campus (string trực tiếp từ backend)
+    if (eventData.campus && typeof eventData.campus === 'string') {
+      campus = eventData.campus;
+    }
+    // Thử nguồn 2: eventData.Campus (object từ backend)
+    else if (eventData.Campus) {
+      if (typeof eventData.Campus === 'string') {
+        campus = eventData.Campus;
+      } else if (typeof eventData.Campus === 'object' && eventData.Campus !== null) {
+        campus = eventData.Campus.Name || eventData.Campus.name || '';
+      }
+    }
+    // Thử nguồn 3: eventDetails.campus (lưu trong JSON)
+    else if (eventDetails.campus) {
+      campus = eventDetails.campus;
+    }
+    // Thử nguồn 4: eventDetails.Campus
+    else if (eventDetails.Campus) {
+      if (typeof eventDetails.Campus === 'string') {
+        campus = eventDetails.Campus;
+      } else if (typeof eventDetails.Campus === 'object' && eventDetails.Campus !== null) {
+        campus = eventDetails.Campus.Name || eventDetails.Campus.name || '';
+      }
+    }
+    // Fallback: Nếu vẫn không có campus, thử lấy từ province (FPT campuses)
+    // Dùng province đã parse (xử lý PascalCase)
+    else if (province) {
+      const fptProvinces = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Quy Nhơn', 'Cần Thơ'];
+      if (fptProvinces.includes(province)) {
+        campus = province;
+      }
+    }
+    
+    console.log('Campus parsing:', {
+      'eventData.campus': eventData.campus,
+      'eventData.Campus': eventData.Campus,
+      'eventDetails.campus': eventDetails.campus,
+      'eventDetails.Campus': eventDetails.Campus,
+      'parsed province': province,
+      'final campus': campus
+    });
     
     // QUAN TRỌNG: Lấy organizerLogo từ nhiều nguồn
     // Ưu tiên: eventData.organizerLogo > organizerInfo.organizerLogo > organizerInfo.OrganizerLogo
@@ -170,11 +217,11 @@ const CreateEventPage = () => {
       eventIntroduction: eventData.description || eventData.eventIntroduction || '',
       category: eventData.category || '',
       eventMode: eventData.eventMode || 'Offline',
-      // QUAN TRỌNG: Lấy campus từ eventData.campus (backend trả về Campus.Name)
+      // QUAN TRỌNG: Lấy campus đã parse (có fallback từ province)
       campus: campus,
-      // QUAN TRỌNG: Lấy địa chỉ từ eventDetails (backend lưu ở đây)
+      // QUAN TRỌNG: Lấy địa chỉ từ eventDetails (đã parse PascalCase)
       venueName: eventDetails.venueName || eventDetails.VenueName || '',
-      province: eventDetails.province || eventDetails.Province || '',
+      province: province, // Dùng biến province đã parse
       district: eventDetails.district || eventDetails.District || '',
       ward: eventDetails.ward || eventDetails.Ward || '',
       streetAddress: eventDetails.streetAddress || eventDetails.StreetAddress || '',
@@ -209,11 +256,13 @@ const CreateEventPage = () => {
   }
 
   const [step2Data, setStep2Data] = useState(() => {
+    // Edit mode sẽ load từ API, không từ localStorage để tránh conflict
     if (isEditMode) {
-      const saved = localStorage.getItem('createEvent_step2');
-      return saved ? JSON.parse(saved) : getInitialStep2Data();
+      return getInitialStep2Data();
     }
-    return getInitialStep2Data();
+    // Create mode: load từ localStorage nếu có
+    const saved = localStorage.getItem('createEvent_step2');
+    return saved ? JSON.parse(saved) : getInitialStep2Data();
   });
   
   function getInitialStep2Data() {
@@ -225,11 +274,13 @@ const CreateEventPage = () => {
   }
 
   const [step3Data, setStep3Data] = useState(() => {
+    // Edit mode sẽ load từ API, không từ localStorage để tránh conflict
     if (isEditMode) {
-      const saved = localStorage.getItem('createEvent_step3');
-      return saved ? JSON.parse(saved) : getInitialStep3Data();
+      return getInitialStep3Data();
     }
-    return getInitialStep3Data();
+    // Create mode: load từ localStorage nếu có
+    const saved = localStorage.getItem('createEvent_step3');
+    return saved ? JSON.parse(saved) : getInitialStep3Data();
   });
   
   function getInitialStep3Data() {
@@ -307,55 +358,60 @@ const CreateEventPage = () => {
     'Thanh toán'
   ];
 
-  // Lưu dữ liệu vào localStorage với debounce để tránh chạy quá nhiều
+  // Lưu dữ liệu vào localStorage với debounce (CHỈ cho create mode)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('createEvent_step1', JSON.stringify(step1Data));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [step1Data]);
+    if (!isEditMode) {
+      const timer = setTimeout(() => {
+        localStorage.setItem('createEvent_step1', JSON.stringify(step1Data));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step1Data, isEditMode]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('createEvent_step2', JSON.stringify(step2Data));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [step2Data]);
+    if (!isEditMode) {
+      const timer = setTimeout(() => {
+        localStorage.setItem('createEvent_step2', JSON.stringify(step2Data));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step2Data, isEditMode]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('createEvent_step3', JSON.stringify(step3Data));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [step3Data]);
+    if (!isEditMode) {
+      const timer = setTimeout(() => {
+        localStorage.setItem('createEvent_step3', JSON.stringify(step3Data));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step3Data, isEditMode]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('createEvent_step4', JSON.stringify(step4Data));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [step4Data]);
+    if (!isEditMode) {
+      const timer = setTimeout(() => {
+        localStorage.setItem('createEvent_step4', JSON.stringify(step4Data));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step4Data, isEditMode]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('createEvent_step4', JSON.stringify(step4Data));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [step4Data]);
+    if (!isEditMode) {
+      const timer = setTimeout(() => {
+        localStorage.setItem('createEvent_step5', JSON.stringify(step5Data));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step5Data, isEditMode]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('createEvent_step5', JSON.stringify(step5Data));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [step5Data]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('createEvent_step6', JSON.stringify(step6Data));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [step6Data]);
+    if (!isEditMode) {
+      const timer = setTimeout(() => {
+        localStorage.setItem('createEvent_step6', JSON.stringify(step6Data));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step6Data, isEditMode]);
 
   // Check subscription before allowing event creation (not edit mode)
   useEffect(() => {
@@ -491,17 +547,26 @@ const CreateEventPage = () => {
     checkSubscription();
   }, [isEditMode, user, navigate]);
 
-  // Clear localStorage when creating new event (not edit mode)
+  // Clear localStorage khi vào edit mode để load từ API
   useEffect(() => {
-    if (!isEditMode) {
-      // Clear all localStorage data for create mode
+    if (isEditMode) {
+      // Clear all localStorage data khi edit mode để tránh conflict với data từ API
       localStorage.removeItem('createEvent_step1');
       localStorage.removeItem('createEvent_step2');
       localStorage.removeItem('createEvent_step3');
       localStorage.removeItem('createEvent_step4');
       localStorage.removeItem('createEvent_step5');
       localStorage.removeItem('createEvent_step6');
-      console.log('Create mode: localStorage cleared');
+      console.log('Edit mode: localStorage cleared to load fresh data from API');
+    } else {
+      // Create mode: Clear localStorage để bắt đầu mới
+      localStorage.removeItem('createEvent_step1');
+      localStorage.removeItem('createEvent_step2');
+      localStorage.removeItem('createEvent_step3');
+      localStorage.removeItem('createEvent_step4');
+      localStorage.removeItem('createEvent_step5');
+      localStorage.removeItem('createEvent_step6');
+      console.log('Create mode: localStorage cleared for new event');
     }
   }, []); // Run once on mount
 
@@ -609,12 +674,14 @@ const CreateEventPage = () => {
   // Load event data when in edit mode
   useEffect(() => {
     if (isEditMode && editEventId) {
+      console.log('🔄 useEffect triggered - Loading event data...');
       loadEventData();
     }
   }, [isEditMode, editEventId]);
 
   const loadEventData = async () => {
     try {
+      console.log('📥 loadEventData START - EventId:', editEventId);
       setEditModeLoading(true);
       const response = await eventsAPI.getById(parseInt(editEventId));
       const eventData = response.data;
@@ -687,18 +754,37 @@ const CreateEventPage = () => {
       try {
         const { ticketsAPI } = await import('../services/apiClient');
         const ticketTypesResponse = await ticketsAPI.getTicketTypesByEvent(parseInt(editEventId));
-        console.log('Ticket types response:', ticketTypesResponse);
+        console.log('🎫 Ticket types API response:', ticketTypesResponse);
         ticketTypes = ticketTypesResponse.data || [];
-        console.log('✅ Loaded ticket types:', ticketTypes);
+        console.log('✅ Loaded ticket types from API:', ticketTypes.length, 'tickets');
+        console.log('📋 Ticket details:', ticketTypes.map(t => ({ 
+          id: t.ticketTypeId, 
+          name: t.typeName,
+          price: t.price,
+          quantity: t.quantity 
+        })));
+        
+        // Check for duplicates
+        const ticketNames = ticketTypes.map(t => t.typeName);
+        const duplicateNames = ticketNames.filter((name, index) => ticketNames.indexOf(name) !== index);
+        if (duplicateNames.length > 0) {
+          console.warn('⚠️ DUPLICATE TICKETS DETECTED:', duplicateNames);
+          console.warn('This means backend has duplicate tickets in database!');
+        }
       } catch (ticketErr) {
-        console.warn('Error loading ticket types, using from eventData:', ticketErr);
+        console.warn('Error loading ticket types from API, using from eventData:', ticketErr);
         ticketTypes = eventData.ticketTypes || [];
+        console.log('Loaded tickets from eventData:', ticketTypes.length);
       }
       
+      // Đảm bảo ticketTypes là array
+      const uniqueTickets = Array.isArray(ticketTypes) ? ticketTypes : [];
+      
+      console.log('✅ Setting step2Data with tickets:', uniqueTickets.length);
       setStep2Data({
         startTime: eventData.startTime || '',
         endTime: eventData.endTime || '',
-        ticketTypes: ticketTypes
+        ticketTypes: uniqueTickets
       });
       
       // QUAN TRỌNG: Load step 3 data - venue layout
@@ -714,17 +800,91 @@ const CreateEventPage = () => {
         }
       }
       
-      console.log('VenueLayout loaded:', {
+      // QUAN TRỌNG: Normalize venueLayout từ PascalCase (C# backend) sang camelCase
+      if (venueLayout && typeof venueLayout === 'object') {
+        const rawAreas = venueLayout.areas ?? venueLayout.Areas;
+        let normalizedAreas = Array.isArray(rawAreas) ? rawAreas : [];
+        
+        // Normalize từng area: đảm bảo coordinates là array và properties đúng
+        normalizedAreas = normalizedAreas.map(area => {
+          if (!area || typeof area !== 'object') return null;
+          
+          const rawCoords = area.coordinates ?? area.Coordinates;
+          let normalizedCoords = Array.isArray(rawCoords) ? rawCoords : [];
+          
+          // QUAN TRỌNG: Parse coordinates thành numbers để tránh NaN trong Konva
+          normalizedCoords = normalizedCoords.map(coord => {
+            if (!coord || typeof coord !== 'object') return null;
+            
+            const x = Number(coord.x ?? coord.X ?? 0);
+            const y = Number(coord.y ?? coord.Y ?? 0);
+            
+            // Validate: nếu x hoặc y là NaN, bỏ qua coordinate này
+            if (isNaN(x) || isNaN(y)) {
+              console.warn('Invalid coordinate detected:', coord, 'parsed as', { x, y });
+              return null;
+            }
+            
+            return { x, y };
+          }).filter(coord => coord !== null);
+          
+          // Nếu không có coordinates hợp lệ, bỏ qua area này
+          if (normalizedCoords.length === 0) {
+            console.warn('Area has no valid coordinates, skipping:', area.name);
+            return null;
+          }
+          
+          return {
+            ...area,
+            id: area.id ?? area.Id ?? area.name,
+            name: area.name ?? area.Name ?? 'Area',
+            coordinates: normalizedCoords,
+            color: area.color ?? area.Color ?? '#667eea',
+            ticketTypeId: area.ticketTypeId ?? area.TicketTypeId,
+            isStanding: area.isStanding ?? area.IsStanding ?? false,
+            capacity: area.capacity ?? area.Capacity ?? 0
+          };
+        }).filter(area => area !== null && area.coordinates.length > 0);
+        
+        // Parse canvasWidth/Height thành number để tránh NaN
+        const rawWidth = venueLayout.canvasWidth ?? venueLayout.CanvasWidth ?? 1000;
+        const rawHeight = venueLayout.canvasHeight ?? venueLayout.CanvasHeight ?? 800;
+        const canvasWidth = Number(rawWidth) || 1000;
+        const canvasHeight = Number(rawHeight) || 800;
+        
+        console.log('📐 Canvas dimensions:', {
+          raw: { w: rawWidth, h: rawHeight },
+          parsed: { w: canvasWidth, h: canvasHeight },
+          isNumber: { w: typeof canvasWidth === 'number', h: typeof canvasHeight === 'number' }
+        });
+        
+        venueLayout = {
+          hasVirtualStage: venueLayout.hasVirtualStage ?? venueLayout.HasVirtualStage ?? false,
+          canvasWidth: canvasWidth,
+          canvasHeight: canvasHeight,
+          areas: normalizedAreas
+        };
+      }
+      
+      console.log('✅ VenueLayout loaded and normalized:', {
         raw: eventData.venueLayout,
+        rawType: typeof eventData.venueLayout,
         parsed: venueLayout,
+        parsedType: typeof venueLayout,
         hasVirtualStage: venueLayout?.hasVirtualStage || false,
-        areasCount: venueLayout?.areas?.length || 0
+        canvasWidth: venueLayout?.canvasWidth,
+        canvasHeight: venueLayout?.canvasHeight,
+        areasCount: venueLayout?.areas?.length || 0,
+        areas: venueLayout?.areas
       });
       
-      setStep3Data({
+      const step3DataToSet = {
         hasVirtualStage: venueLayout?.hasVirtualStage || false,
         layout: venueLayout || null
-      });
+      };
+      
+      console.log('✅ Setting step3Data:', step3DataToSet);
+      setStep3Data(step3DataToSet);
       
       // Load step 4 data - products
       try {
@@ -869,10 +1029,18 @@ const CreateEventPage = () => {
           locationString = addressParts.join(', ');
         }
         
+        // QUAN TRỌNG: Đảm bảo Title không bao giờ là empty string (backend yêu cầu Title là required)
+        // Validation đã kiểm tra ở trên, nhưng đảm bảo trim và không empty
+        const finalTitle = step1Data.title ? step1Data.title.trim() : '';
+        if (!finalTitle || finalTitle.length === 0) {
+          setIsEventBeingCreated(false);
+          throw new Error('Tiêu đề sự kiện không được để trống');
+        }
+        
         // QUAN TRỌNG: Gửi TẤT CẢ các field, kể cả empty string để backend có thể cập nhật
         // Backend sẽ merge với data cũ nếu field là null/undefined, nhưng sẽ cập nhật nếu có giá trị (kể cả empty string)
         const eventData = {
-          title: step1Data.title || '',
+          title: finalTitle,
           description: step1Data.eventIntroduction || '',
           eventMode: step1Data.eventMode || 'Offline',
           // QUAN TRỌNG: Gửi tất cả các field địa chỉ
@@ -1479,8 +1647,13 @@ const CreateEventPage = () => {
                 status: t.status || 'Active'
               }))
             };
+            
+            console.log('🔄 Calling updateStep2 API...');
+            console.log('📤 Sending tickets:', updateStep2Data.ticketTypes.length);
+            console.log('📋 Ticket names:', updateStep2Data.ticketTypes.map(t => t.typeName));
+            
             await eventsAPI.updateStep2(eventId, updateStep2Data);
-            console.log('Step 2 updated successfully');
+            console.log('✅ Step 2 updated successfully');
             
             // Step 3: Update venue layout
             if (venueLayout) {
@@ -1670,7 +1843,38 @@ const CreateEventPage = () => {
       
       // Xử lý lỗi cho từng bước
       if (activeStep === 0) {
-        setError(err.message || 'Có lỗi xảy ra khi tạo sự kiện');
+        console.error('Error in step 1 (Basic Info):', err);
+        console.error('Error response:', err.response);
+        console.error('Error response data:', err.response?.data);
+        
+        // Kiểm tra error response từ backend
+        const errorData = err.response?.data;
+        let errorMessage = err.message || 'Có lỗi xảy ra khi cập nhật sự kiện';
+        
+        if (errorData) {
+          // Nếu có message từ backend, sử dụng nó
+          if (errorData.message) {
+            errorMessage = errorData.message;
+            
+            // Thêm error details nếu có
+            if (errorData.error) {
+              errorMessage += `\n\nChi tiết: ${errorData.error}`;
+            }
+            
+            // Thêm validation errors nếu có
+            if (errorData.errors && Array.isArray(errorData.errors)) {
+              errorMessage += '\n\n' + errorData.errors.join('\n');
+            }
+          } else if (errorData.errors && Array.isArray(errorData.errors)) {
+            // Nếu có danh sách lỗi validation
+            errorMessage = 'Lỗi validation:\n' + errorData.errors.join('\n');
+          }
+        } else if (err.apiErrorMessage) {
+          // Sử dụng apiErrorMessage từ interceptor
+          errorMessage = err.apiErrorMessage;
+        }
+        
+        setError(errorMessage);
         setIsEventBeingCreated(false);
         setShouldBlockNavigation(false);
       } else if (activeStep === 5) {
