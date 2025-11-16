@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -16,6 +16,19 @@ import StageEditor from './StageEditor';
 const VirtualStageStep = ({ data, onChange, ticketTypes }) => {
   const [hasVirtualStage, setHasVirtualStage] = useState(data?.hasVirtualStage || false);
   const [layout, setLayout] = useState(data?.layout || null);
+
+  // QUAN TRỌNG: Sync local state với data prop khi edit mode load từ API
+  useEffect(() => {
+    if (data) {
+      console.log('VirtualStageStep: Syncing with data prop', {
+        hasVirtualStage: data.hasVirtualStage,
+        layoutExists: !!data.layout,
+        areasCount: data.layout?.areas?.length
+      });
+      setHasVirtualStage(data.hasVirtualStage || false);
+      setLayout(data.layout || null);
+    }
+  }, [data]);
 
   const handleToggle = (event) => {
     const newValue = event.target.checked;

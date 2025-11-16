@@ -18,7 +18,8 @@ import {
   LocationOn,
   AccessTime,
   Person,
-  Event as EventIcon
+  Event as EventIcon,
+  ConfirmationNumber
 } from '@mui/icons-material';
 
 // Utils
@@ -81,6 +82,27 @@ const EventCard = memo(({ event }) => {
   };
 
   const currentStatus = getEventStatus(event.startTime, event.endTime);
+  
+  // Helper function để tính tổng số vé còn lại từ ticketTypes
+  const getTotalRemainingTickets = () => {
+    if (!event.ticketTypes || !Array.isArray(event.ticketTypes) || event.ticketTypes.length === 0) {
+      return null; // Không có ticket types hoặc chưa load
+    }
+    
+    const now = new Date();
+    return event.ticketTypes
+      .filter(ticket => 
+        ticket.status === 'Active' &&
+        (!ticket.saleStart || new Date(ticket.saleStart) <= now) &&
+        (!ticket.saleEnd || new Date(ticket.saleEnd) >= now)
+      )
+      .reduce((total, ticket) => {
+        const availableQty = ticket.availableQuantity || 0;
+        return total + availableQty;
+      }, 0);
+  };
+  
+  const totalRemainingTickets = getTotalRemainingTickets();
   
   // Get background image (1280x720) - main display image for all pages
   // Backend now returns backgroundImage directly in MapToEventDto
@@ -383,6 +405,35 @@ const EventCard = memo(({ event }) => {
                 Host: {decodeText(event.hostName) || 'N/A'}
               </Typography>
             </Box>
+
+            {/* Số vé còn lại - Hiển thị nếu có ticketTypes */}
+            {totalRemainingTickets !== null && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: 24 }}>
+                <ConfirmationNumber 
+                  sx={{ 
+                    fontSize: '1rem', 
+                    mt: 0.2,
+                    color: totalRemainingTickets > 0 ? '#4caf50' : '#f44336',
+                    flexShrink: 0
+                  }} 
+                />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    lineHeight: 1.4,
+                    fontSize: '0.8125rem',
+                    flex: 1,
+                    minHeight: 20,
+                    fontWeight: 600,
+                    color: totalRemainingTickets > 0 ? '#4caf50' : '#f44336',
+                    textRendering: 'optimizeLegibility',
+                    WebkitFontSmoothing: 'antialiased',
+                  }}
+                >
+                  Còn lại: {totalRemainingTickets} vé
+                </Typography>
+              </Box>
+            )}
           </Stack>
         </Box>
       </CardContent>
