@@ -1,4 +1,6 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
+import { getImageUrl } from '../../utils/helpers';
+import config from '../../config/environment';
 import {
   Box,
   Typography,
@@ -26,7 +28,7 @@ import ImageDisplayLocationsModal from './ImageDisplayLocationsModal';
 import ImageCropModal from '../common/ImageCropModal';
 import ContentGeneratorWidget from '../ai/ContentGeneratorWidget';
 
-const EventInfoStep = ({ data, onChange }) => {
+const EventInfoStep = ({ data, onChange, eventId, isEditMode }) => {
   const theme = useTheme();
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -37,6 +39,27 @@ const EventInfoStep = ({ data, onChange }) => {
   const [cropSize, setCropSize] = useState({ width: 275, height: 275 });
   const [cropField, setCropField] = useState(null);
   
+  // Ref để track lần upload gần nhất
+  const lastUploadRef = useRef({ field: null, url: null, timestamp: 0 });
+  
+  // State để force re-render img tags khi upload
+  const [imageKey, setImageKey] = useState(0);
+  
+  // Debug: Log data changes
+  useEffect(() => {
+    console.log('EventInfoStep - data changed:', {
+      eventImage: data?.eventImage,
+      backgroundImage: data?.backgroundImage,
+      organizerLogo: data?.organizerLogo,
+      fullData: data
+    });
+  }, [data?.eventImage, data?.backgroundImage, data?.organizerLogo]);
+  
+  // Helper function để build image URL
+  const buildImageUrl = useCallback((imagePath) => {
+    if (!imagePath) return null;
+    return getImageUrl(imagePath, config.BASE_URL);
+  }, []);
 
   const handleInputChange = useCallback((field, value) => {
     // Clear error when user starts typing
@@ -115,15 +138,134 @@ const EventInfoStep = ({ data, onChange }) => {
   };
 
   const handleImageUpload = async (file, field) => {
+    let imageUrl = null;
     try {
       setUploading(true);
+      console.log(`[handleImageUpload] Starting upload for field: ${field}`);
+      
       const response = await eventsAPI.uploadImage(file);
-      handleInputChange(field, response.data.imageUrl);
+      imageUrl = response.data.imageUrl;
+      
+      if (!imageUrl) {
+        throw new Error('Image URL không được trả về từ server');
+      }
+      
+      console.log(`[handleImageUpload] Upload successful, imageUrl: ${imageUrl}`);
+      
+      // QUAN TRỌNG: Update state và ref TRƯỚC khi gọi onChange để đảm bảo ảnh hiển thị ngay
+      const timestamp = Date.now();
+      lastUploadRef.current = {
+        field: field,
+        url: imageUrl,
+        timestamp: timestamp
+      };
+      
+      // Force re-render img tag bằng cách update key
+      setImageKey(timestamp);
+      
+      // Tạo data mới với ảnh vừa upload
+      const updatedData = {
+        ...data,
+        [field]: imageUrl
+      };
+      
+      // Cập nhật vào state - chỉ gọi onChange một lần
+      console.log(`[handleImageUpload] Updating state with new image for field: ${field}`);
+      console.log(`[handleImageUpload] Updated data:`, updatedData);
+      
+      // QUAN TRỌNG: Gọi onChange với data mới - wrap trong try-catch để tránh lỗi
+      try {
+        onChange(updatedData);
+        console.log(`[handleImageUpload] State updated successfully`);
+      } catch (onChangeError) {
+        console.error('[handleImageUpload] Error calling onChange:', onChangeError);
+        // Không throw để tránh unmount component
+        // Ảnh vẫn hiển thị vì đã update ref và imageKey
+      }
+      
+      // QUAN TRỌNG: Nếu đang ở edit mode, tự động lưu ảnh vào backend ngay lập tức
+      // Nhưng làm điều này BẤT ĐỒNG BỘ (không await) để không block UI
+      if (isEditMode && eventId) {
+        // Sử dụng setTimeout để đảm bảo state đã được cập nhật trước khi auto-save
+        // Và KHÔNG await để không block
+        setTimeout(async () => {
+          try {
+            console.log(`[handleImageUpload] Auto-saving image ${field} to backend...`);
+            console.log(`[handleImageUpload] Image URL: ${imageUrl}`);
+            
+            // Lấy data mới nhất - sử dụng closure để lấy updatedData
+            let locationString = '';
+            if (updatedData.eventMode === 'Online') {
+              locationString = updatedData.location || '';
+            } else {
+              const addressParts = [];
+              if (updatedData.streetAddress) addressParts.push(updatedData.streetAddress);
+              if (updatedData.ward) addressParts.push(updatedData.ward);
+              if (updatedData.district) addressParts.push(updatedData.district);
+              if (updatedData.province) addressParts.push(updatedData.province);
+              locationString = addressParts.join(', ');
+            }
+            
+            // Tạo update request với đầy đủ các field theo format CreateEventStep1Request
+            const updateData = {
+              title: updatedData.title || '',
+              description: updatedData.eventIntroduction || '',
+              eventMode: updatedData.eventMode || 'Offline',
+              venueName: updatedData.venueName || '',
+              province: updatedData.province || '',
+              district: updatedData.district || '',
+              ward: updatedData.ward || '',
+              streetAddress: updatedData.streetAddress || '',
+              eventType: 'Public',
+              category: updatedData.category || '',
+              campus: updatedData.campus || '',
+              location: locationString,
+              eventImage: updatedData.eventImage || '',
+              backgroundImage: updatedData.backgroundImage || '',
+              eventIntroduction: updatedData.eventIntroduction || '',
+              organizerLogo: updatedData.organizerLogo || '',
+              organizerName: updatedData.organizerName || '',
+              organizerInfo: updatedData.organizerInfo || ''
+            };
+            
+            console.log(`[handleImageUpload] Update data for auto-save:`, updateData);
+            
+            // Gọi API update để lưu ảnh vào backend
+            const updateResponse = await eventsAPI.update(eventId, updateData);
+            console.log(`[handleImageUpload] ✅ Image ${field} saved to backend successfully`);
+            
+            // KHÔNG gọi onChange lại ở đây để tránh re-render và conflict
+            // Ảnh đã được hiển thị từ lần onChange đầu tiên
+            // Chỉ log để debug
+            if (updateResponse.data?.eventData) {
+              console.log(`[handleImageUpload] Backend response received - image saved successfully`);
+              console.log(`[handleImageUpload] EventImage in response:`, updateResponse.data.eventData.eventImage);
+              console.log(`[handleImageUpload] BackgroundImage in response:`, updateResponse.data.eventData.backgroundImage);
+              console.log(`[handleImageUpload] OrganizerLogo in response:`, updateResponse.data.eventData.organizerLogo);
+            }
+          } catch (updateError) {
+            console.error(`[handleImageUpload] ❌ Error saving image ${field} to backend:`, updateError);
+            console.error(`[handleImageUpload] Error details:`, {
+              message: updateError.message,
+              response: updateError.response?.data,
+              stack: updateError.stack
+            });
+            // KHÔNG hiển thị lỗi cho user vì ảnh đã được upload và hiển thị
+            // Ảnh sẽ được lưu khi user nhấn "Tiếp tục"
+          }
+        }, 300); // Delay nhỏ hơn để nhanh hơn, nhưng đủ để state update
+      }
     } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Upload ảnh thất bại: ' + error.message);
+      console.error('[handleImageUpload] ❌ Upload failed:', error);
+      console.error('[handleImageUpload] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      alert('Upload ảnh thất bại: ' + (error.message || 'Lỗi không xác định'));
     } finally {
       setUploading(false);
+      console.log(`[handleImageUpload] Upload process completed for field: ${field}`);
     }
   };
 
@@ -162,8 +304,38 @@ const EventInfoStep = ({ data, onChange }) => {
   };
 
   const handleCropDone = async (croppedFile) => {
-    if (!croppedFile || !cropField) return;
-    await handleImageUpload(croppedFile, cropField);
+    if (!croppedFile || !cropField) {
+      console.warn('[handleCropDone] Missing croppedFile or cropField');
+      return;
+    }
+    
+    console.log(`[handleCropDone] Starting crop for field: ${cropField}`);
+    
+    try {
+      // Lưu field trước khi reset state
+      const fieldToUpload = cropField;
+      
+      // Đóng modal và reset state trước khi upload
+      setCropOpen(false);
+      setCropField(null);
+      setCropImageSrc(null);
+      
+      // Đợi một chút để đảm bảo modal đã đóng hoàn toàn
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Upload ảnh đã crop
+      console.log(`[handleCropDone] Calling handleImageUpload for field: ${fieldToUpload}`);
+      await handleImageUpload(croppedFile, fieldToUpload);
+      
+      console.log(`[handleCropDone] ✅ Crop and upload completed for field: ${fieldToUpload}`);
+    } catch (error) {
+      console.error('[handleCropDone] ❌ Error in crop process:', error);
+      console.error('[handleCropDone] Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      alert('Có lỗi xảy ra khi xử lý ảnh: ' + error.message);
+    }
   };
 
   const categories = [
@@ -442,12 +614,28 @@ const EventInfoStep = ({ data, onChange }) => {
                 {data.eventImage ? (
                   <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
                     <img
-                      src={`http://localhost:5000${data.eventImage}`}
+                      key={`eventImage-${data.eventImage}-${lastUploadRef.current.field === 'eventImage' ? imageKey : 0}`}
+                      src={buildImageUrl(data.eventImage) || data.eventImage || ''}
                       alt="Event Image Preview"
                       style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover'
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
+                      onError={(e) => {
+                        console.error('Error loading event image:', {
+                          originalUrl: data.eventImage,
+                          builtUrl: buildImageUrl(data.eventImage),
+                          error: e
+                        });
+                        // Không ẩn ảnh, chỉ log lỗi
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Event image loaded successfully:', {
+                          originalUrl: data.eventImage,
+                          builtUrl: buildImageUrl(data.eventImage)
+                        });
                       }}
                     />
                     <Button
@@ -513,12 +701,28 @@ const EventInfoStep = ({ data, onChange }) => {
                 {data.backgroundImage ? (
                   <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
                     <img
-                      src={`http://localhost:5000${data.backgroundImage}`}
+                      key={`backgroundImage-${data.backgroundImage}-${lastUploadRef.current.field === 'backgroundImage' ? imageKey : 0}`}
+                      src={buildImageUrl(data.backgroundImage) || data.backgroundImage || ''}
                       alt="Background Image Preview"
                       style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover'
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
+                      onError={(e) => {
+                        console.error('Error loading background image:', {
+                          originalUrl: data.backgroundImage,
+                          builtUrl: buildImageUrl(data.backgroundImage),
+                          error: e
+                        });
+                        // Không ẩn ảnh, chỉ log lỗi
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Background image loaded successfully:', {
+                          originalUrl: data.backgroundImage,
+                          builtUrl: buildImageUrl(data.backgroundImage)
+                        });
                       }}
                     />
                     <Button
@@ -1081,12 +1285,28 @@ Chi tiết sự kiện:
                 {data.organizerLogo ? (
                   <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
                     <img
-                      src={`http://localhost:5000${data.organizerLogo}`}
+                      key={`organizerLogo-${data.organizerLogo}-${lastUploadRef.current.field === 'organizerLogo' ? imageKey : 0}`}
+                      src={buildImageUrl(data.organizerLogo) || data.organizerLogo || ''}
                       alt="Organizer Logo Preview"
                       style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover'
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
+                      onError={(e) => {
+                        console.error('Error loading organizer logo:', {
+                          originalUrl: data.organizerLogo,
+                          builtUrl: buildImageUrl(data.organizerLogo),
+                          error: e
+                        });
+                        // Không ẩn ảnh, chỉ log lỗi
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Organizer logo loaded successfully:', {
+                          originalUrl: data.organizerLogo,
+                          builtUrl: buildImageUrl(data.organizerLogo)
+                        });
                       }}
                     />
                     <Button
@@ -1194,7 +1414,12 @@ Chi tiết sự kiện:
       />
       <ImageCropModal
         open={cropOpen}
-        onClose={() => setCropOpen(false)}
+        onClose={() => {
+          console.log('[EventInfoStep] ImageCropModal onClose called');
+          setCropOpen(false);
+          setCropField(null);
+          setCropImageSrc(null);
+        }}
         imageSrc={cropImageSrc}
         aspectRatio={cropAspect}
         cropWidth={cropSize.width}

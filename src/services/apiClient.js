@@ -501,6 +501,52 @@ export const wishlistAPI = {
   }
 };
 
+// Waitlist API
+export const waitlistAPI = {
+  register: async (eventId, ticketTypeId, quantity) => {
+    return api.post('/Waitlist/register', {
+      eventId,
+      ticketTypeId: ticketTypeId || null,
+      quantity
+    });
+  },
+  
+  cancel: async (waitlistId) => {
+    return api.delete(`/Waitlist/${waitlistId}`);
+  },
+  
+  getMyWaitlists: async () => {
+    return api.get('/Waitlist/my-waitlists');
+  },
+  
+  checkAvailability: async (ticketTypeId) => {
+    return api.post(`/Waitlist/check-availability/${ticketTypeId}`);
+  }
+};
+
+// Admin Waitlist API
+export const adminWaitlistAPI = {
+  getByEvent: async (eventId) => {
+    return api.get(`/Admin/waitlist?eventId=${eventId}`);
+  },
+  
+  getById: async (waitlistId) => {
+    return api.get(`/Admin/waitlist/${waitlistId}`);
+  },
+  
+  delete: async (waitlistId) => {
+    return api.delete(`/Admin/waitlist/${waitlistId}`);
+  },
+  
+  fulfill: async (waitlistId) => {
+    return api.post(`/Admin/waitlist/fulfill/${waitlistId}`);
+  },
+  
+  checkAvailability: async (ticketTypeId) => {
+    return api.post(`/Waitlist/check-availability/${ticketTypeId}`);
+  }
+};
+
 // Notification API
 export const notificationAPI = {
   getNotifications: async (page = 1, pageSize = 10) => {
@@ -658,6 +704,10 @@ export const commentsAPI = {
 
 // Host Marketing API
 export const hostMarketingAPI = {
+  getOverview: async () => {
+    return api.get('/HostMarketing/overview');
+  },
+
   getEvents: async () => {
     return api.get('/HostMarketing/events');
   },

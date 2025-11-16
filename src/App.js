@@ -37,6 +37,7 @@ import MyTicketsPage from './pages/MyTicketsPage';
 import MyEventsPage from './pages/MyEventsPage';
 import CreateEventPage from './pages/CreateEventPage';
 import WishlistPage from './pages/WishlistPage';
+import WaitlistPage from './pages/WaitlistPage';
 import NotificationsPage from './pages/NotificationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import HostDashboard from './pages/HostDashboard';
@@ -122,6 +123,14 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/event/:id" element={<EventDetailsPage />} />
       <Route path="/wishlist" element={<WishlistPage />} />
+      <Route 
+        path="/waitlist" 
+        element={
+          <ProtectedRoute>
+            <WaitlistPage />
+          </ProtectedRoute>
+        } 
+      />
       <Route path="/event/:id/order/create" element={<CreateOrderPage />} />
       <Route path="/ticket-selection/:eventId" element={<TicketSelectionPage />} />
       

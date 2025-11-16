@@ -12,6 +12,7 @@ import AdminAnnouncementsPage from './admin/AdminAnnouncementsPage';
 import AdminEventApprovalPage from './admin/AdminEventApprovalPage';
 import AdminSettingsPage from './admin/AdminSettingsPage';
 import AdminChartsPage from './admin/AdminChartsPage';
+import AdminWaitlistPage from './admin/AdminWaitlistPage';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminDashboard.css';
 
@@ -45,6 +46,7 @@ const AdminDashboard = () => {
           <Route path="/charts/line" element={<AdminChartsPage type="line" />} />
           <Route path="/charts" element={<Navigate to="/admin/charts/bar" replace />} />
           <Route path="/settings" element={<AdminSettingsPage />} />
+          <Route path="/waitlist" element={<AdminWaitlistPage />} />
         </Routes>
       </div>
     </div>
