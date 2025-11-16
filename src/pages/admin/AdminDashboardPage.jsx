@@ -228,6 +228,16 @@ const AdminDashboardPage = () => {
               <p>Xem danh sách đơn hàng</p>
             </div>
           </Link>
+
+          <Link to="/admin/revenue" className="action-btn" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <span className="action-icon">
+              <TrendingUp style={{ fontSize: 32 }} />
+            </span>
+            <div>
+              <h3>Doanh Thu Sàn</h3>
+              <p>Theo dõi revenue platform</p>
+            </div>
+          </Link>
         </div>
       </div>
 

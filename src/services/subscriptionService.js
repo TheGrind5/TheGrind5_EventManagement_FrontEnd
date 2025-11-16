@@ -20,7 +20,7 @@ export const subscriptionAPI = {
 
   // Purchase a new subscription
   purchaseSubscription: async (planType) => {
-    return api.post('/subscriptions/purchase', { planType });
+    return api.post('/subscriptions/purchase', { PlanType: planType });
   },
 
   // Get subscription history
