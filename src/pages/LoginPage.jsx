@@ -9,8 +9,10 @@ import {
   Box, 
   Alert,
   CircularProgress,
-  Stack
+  Stack,
+  Divider
 } from '@mui/material';
+import { GoogleLogin } from '@react-oauth/google';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -23,7 +25,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
-  const { login, user } = useAuth();
+  const { login, user, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -96,6 +98,26 @@ const LoginPage = () => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setError('');
+      const result = await loginWithGoogle(credentialResponse);
+      if (result.success) {
+        // Redirect will be handled by useEffect when user state is updated
+      } else {
+        setError(result.message || 'Đăng nhập Google thất bại');
+      }
+    } catch (error) {
+      console.error('Google login failed:', error);
+      setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.error('Google login failed');
+    setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+  };
+
   return (
     <Box sx={{ 
       minHeight: '100vh', 
@@ -163,6 +185,24 @@ const LoginPage = () => {
                   )}
                 </Button>
               </Stack>
+            </Box>
+
+            <Divider sx={{ my: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Hoặc
+              </Typography>
+            </Divider>
+
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme="outline"
+                size="large"
+                text="signin_with"
+                width="100%"
+                locale="vi"
+              />
             </Box>
 
             <Typography textAlign="center">

@@ -1038,3 +1038,39 @@
   }
 }
 
+/* Severity Badges for Audit Logs */
+.badge-critical,
+.badge-error {
+  background: #fee2e2;
+  color: #dc2626;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-theme .badge-critical,
+.dark-theme .badge-error {
+  background: rgba(220, 38, 38, 0.3);
+  color: #f87171;
+}
+
+.badge-warning {
+  background: #fef3c7;
+  color: #d97706;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-theme .badge-warning {
+  background: rgba(217, 119, 6, 0.3);
+  color: #fbbf24;
+}
+
+.badge-info {
+  background: #dbeafe;
+  color: #2563eb;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-theme .badge-info {
+  background: rgba(37, 99, 235, 0.3);
+  color: #60a5fa;
+}
+

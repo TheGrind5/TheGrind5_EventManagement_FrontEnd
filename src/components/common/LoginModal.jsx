@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 
 const LoginModal = () => {
   const { isLoginModalOpen, closeLoginModal, openRegisterModal, openForgotPasswordModal } = useModal();
-  const { login, user } = useAuth();
+  const { login, user, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -111,6 +112,25 @@ const LoginModal = () => {
   const handleSwitchToRegister = () => {
     closeLoginModal();
     openRegisterModal();
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setError('');
+      const result = await loginWithGoogle(credentialResponse);
+      if (!result.success) {
+        setError(result.message || 'Đăng nhập Google thất bại');
+      }
+      // If success, modal close handled by useEffect
+    } catch (error) {
+      console.error('Google login failed:', error);
+      setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.error('Google login failed');
+    setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
   };
 
   if (!isLoginModalOpen) return null;
@@ -340,8 +360,51 @@ const LoginModal = () => {
             </button>
           </form>
 
+          {/* OAuth Divider */}
           <div style={{ 
-            marginTop: '32px',
+            display: 'flex', 
+            alignItems: 'center', 
+            margin: '24px 0', 
+            gap: '16px' 
+          }}>
+            <div style={{ 
+              flex: 1, 
+              height: '1px', 
+              background: 'var(--color-border)' 
+            }}></div>
+            <span style={{ 
+              color: 'var(--color-text-tertiary)', 
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              Hoặc
+            </span>
+            <div style={{ 
+              flex: 1, 
+              height: '1px', 
+              background: 'var(--color-border)' 
+            }}></div>
+          </div>
+
+          {/* Google OAuth Button */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center',
+            marginBottom: '24px'
+          }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="outline"
+              size="large"
+              text="signin_with"
+              width="100%"
+              locale="vi"
+            />
+          </div>
+
+          <div style={{ 
+            marginTop: '0',
             paddingTop: '24px',
             borderTop: '1px solid var(--color-border)',
             textAlign: 'center'
