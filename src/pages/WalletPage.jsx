@@ -7,25 +7,24 @@ import {
   Stack, 
   CircularProgress,
   Alert,
-  Paper,
-  Grid,
   Card,
   CardContent
 } from '@mui/material';
 import { 
-  AccountBalanceWallet, 
-  Add, 
-  Remove 
+  AccountBalanceWallet
 } from '@mui/icons-material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { walletAPI } from '../services/apiClient';
+import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/layout/Header';
 import WalletBalance from '../components/wallet/WalletBalance';
 import DepositModal from '../components/wallet/DepositModal';
-import WithdrawModal from '../components/wallet/WithdrawModal';
+import QuickWithdrawalModal from '../components/wallet/QuickWithdrawalModal';
 import TransactionHistory from '../components/wallet/TransactionHistory';
+import WithdrawalRequestStatus from '../components/wallet/WithdrawalRequestStatus';
 
 const WalletPage = () => {
+  const { user } = useAuth();
   const [balance, setBalance] = useState(0);
   const [currency, setCurrency] = useState('VND');
   const [loading, setLoading] = useState(true);
@@ -228,38 +227,53 @@ const WalletPage = () => {
               />
             </Box>
 
-            {/* Lịch sử giao dịch - 42.5% */}
-            <Box sx={{ flex: { xs: '1 1 100%', md: '42.5 42.5 0' }, minWidth: 0, height: '100%' }}>
+            {/* Lịch sử giao dịch - 42.5% với scroll, GIỚI HẠN chiều cao 300px */}
+            <Box sx={{ 
+              flex: { xs: '1 1 100%', md: '42.5 42.5 0' }, 
+              minWidth: 0, 
+              height: { xs: 'auto', md: '300px' },
+              maxHeight: { xs: 'none', md: '300px' }
+            }}>
               <TransactionHistory />
             </Box>
           </Box>
 
-          {/* Statistics Chart - Full Width */}
-          <Card>
-            <CardContent sx={{ p: 2.5 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Thống kê nạp/chi
-              </Typography>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={calculateChartData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="name" stroke="#888" fontSize={12} />
-                  <YAxis stroke="#888" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0,0,0,0.8)', 
-                      border: 'none',
-                      borderRadius: '4px'
-                    }}
-                    formatter={(value) => new Intl.NumberFormat('vi-VN').format(value) + '₫'}
-                  />
-                  <Legend />
-                  <Bar dataKey="nạp" fill="#4caf50" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="chi" fill="#ff9800" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          {/* Statistics Chart & Withdrawal Requests */}
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+            {/* Chart - 70% */}
+            <Box sx={{ flex: { xs: '1 1 100%', md: '70 70 0' } }}>
+              <Card>
+                <CardContent sx={{ p: 2.5 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                    Thống kê nạp/chi
+                  </Typography>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={calculateChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                      <YAxis stroke="#888" fontSize={12} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(0,0,0,0.8)', 
+                          border: 'none',
+                          borderRadius: '4px'
+                        }}
+                        formatter={(value) => new Intl.NumberFormat('vi-VN').format(value) + '₫'}
+                      />
+                      <Legend />
+                      <Bar dataKey="nạp" fill="#4caf50" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="chi" fill="#ff9800" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* Withdrawal Requests - 30% */}
+            <Box sx={{ flex: { xs: '1 1 100%', md: '30 30 0' } }}>
+              <WithdrawalRequestStatus />
+            </Box>
+          </Box>
         </Stack>
       </Container>
 
@@ -272,10 +286,17 @@ const WalletPage = () => {
       )}
 
       {showWithdrawModal && (
-        <WithdrawModal
-          currentBalance={balance}
+        <QuickWithdrawalModal
+          open={showWithdrawModal}
           onClose={() => setShowWithdrawModal(false)}
-          onSuccess={handleWithdrawSuccess}
+          currentBalance={balance}
+          userBankInfo={{
+            bankName: user?.bankName,
+            bankAccountNumber: user?.bankAccountNumber,
+            bankAccountName: user?.bankAccountName,
+            bankCode: user?.bankCode,
+            username: user?.username
+          }}
         />
       )}
     </Box>
