@@ -86,3 +86,6 @@ export const EVENT_STATUS = {
   COMPLETED: 'completed',
   CANCELLED: 'cancelled'
 };
+
+// Export bank codes
+export * from './bankCodes';
