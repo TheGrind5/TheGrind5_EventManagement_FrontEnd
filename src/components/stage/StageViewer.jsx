@@ -29,7 +29,17 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick, eventId }) => {
   const [quantity, setQuantity] = useState(0);
   const [zoom, setZoom] = useState(1);
 
-  if (!layout || !layout.hasVirtualStage || !layout.areas || layout.areas.length === 0) {
+  // Normalize ticketTypes to always be an array
+  const safeTicketTypes = Array.isArray(ticketTypes) ? ticketTypes : [];
+
+  // Safe validation với Array.isArray check
+  if (!layout || !layout.hasVirtualStage || !Array.isArray(layout.areas) || layout.areas.length === 0) {
+    console.log('StageViewer: Invalid layout data', {
+      hasLayout: !!layout,
+      hasVirtualStage: layout?.hasVirtualStage,
+      areasIsArray: Array.isArray(layout?.areas),
+      areasLength: layout?.areas?.length
+    });
     return (
       <Paper sx={{ p: 3, textAlign: 'center' }}>
         <Typography variant="body1" color="text.secondary">
@@ -94,7 +104,7 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick, eventId }) => {
   };
 
   const ticketType = selectedArea?.ticketTypeId 
-    ? ticketTypes?.find(t => t?.ticketTypeId === selectedArea.ticketTypeId)
+    ? safeTicketTypes.find(t => t?.ticketTypeId === selectedArea.ticketTypeId)
     : null;
 
   const canvasWidth = layout.canvasWidth || 1280;
@@ -183,18 +193,38 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick, eventId }) => {
             >
             <Layer>
               {layout.areas.map((area) => {
-                const ticketInfo = ticketTypes?.find(t => t?.ticketTypeId === area.ticketTypeId);
+                // Safe check cho area và coordinates
+                if (!area || !Array.isArray(area.coordinates) || area.coordinates.length === 0) {
+                  console.warn('StageViewer: Invalid area data', area);
+                  return null;
+                }
+                
+                const ticketInfo = safeTicketTypes.find(t => t?.ticketTypeId === area.ticketTypeId);
                 // Handle both lowercase and uppercase coordinate properties
-                const getCoordX = (c) => c.x !== undefined ? c.x : c.X;
-                const getCoordY = (c) => c.y !== undefined ? c.y : c.Y;
+                const getCoordX = (c) => c?.x !== undefined ? c.x : c?.X ?? 0;
+                const getCoordY = (c) => c?.y !== undefined ? c.y : c?.Y ?? 0;
+                
+                // Safe coordinate mapping
+                const coordsX = area.coordinates.map(getCoordX).filter(x => typeof x === 'number' && !isNaN(x));
+                const coordsY = area.coordinates.map(getCoordY).filter(y => typeof y === 'number' && !isNaN(y));
+                
+                if (coordsX.length === 0 || coordsY.length === 0) {
+                  console.warn('StageViewer: No valid coordinates for area', area.name);
+                  return null;
+                }
+                
+                const minX = Math.min(...coordsX);
+                const minY = Math.min(...coordsY);
+                const maxX = Math.max(...coordsX);
+                const maxY = Math.max(...coordsY);
                 
                 return (
-                  <Group key={area.id}>
+                  <Group key={area.id || area.name || Math.random()}>
                     <Rect
-                      x={Math.min(...area.coordinates.map(getCoordX))}
-                      y={Math.min(...area.coordinates.map(getCoordY))}
-                      width={Math.max(...area.coordinates.map(getCoordX)) - Math.min(...area.coordinates.map(getCoordX))}
-                      height={Math.max(...area.coordinates.map(getCoordY)) - Math.min(...area.coordinates.map(getCoordY))}
+                      x={minX}
+                      y={minY}
+                      width={maxX - minX}
+                      height={maxY - minY}
                       fill={area.color}
                       opacity={0.8}
                       stroke="#fff"
@@ -208,17 +238,17 @@ const StageViewer = ({ layout, ticketTypes, onAreaClick, eventId }) => {
                       }}
                     />
                     <Text
-                      x={Math.min(...area.coordinates.map(getCoordX)) + 10}
-                      y={Math.min(...area.coordinates.map(getCoordY)) + 10}
-                      text={area.name}
+                      x={minX + 10}
+                      y={minY + 10}
+                      text={area.name || 'Khu vực'}
                       fontSize={14}
                       fill="#000"
                       fontStyle="bold"
                     />
                     {ticketInfo && (
                       <Text
-                        x={Math.min(...area.coordinates.map(getCoordX)) + 10}
-                        y={Math.min(...area.coordinates.map(getCoordY)) + 30}
+                        x={minX + 10}
+                        y={minY + 30}
                         text={`${ticketInfo.price?.toLocaleString('vi-VN')} ₫`}
                         fontSize={12}
                         fill="#000"

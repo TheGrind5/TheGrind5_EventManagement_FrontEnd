@@ -109,7 +109,8 @@ const EventDetailsPage = () => {
         const response = await eventsAPI.getById(id);
         console.log('Event response:', response);
         console.log('Event venueLayout:', response.data?.venueLayout);
-        console.log('Has virtual stage:', response.data?.venueLayout?.hasVirtualStage);
+        console.log('Has virtual stage (camelCase):', response.data?.venueLayout?.hasVirtualStage);
+        console.log('Has virtual stage (PascalCase):', response.data?.venueLayout?.HasVirtualStage);
         
         const eventData = response.data;
         
@@ -135,7 +136,7 @@ const EventDetailsPage = () => {
           }
         }
         
-        // QUAN TRỌNG: Parse VenueLayout nếu là JSON string
+        // QUAN TRỌNG: Parse VenueLayout nếu là JSON string và normalize về camelCase
         let parsedVenueLayout = eventData.venueLayout;
         if (typeof eventData.venueLayout === 'string') {
           try {
@@ -144,6 +145,67 @@ const EventDetailsPage = () => {
             console.warn('Error parsing venueLayout:', e);
             parsedVenueLayout = null;
           }
+        }
+        
+        // Normalize VenueLayout: Xử lý cả PascalCase (từ C# backend) và camelCase
+        if (parsedVenueLayout && typeof parsedVenueLayout === 'object') {
+          // Đảm bảo areas luôn là array
+          const rawAreas = parsedVenueLayout.areas ?? parsedVenueLayout.Areas;
+          let normalizedAreas = Array.isArray(rawAreas) ? rawAreas : [];
+          
+          // Normalize từng area: đảm bảo coordinates là array
+          normalizedAreas = normalizedAreas.map(area => {
+            if (!area || typeof area !== 'object') return null;
+            
+            const rawCoords = area.coordinates ?? area.Coordinates;
+            let normalizedCoords = Array.isArray(rawCoords) ? rawCoords : [];
+            
+            // QUAN TRỌNG: Parse coordinates thành numbers để tránh NaN trong Konva
+            normalizedCoords = normalizedCoords.map(coord => {
+              if (!coord || typeof coord !== 'object') return null;
+              
+              const x = Number(coord.x ?? coord.X ?? 0);
+              const y = Number(coord.y ?? coord.Y ?? 0);
+              
+              // Validate: nếu x hoặc y là NaN, bỏ qua coordinate này
+              if (isNaN(x) || isNaN(y)) {
+                console.warn('Invalid coordinate detected:', coord, 'parsed as', { x, y });
+                return null;
+              }
+              
+              return { x, y };
+            }).filter(coord => coord !== null);
+            
+            // Nếu không có coordinates hợp lệ, bỏ qua area này
+            if (normalizedCoords.length === 0) {
+              console.warn('Area has no valid coordinates, skipping:', area.name);
+              return null;
+            }
+            
+            return {
+              ...area,
+              id: area.id ?? area.Id ?? area.name,
+              name: area.name ?? area.Name ?? 'Area',
+              coordinates: normalizedCoords,
+              color: area.color ?? area.Color ?? '#667eea',
+              ticketTypeId: area.ticketTypeId ?? area.TicketTypeId
+            };
+          }).filter(area => area !== null && area.coordinates.length > 0);
+          
+          parsedVenueLayout = {
+            hasVirtualStage: parsedVenueLayout.hasVirtualStage ?? parsedVenueLayout.HasVirtualStage ?? false,
+            canvasWidth: parsedVenueLayout.canvasWidth ?? parsedVenueLayout.CanvasWidth ?? 1000,
+            canvasHeight: parsedVenueLayout.canvasHeight ?? parsedVenueLayout.CanvasHeight ?? 800,
+            areas: normalizedAreas
+          };
+        } else if (parsedVenueLayout === null || parsedVenueLayout === undefined) {
+          // Nếu không có venueLayout, set default để tránh lỗi
+          parsedVenueLayout = {
+            hasVirtualStage: false,
+            canvasWidth: 1000,
+            canvasHeight: 800,
+            areas: []
+          };
         }
         
         // Merge parsed data vào eventData
@@ -160,22 +222,22 @@ const EventDetailsPage = () => {
           campus: eventData.campus || eventData.Campus || parsedEventDetails?.campus || null
         };
         
-        console.log('=== Processed event data (before venue layout fallback) ===');
+        console.log('=== Processed event data (after normalization) ===');
         console.log('EventImage:', processedEventData.eventImage);
         console.log('BackgroundImage:', processedEventData.backgroundImage);
         console.log('OrganizerLogo:', processedEventData.organizerLogo);
         console.log('Campus:', processedEventData.campus);
         console.log('VenueLayout:', processedEventData.venueLayout);
         console.log('VenueLayout type:', typeof processedEventData.venueLayout);
-        console.log('HasVirtualStage:', processedEventData.venueLayout?.hasVirtualStage);
-        console.log('Areas count:', processedEventData.venueLayout?.areas?.length);
+        console.log('hasVirtualStage (normalized):', processedEventData.venueLayout?.hasVirtualStage);
+        console.log('Areas count (normalized):', processedEventData.venueLayout?.areas?.length);
 
         // Fallback: Nếu venueLayout không có hoặc thiếu hasVirtualStage, gọi API riêng để lấy layout mới nhất
         let finalEventData = processedEventData;
         try {
           const needsSeparateLayoutFetch = !processedEventData.venueLayout ||
             typeof processedEventData.venueLayout !== 'object' ||
-            processedEventData.venueLayout.hasVirtualStage === undefined;
+            (processedEventData.venueLayout.hasVirtualStage === undefined && processedEventData.venueLayout.HasVirtualStage === undefined);
 
           if (needsSeparateLayoutFetch) {
             console.log('Fetching venue layout from separate API...');
@@ -191,12 +253,63 @@ const EventDetailsPage = () => {
               }
             }
 
-            if (layoutData) {
+            // Normalize layout data từ API riêng
+            if (layoutData && typeof layoutData === 'object') {
+              // Đảm bảo areas luôn là array
+              const rawAreas = layoutData.areas ?? layoutData.Areas;
+              let normalizedAreas = Array.isArray(rawAreas) ? rawAreas : [];
+              
+              // Normalize từng area: đảm bảo coordinates là array
+              normalizedAreas = normalizedAreas.map(area => {
+                if (!area || typeof area !== 'object') return null;
+                
+                const rawCoords = area.coordinates ?? area.Coordinates;
+                let normalizedCoords = Array.isArray(rawCoords) ? rawCoords : [];
+                
+                // QUAN TRỌNG: Parse coordinates thành numbers để tránh NaN trong Konva
+                normalizedCoords = normalizedCoords.map(coord => {
+                  if (!coord || typeof coord !== 'object') return null;
+                  
+                  const x = Number(coord.x ?? coord.X ?? 0);
+                  const y = Number(coord.y ?? coord.Y ?? 0);
+                  
+                  // Validate: nếu x hoặc y là NaN, bỏ qua coordinate này
+                  if (isNaN(x) || isNaN(y)) {
+                    console.warn('Invalid coordinate detected:', coord, 'parsed as', { x, y });
+                    return null;
+                  }
+                  
+                  return { x, y };
+                }).filter(coord => coord !== null);
+                
+                // Nếu không có coordinates hợp lệ, bỏ qua area này
+                if (normalizedCoords.length === 0) {
+                  console.warn('Area has no valid coordinates, skipping:', area.name);
+                  return null;
+                }
+                
+                return {
+                  ...area,
+                  id: area.id ?? area.Id ?? area.name,
+                  name: area.name ?? area.Name ?? 'Area',
+                  coordinates: normalizedCoords,
+                  color: area.color ?? area.Color ?? '#667eea',
+                  ticketTypeId: area.ticketTypeId ?? area.TicketTypeId
+                };
+              }).filter(area => area !== null && area.coordinates.length > 0);
+              
+              layoutData = {
+                hasVirtualStage: layoutData.hasVirtualStage ?? layoutData.HasVirtualStage ?? false,
+                canvasWidth: layoutData.canvasWidth ?? layoutData.CanvasWidth ?? 1000,
+                canvasHeight: layoutData.canvasHeight ?? layoutData.CanvasHeight ?? 800,
+                areas: normalizedAreas
+              };
+              
               finalEventData = {
                 ...processedEventData,
                 venueLayout: layoutData
               };
-              console.log('Updated venueLayout from separate API:', layoutData);
+              console.log('Updated venueLayout from separate API (normalized):', layoutData);
             }
           }
         } catch (layoutErr) {
@@ -206,8 +319,8 @@ const EventDetailsPage = () => {
         console.log('=== Final event data ===');
         console.log('Campus (final):', finalEventData.campus);
         console.log('VenueLayout (final):', finalEventData.venueLayout);
-        console.log('HasVirtualStage (final):', finalEventData.venueLayout?.hasVirtualStage);
-        console.log('Areas count (final):', finalEventData.venueLayout?.areas?.length);
+        console.log('hasVirtualStage (final - normalized):', finalEventData.venueLayout?.hasVirtualStage);
+        console.log('Areas count (final - normalized):', finalEventData.venueLayout?.areas?.length);
         
         setEvent(finalEventData);
         
@@ -360,7 +473,7 @@ const EventDetailsPage = () => {
 
   // --- Thêm logic tính nhãn giá tổng quát cho event: ---
   const getEventPriceSummary = () => {
-    if (!ticketTypes.length) return '';
+    if (!Array.isArray(ticketTypes) || !ticketTypes.length) return '';
     const allFree = ticketTypes.every(t => (t.isFree || t.price === 0));
     if (allFree) return 'Miễn phí';
     const hasFree = ticketTypes.some(t => (t.isFree || t.price === 0));
@@ -371,11 +484,13 @@ const EventDetailsPage = () => {
 
   // Helper function để kiểm tra xem event có trong wishlist không
   const isEventInWishlist = () => {
+    if (!Array.isArray(ticketTypes)) return false;
     return ticketTypes.some(ticket => isInWishlist(ticket.ticketTypeId));
   };
 
   // Helper function để lấy ticket type đầu tiên có sẵn
   const getFirstAvailableTicketType = () => {
+    if (!Array.isArray(ticketTypes) || ticketTypes.length === 0) return null;
     return ticketTypes.find(ticket => 
       ticket.availableQuantity > 0 && 
       ticket.status === 'Active' &&
@@ -1099,7 +1214,7 @@ const EventDetailsPage = () => {
                       <Box>
                         <Typography variant="body2" color="text.secondary">Campus</Typography>
                         <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                          {event.campus || event.eventDetails?.province || 'Chưa có thông tin campus'}
+                          {event.campus || event.Campus || event.eventDetails?.province || event.eventDetails?.Province || 'Chưa có thông tin campus'}
                         </Typography>
                       </Box>
                     </Box>
@@ -1157,11 +1272,22 @@ const EventDetailsPage = () => {
 
               {/* Virtual Stage 2D - Căn giữa và tỉ lệ 1280x720 */}
               {(() => {
-                console.log('Checking venue layout:', event.venueLayout);
-                console.log('Has virtual stage:', event.venueLayout?.hasVirtualStage);
-                console.log('Areas:', event.venueLayout?.areas);
+                // Safe check với fallback đầy đủ
+                if (!event || !event.venueLayout) {
+                  console.log('No venue layout available');
+                  return null;
+                }
                 
-                if (event.venueLayout && event.venueLayout.hasVirtualStage) {
+                const hasVirtualStage = event.venueLayout?.hasVirtualStage ?? event.venueLayout?.HasVirtualStage ?? false;
+                const rawAreas = event.venueLayout?.areas ?? event.venueLayout?.Areas;
+                const areas = Array.isArray(rawAreas) ? rawAreas : [];
+                
+                console.log('Checking venue layout:', event.venueLayout);
+                console.log('Has virtual stage (normalized):', hasVirtualStage);
+                console.log('Areas (normalized):', areas);
+                console.log('Areas is array:', Array.isArray(areas));
+                
+                if (hasVirtualStage && areas.length > 0) {
                   return (
                     <Box sx={{ 
                       width: '100%',
@@ -1170,23 +1296,21 @@ const EventDetailsPage = () => {
                       alignItems: 'center'
                     }}>
                       <StageViewer 
-                        layout={event.venueLayout}
-                        ticketTypes={ticketTypes.map(t => ({
+                        layout={{
+                          ...event.venueLayout,
+                          areas: areas // Truyền areas đã được normalize
+                        }}
+                        ticketTypes={Array.isArray(ticketTypes) ? ticketTypes.map(t => ({
                           id: t.ticketTypeId,
                           ...t
-                        }))}
+                        })) : []}
                         eventId={id}
                       />
                     </Box>
                   );
                 } else {
-                  return (
-                    <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Debug: venueLayout = {JSON.stringify(event.venueLayout)}
-                      </Typography>
-                    </Box>
-                  );
+                  console.log('Virtual stage not enabled or no venue layout');
+                  return null;
                 }
               })()}
 
@@ -1327,7 +1451,7 @@ const EventDetailsPage = () => {
                   Thông tin vé
                 </Typography>
                 
-                {ticketTypes.length === 0 ? (
+                {!Array.isArray(ticketTypes) || ticketTypes.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <ConfirmationNumber sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="h6" color="text.secondary">
